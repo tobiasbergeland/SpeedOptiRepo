@@ -1,0 +1,54 @@
+
+----- MetaData -----
+numPeriods                           : 3 
+numCommodities                       : 1 
+numLoadingRegions                    : 1 
+numDischargingRegions                : 1 
+numLoadingPortsInRegion              : [ 3]
+numDischargingPortsInRegion          : [ 3]
+numVesselClasses                     : 1 
+numTermVesselsInClass                : [ 3]
+hoursPerPeriod                       : 24 
+spotMarketPricePerUnit               : 1 
+spotMarketDiscountFactor             :  0.999 
+perPeriodRewardForFinishingEarly     :  0.01 
+attemptCost                          :  0.01 
+constantForSinglePeriodAlphaSlack    :  0.50 
+constantForCumulativeAlphaSlack      :  1.00 
+
+----- Region Table ----
+            LR0r0  DR0r1
+  Capacity    500   1000
+ Inventory    250    500
+      Rate     50    -50
+     Price             5
+  NumPorts      3      3
+BerthLimit      3      3
+ C2R ratio      5      10
+Note: Inventory = initial inventory
+Note: Rate = approximate average rate of production/consumption over 3 periods.
+Note: C2R ratio = Average capacity-to-rate ratio. The smaller the number, the more frequent visits must occur, i.e., the harder the instance.
+
+----- Port Table For Region 0 ----
+            Port0  Port1  Port2
+  Capacity    150    175    175
+ Inventory     75     87     88
+      Rate     25     29     30
+BerthLimit      1      1      1
+   PortFee     10     15     20
+    maxAmt    100    110    120
+    minAmt     10     15     20
+ C2R ratio      3      4      5
+
+----- Port Table For Region 1 ----
+            Port0  Port1  Port2
+  Capacity    300    350    350
+ Inventory    150    175    175
+      Rate    -30    -35    -35
+     Price      5      5      5
+BerthLimit      1      1      1
+   PortFee     20     25     30
+    maxAmt    200    220    230
+    minAmt     20     25     30
+ C2R ratio      5      6      7
+
