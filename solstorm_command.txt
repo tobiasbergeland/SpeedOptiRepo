@@ -1,0 +1,23 @@
+
+### Login
+ssh solstorm-login.iot.ntnu.no -l tobiaskb  
+
+
+screen
+
+gstat -a
+
+1.0 -> 1.15 er raskest
+
+### Choose node
+ssh compute-x-y
+
+### Load modules
+module load Python
+module load gurobi
+
+cd SpeedOptiRepo
+
+jupyter nbconvert --to python mirpso.ipynb
+
+python mirpso.py

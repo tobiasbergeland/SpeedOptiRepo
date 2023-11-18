@@ -1,0 +1,1361 @@
+Hyperparameters:
+Number of Time Periods: 10
+Time Period Range: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+Original Number of Vessels: 7
+Number of Vessels: 2
+Max Speed: 15
+Min Speed: 8
+Operating Speed: 14
+Operating Cost: 200
+Waiting Cost: 50
+Fuel Price (USD/ton): 500
+
+Number of ports: 4
+
+
+Ports:
+Port 1: Capacity = 594, Inventory = 297, Rate = 99, Price = None, Berth Limit = 1, Port Fee = 38, Max Amount = 300, Min Amount = 35, is Loading Port = 1
+Port 2: Capacity = 351, Inventory = 168, Rate = 39, Price = 5, Berth Limit = 1, Port Fee = 57, Max Amount = 300, Min Amount = 50, is Loading Port = -1
+Port 3: Capacity = 510, Inventory = 255, Rate = 34, Price = 5, Berth Limit = 1, Port Fee = 58, Max Amount = 300, Min Amount = 35, is Loading Port = -1
+Port 4: Capacity = 312, Inventory = 156, Rate = 26, Price = 5, Berth Limit = 1, Port Fee = 66, Max Amount = 259, Min Amount = 20, is Loading Port = -1
+
+Vessels:
+Vessel 1: Max Inventory = 300, Inventory = 0, Max Operating Quantity = 300
+Vessel 2: Max Inventory = 300, Inventory = 0, Max Operating Quantity = 300
+
+Full distance matrix:
+[0.0000, 57.9283, 57.3094, 56.6371]
+[57.9283, 0.0000, 3.2610, 3.3892]
+[57.3094, 3.2610, 0.0000, 0.6742]
+[56.6371, 3.3892, 0.6742, 0.0000]
+
+Source Distances:
+Vessel 1: [0, 3, 3, 39]
+Vessel 2: [9, 19, 21, 36]
+----------------------------------------
+Objective Value: 4768.109049235244
+----------------------------------------
+Variable Values:
+x[((0, 0), (2, 1)),Vessel 1]: 0.0
+x[((0, 0), (3, 1)),Vessel 1]: 0.0
+x[((0, 0), (4, 1)),Vessel 1]: 0.0
+x[((1, 1), (1, 2)),Vessel 1]: 0.0
+x[((1, 1), (2, 2)),Vessel 1]: 0.0
+x[((1, 1), (3, 2)),Vessel 1]: 0.0
+x[((1, 1), (4, 2)),Vessel 1]: 0.0
+x[((2, 1), (1, 2)),Vessel 1]: 0.0
+x[((2, 1), (2, 2)),Vessel 1]: 0.0
+x[((2, 1), (3, 2)),Vessel 1]: 0.0
+x[((2, 1), (4, 2)),Vessel 1]: 0.0
+x[((3, 1), (1, 2)),Vessel 1]: 0.0
+x[((3, 1), (2, 2)),Vessel 1]: 0.0
+x[((3, 1), (3, 2)),Vessel 1]: 0.0
+x[((3, 1), (4, 2)),Vessel 1]: 0.0
+x[((4, 1), (1, 2)),Vessel 1]: 0.0
+x[((4, 1), (2, 2)),Vessel 1]: 0.0
+x[((4, 1), (3, 2)),Vessel 1]: 0.0
+x[((4, 1), (4, 2)),Vessel 1]: 0.0
+x[((1, 2), (1, 3)),Vessel 1]: 0.0
+x[((1, 2), (2, 3)),Vessel 1]: 0.0
+x[((1, 2), (3, 3)),Vessel 1]: 0.0
+x[((1, 2), (4, 3)),Vessel 1]: 0.0
+x[((2, 2), (1, 3)),Vessel 1]: 0.0
+x[((2, 2), (2, 3)),Vessel 1]: 0.0
+x[((2, 2), (3, 3)),Vessel 1]: 0.0
+x[((2, 2), (4, 3)),Vessel 1]: 0.0
+x[((3, 2), (1, 3)),Vessel 1]: 0.0
+x[((3, 2), (2, 3)),Vessel 1]: 0.0
+x[((3, 2), (3, 3)),Vessel 1]: 0.0
+x[((3, 2), (4, 3)),Vessel 1]: 0.0
+x[((4, 2), (1, 3)),Vessel 1]: 0.0
+x[((4, 2), (2, 3)),Vessel 1]: 0.0
+x[((4, 2), (3, 3)),Vessel 1]: 0.0
+x[((4, 2), (4, 3)),Vessel 1]: 0.0
+x[((1, 3), (1, 4)),Vessel 1]: 0.0
+x[((1, 3), (2, 4)),Vessel 1]: 0.0
+x[((1, 3), (3, 4)),Vessel 1]: 0.0
+x[((1, 3), (4, 4)),Vessel 1]: 0.0
+x[((2, 3), (1, 4)),Vessel 1]: 0.0
+x[((2, 3), (2, 4)),Vessel 1]: 0.0
+x[((2, 3), (3, 4)),Vessel 1]: 0.0
+x[((2, 3), (4, 4)),Vessel 1]: 0.0
+x[((3, 3), (1, 4)),Vessel 1]: 0.0
+x[((3, 3), (2, 4)),Vessel 1]: 0.0
+x[((3, 3), (3, 4)),Vessel 1]: 0.0
+x[((3, 3), (4, 4)),Vessel 1]: 0.0
+x[((4, 3), (1, 4)),Vessel 1]: 0.0
+x[((4, 3), (2, 4)),Vessel 1]: 0.0
+x[((4, 3), (3, 4)),Vessel 1]: 0.0
+x[((4, 3), (4, 4)),Vessel 1]: 0.0
+x[((1, 4), (1, 5)),Vessel 1]: 0.0
+x[((1, 4), (2, 5)),Vessel 1]: 0.0
+x[((1, 4), (3, 5)),Vessel 1]: 0.0
+x[((1, 4), (4, 5)),Vessel 1]: 0.0
+x[((2, 4), (1, 5)),Vessel 1]: 0.0
+x[((2, 4), (2, 5)),Vessel 1]: 0.0
+x[((2, 4), (3, 5)),Vessel 1]: 0.0
+x[((2, 4), (4, 5)),Vessel 1]: 0.0
+x[((3, 4), (1, 5)),Vessel 1]: 0.0
+x[((3, 4), (2, 5)),Vessel 1]: 0.0
+x[((3, 4), (3, 5)),Vessel 1]: 0.0
+x[((3, 4), (4, 5)),Vessel 1]: 0.0
+x[((4, 4), (1, 5)),Vessel 1]: 0.0
+x[((4, 4), (2, 5)),Vessel 1]: 0.0
+x[((4, 4), (3, 5)),Vessel 1]: 0.0
+x[((4, 4), (4, 5)),Vessel 1]: 0.0
+x[((1, 5), (1, 6)),Vessel 1]: 0.0
+x[((1, 5), (2, 6)),Vessel 1]: 0.0
+x[((1, 5), (3, 6)),Vessel 1]: 0.0
+x[((1, 5), (4, 6)),Vessel 1]: 0.0
+x[((2, 5), (1, 6)),Vessel 1]: 0.0
+x[((2, 5), (2, 6)),Vessel 1]: 0.0
+x[((2, 5), (3, 6)),Vessel 1]: 0.0
+x[((2, 5), (4, 6)),Vessel 1]: 0.0
+x[((3, 5), (1, 6)),Vessel 1]: 0.0
+x[((3, 5), (2, 6)),Vessel 1]: 0.0
+x[((3, 5), (3, 6)),Vessel 1]: 0.0
+x[((3, 5), (4, 6)),Vessel 1]: 0.0
+x[((4, 5), (1, 6)),Vessel 1]: 0.0
+x[((4, 5), (2, 6)),Vessel 1]: 0.0
+x[((4, 5), (3, 6)),Vessel 1]: 0.0
+x[((4, 5), (4, 6)),Vessel 1]: 0.0
+x[((1, 6), (1, 7)),Vessel 1]: 0.0
+x[((1, 6), (2, 7)),Vessel 1]: 0.0
+x[((1, 6), (3, 7)),Vessel 1]: 0.0
+x[((1, 6), (4, 7)),Vessel 1]: 0.0
+x[((2, 6), (1, 7)),Vessel 1]: 0.0
+x[((2, 6), (2, 7)),Vessel 1]: 0.0
+x[((2, 6), (3, 7)),Vessel 1]: 0.0
+x[((2, 6), (4, 7)),Vessel 1]: 0.0
+x[((3, 6), (1, 7)),Vessel 1]: 0.0
+x[((3, 6), (2, 7)),Vessel 1]: 0.0
+x[((3, 6), (3, 7)),Vessel 1]: 0.0
+x[((3, 6), (4, 7)),Vessel 1]: 0.0
+x[((4, 6), (1, 7)),Vessel 1]: 0.0
+x[((4, 6), (2, 7)),Vessel 1]: 0.0
+x[((4, 6), (3, 7)),Vessel 1]: 0.0
+x[((4, 6), (4, 7)),Vessel 1]: 0.0
+x[((1, 7), (1, 8)),Vessel 1]: 0.0
+x[((1, 7), (2, 8)),Vessel 1]: 0.0
+x[((1, 7), (3, 8)),Vessel 1]: 0.0
+x[((1, 7), (4, 8)),Vessel 1]: 0.0
+x[((2, 7), (1, 8)),Vessel 1]: 0.0
+x[((2, 7), (2, 8)),Vessel 1]: 0.0
+x[((2, 7), (3, 8)),Vessel 1]: 0.0
+x[((2, 7), (4, 8)),Vessel 1]: 0.0
+x[((3, 7), (1, 8)),Vessel 1]: 0.0
+x[((3, 7), (2, 8)),Vessel 1]: 0.0
+x[((3, 7), (3, 8)),Vessel 1]: 0.0
+x[((3, 7), (4, 8)),Vessel 1]: 0.0
+x[((4, 7), (1, 8)),Vessel 1]: 0.0
+x[((4, 7), (2, 8)),Vessel 1]: 0.0
+x[((4, 7), (3, 8)),Vessel 1]: 0.0
+x[((4, 7), (4, 8)),Vessel 1]: 0.0
+x[((1, 8), (1, 9)),Vessel 1]: 0.0
+x[((1, 8), (2, 9)),Vessel 1]: 0.0
+x[((1, 8), (3, 9)),Vessel 1]: 0.0
+x[((1, 8), (4, 9)),Vessel 1]: 0.0
+x[((2, 8), (1, 9)),Vessel 1]: 0.0
+x[((2, 8), (2, 9)),Vessel 1]: 0.0
+x[((2, 8), (3, 9)),Vessel 1]: 0.0
+x[((2, 8), (4, 9)),Vessel 1]: 0.0
+x[((3, 8), (1, 9)),Vessel 1]: 0.0
+x[((3, 8), (2, 9)),Vessel 1]: 0.0
+x[((3, 8), (3, 9)),Vessel 1]: 0.0
+x[((3, 8), (4, 9)),Vessel 1]: 0.0
+x[((4, 8), (1, 9)),Vessel 1]: 0.0
+x[((4, 8), (2, 9)),Vessel 1]: 0.0
+x[((4, 8), (3, 9)),Vessel 1]: 0.0
+x[((4, 8), (4, 9)),Vessel 1]: 0.0
+x[((1, 9), (1, 10)),Vessel 1]: 0.0
+x[((1, 9), (2, 10)),Vessel 1]: 0.0
+x[((1, 9), (3, 10)),Vessel 1]: 0.0
+x[((1, 9), (4, 10)),Vessel 1]: 0.0
+x[((2, 9), (1, 10)),Vessel 1]: 0.0
+x[((2, 9), (2, 10)),Vessel 1]: 0.0
+x[((2, 9), (3, 10)),Vessel 1]: 0.0
+x[((2, 9), (4, 10)),Vessel 1]: 0.0
+x[((3, 9), (1, 10)),Vessel 1]: 0.0
+x[((3, 9), (2, 10)),Vessel 1]: 0.0
+x[((3, 9), (3, 10)),Vessel 1]: 0.0
+x[((3, 9), (4, 10)),Vessel 1]: 0.0
+x[((4, 9), (1, 10)),Vessel 1]: 0.0
+x[((4, 9), (2, 10)),Vessel 1]: 0.0
+x[((4, 9), (3, 10)),Vessel 1]: 0.0
+x[((4, 9), (4, 10)),Vessel 1]: 0.0
+x[((0, 0), (5, 11)),Vessel 1]: 1.0
+x[((1, 1), (5, 11)),Vessel 1]: 0.0
+x[((2, 1), (5, 11)),Vessel 1]: 0.0
+x[((3, 1), (5, 11)),Vessel 1]: 0.0
+x[((4, 1), (5, 11)),Vessel 1]: 0.0
+x[((1, 2), (5, 11)),Vessel 1]: 0.0
+x[((2, 2), (5, 11)),Vessel 1]: 0.0
+x[((3, 2), (5, 11)),Vessel 1]: 0.0
+x[((4, 2), (5, 11)),Vessel 1]: 0.0
+x[((1, 3), (5, 11)),Vessel 1]: 0.0
+x[((2, 3), (5, 11)),Vessel 1]: 0.0
+x[((3, 3), (5, 11)),Vessel 1]: 0.0
+x[((4, 3), (5, 11)),Vessel 1]: 0.0
+x[((1, 4), (5, 11)),Vessel 1]: 0.0
+x[((2, 4), (5, 11)),Vessel 1]: 0.0
+x[((3, 4), (5, 11)),Vessel 1]: 0.0
+x[((4, 4), (5, 11)),Vessel 1]: 0.0
+x[((1, 5), (5, 11)),Vessel 1]: 0.0
+x[((2, 5), (5, 11)),Vessel 1]: 0.0
+x[((3, 5), (5, 11)),Vessel 1]: 0.0
+x[((4, 5), (5, 11)),Vessel 1]: 0.0
+x[((1, 6), (5, 11)),Vessel 1]: 0.0
+x[((2, 6), (5, 11)),Vessel 1]: 0.0
+x[((3, 6), (5, 11)),Vessel 1]: 0.0
+x[((4, 6), (5, 11)),Vessel 1]: 0.0
+x[((1, 7), (5, 11)),Vessel 1]: 0.0
+x[((2, 7), (5, 11)),Vessel 1]: 0.0
+x[((3, 7), (5, 11)),Vessel 1]: 0.0
+x[((4, 7), (5, 11)),Vessel 1]: 0.0
+x[((1, 8), (5, 11)),Vessel 1]: 0.0
+x[((2, 8), (5, 11)),Vessel 1]: 0.0
+x[((3, 8), (5, 11)),Vessel 1]: 0.0
+x[((4, 8), (5, 11)),Vessel 1]: 0.0
+x[((1, 9), (5, 11)),Vessel 1]: 0.0
+x[((2, 9), (5, 11)),Vessel 1]: 0.0
+x[((3, 9), (5, 11)),Vessel 1]: 0.0
+x[((4, 9), (5, 11)),Vessel 1]: 0.0
+x[((1, 10), (5, 11)),Vessel 1]: 0.0
+x[((2, 10), (5, 11)),Vessel 1]: 0.0
+x[((3, 10), (5, 11)),Vessel 1]: 0.0
+x[((4, 10), (5, 11)),Vessel 1]: 0.0
+x[((0, 0), (1, 1)),Vessel 2]: 1.0
+x[((0, 0), (2, 1)),Vessel 2]: 0.0
+x[((0, 0), (3, 1)),Vessel 2]: 0.0
+x[((0, 0), (4, 1)),Vessel 2]: 0.0
+x[((1, 1), (1, 2)),Vessel 2]: 0.0
+x[((1, 1), (2, 2)),Vessel 2]: 1.0
+x[((1, 1), (3, 2)),Vessel 2]: 0.0
+x[((1, 1), (4, 2)),Vessel 2]: 0.0
+x[((2, 1), (1, 2)),Vessel 2]: 0.0
+x[((2, 1), (2, 2)),Vessel 2]: 0.0
+x[((2, 1), (3, 2)),Vessel 2]: 0.0
+x[((2, 1), (4, 2)),Vessel 2]: 0.0
+x[((3, 1), (1, 2)),Vessel 2]: 0.0
+x[((3, 1), (2, 2)),Vessel 2]: 0.0
+x[((3, 1), (3, 2)),Vessel 2]: 0.0
+x[((3, 1), (4, 2)),Vessel 2]: 0.0
+x[((4, 1), (1, 2)),Vessel 2]: 0.0
+x[((4, 1), (2, 2)),Vessel 2]: 0.0
+x[((4, 1), (3, 2)),Vessel 2]: 0.0
+x[((4, 1), (4, 2)),Vessel 2]: 0.0
+x[((1, 2), (1, 3)),Vessel 2]: 0.0
+x[((1, 2), (2, 3)),Vessel 2]: 0.0
+x[((1, 2), (3, 3)),Vessel 2]: 0.0
+x[((1, 2), (4, 3)),Vessel 2]: 0.0
+x[((2, 2), (1, 3)),Vessel 2]: 1.0
+x[((2, 2), (2, 3)),Vessel 2]: 0.0
+x[((2, 2), (3, 3)),Vessel 2]: 0.0
+x[((2, 2), (4, 3)),Vessel 2]: 0.0
+x[((3, 2), (1, 3)),Vessel 2]: 0.0
+x[((3, 2), (2, 3)),Vessel 2]: 0.0
+x[((3, 2), (3, 3)),Vessel 2]: 0.0
+x[((3, 2), (4, 3)),Vessel 2]: 0.0
+x[((4, 2), (1, 3)),Vessel 2]: 0.0
+x[((4, 2), (2, 3)),Vessel 2]: 0.0
+x[((4, 2), (3, 3)),Vessel 2]: 0.0
+x[((4, 2), (4, 3)),Vessel 2]: 0.0
+x[((1, 3), (1, 4)),Vessel 2]: 0.0
+x[((1, 3), (2, 4)),Vessel 2]: 0.0
+x[((1, 3), (3, 4)),Vessel 2]: 0.0
+x[((1, 3), (4, 4)),Vessel 2]: 1.0
+x[((2, 3), (1, 4)),Vessel 2]: 0.0
+x[((2, 3), (2, 4)),Vessel 2]: 0.0
+x[((2, 3), (3, 4)),Vessel 2]: 0.0
+x[((2, 3), (4, 4)),Vessel 2]: 0.0
+x[((3, 3), (1, 4)),Vessel 2]: 0.0
+x[((3, 3), (2, 4)),Vessel 2]: 0.0
+x[((3, 3), (3, 4)),Vessel 2]: 0.0
+x[((3, 3), (4, 4)),Vessel 2]: 0.0
+x[((4, 3), (1, 4)),Vessel 2]: 0.0
+x[((4, 3), (2, 4)),Vessel 2]: 0.0
+x[((4, 3), (3, 4)),Vessel 2]: 0.0
+x[((4, 3), (4, 4)),Vessel 2]: 0.0
+x[((1, 4), (1, 5)),Vessel 2]: 0.0
+x[((1, 4), (2, 5)),Vessel 2]: 0.0
+x[((1, 4), (3, 5)),Vessel 2]: 0.0
+x[((1, 4), (4, 5)),Vessel 2]: 0.0
+x[((2, 4), (1, 5)),Vessel 2]: 0.0
+x[((2, 4), (2, 5)),Vessel 2]: 0.0
+x[((2, 4), (3, 5)),Vessel 2]: 0.0
+x[((2, 4), (4, 5)),Vessel 2]: 0.0
+x[((3, 4), (1, 5)),Vessel 2]: 0.0
+x[((3, 4), (2, 5)),Vessel 2]: 0.0
+x[((3, 4), (3, 5)),Vessel 2]: 0.0
+x[((3, 4), (4, 5)),Vessel 2]: 0.0
+x[((4, 4), (1, 5)),Vessel 2]: 0.0
+x[((4, 4), (2, 5)),Vessel 2]: 0.0
+x[((4, 4), (3, 5)),Vessel 2]: 1.0
+x[((4, 4), (4, 5)),Vessel 2]: 0.0
+x[((1, 5), (1, 6)),Vessel 2]: 0.0
+x[((1, 5), (2, 6)),Vessel 2]: 0.0
+x[((1, 5), (3, 6)),Vessel 2]: 0.0
+x[((1, 5), (4, 6)),Vessel 2]: 0.0
+x[((2, 5), (1, 6)),Vessel 2]: 0.0
+x[((2, 5), (2, 6)),Vessel 2]: 0.0
+x[((2, 5), (3, 6)),Vessel 2]: 0.0
+x[((2, 5), (4, 6)),Vessel 2]: 0.0
+x[((3, 5), (1, 6)),Vessel 2]: 1.0
+x[((3, 5), (2, 6)),Vessel 2]: 0.0
+x[((3, 5), (3, 6)),Vessel 2]: 0.0
+x[((3, 5), (4, 6)),Vessel 2]: 0.0
+x[((4, 5), (1, 6)),Vessel 2]: 0.0
+x[((4, 5), (2, 6)),Vessel 2]: 0.0
+x[((4, 5), (3, 6)),Vessel 2]: 0.0
+x[((4, 5), (4, 6)),Vessel 2]: 0.0
+x[((1, 6), (1, 7)),Vessel 2]: 0.0
+x[((1, 6), (2, 7)),Vessel 2]: 0.0
+x[((1, 6), (3, 7)),Vessel 2]: 0.0
+x[((1, 6), (4, 7)),Vessel 2]: 0.0
+x[((2, 6), (1, 7)),Vessel 2]: 0.0
+x[((2, 6), (2, 7)),Vessel 2]: 0.0
+x[((2, 6), (3, 7)),Vessel 2]: 0.0
+x[((2, 6), (4, 7)),Vessel 2]: 0.0
+x[((3, 6), (1, 7)),Vessel 2]: 0.0
+x[((3, 6), (2, 7)),Vessel 2]: 0.0
+x[((3, 6), (3, 7)),Vessel 2]: 0.0
+x[((3, 6), (4, 7)),Vessel 2]: 0.0
+x[((4, 6), (1, 7)),Vessel 2]: 0.0
+x[((4, 6), (2, 7)),Vessel 2]: 0.0
+x[((4, 6), (3, 7)),Vessel 2]: 0.0
+x[((4, 6), (4, 7)),Vessel 2]: 0.0
+x[((1, 7), (1, 8)),Vessel 2]: 0.0
+x[((1, 7), (2, 8)),Vessel 2]: 0.0
+x[((1, 7), (3, 8)),Vessel 2]: 0.0
+x[((1, 7), (4, 8)),Vessel 2]: 0.0
+x[((2, 7), (1, 8)),Vessel 2]: 0.0
+x[((2, 7), (2, 8)),Vessel 2]: 0.0
+x[((2, 7), (3, 8)),Vessel 2]: 0.0
+x[((2, 7), (4, 8)),Vessel 2]: 0.0
+x[((3, 7), (1, 8)),Vessel 2]: 0.0
+x[((3, 7), (2, 8)),Vessel 2]: 0.0
+x[((3, 7), (3, 8)),Vessel 2]: 0.0
+x[((3, 7), (4, 8)),Vessel 2]: 0.0
+x[((4, 7), (1, 8)),Vessel 2]: 0.0
+x[((4, 7), (2, 8)),Vessel 2]: 0.0
+x[((4, 7), (3, 8)),Vessel 2]: 0.0
+x[((4, 7), (4, 8)),Vessel 2]: 0.0
+x[((1, 8), (1, 9)),Vessel 2]: 0.0
+x[((1, 8), (2, 9)),Vessel 2]: 0.0
+x[((1, 8), (3, 9)),Vessel 2]: 0.0
+x[((1, 8), (4, 9)),Vessel 2]: 0.0
+x[((2, 8), (1, 9)),Vessel 2]: 0.0
+x[((2, 8), (2, 9)),Vessel 2]: 0.0
+x[((2, 8), (3, 9)),Vessel 2]: 0.0
+x[((2, 8), (4, 9)),Vessel 2]: 0.0
+x[((3, 8), (1, 9)),Vessel 2]: 0.0
+x[((3, 8), (2, 9)),Vessel 2]: 0.0
+x[((3, 8), (3, 9)),Vessel 2]: 0.0
+x[((3, 8), (4, 9)),Vessel 2]: 0.0
+x[((4, 8), (1, 9)),Vessel 2]: 0.0
+x[((4, 8), (2, 9)),Vessel 2]: 0.0
+x[((4, 8), (3, 9)),Vessel 2]: 0.0
+x[((4, 8), (4, 9)),Vessel 2]: 0.0
+x[((1, 9), (1, 10)),Vessel 2]: 0.0
+x[((1, 9), (2, 10)),Vessel 2]: 0.0
+x[((1, 9), (3, 10)),Vessel 2]: 0.0
+x[((1, 9), (4, 10)),Vessel 2]: 0.0
+x[((2, 9), (1, 10)),Vessel 2]: 0.0
+x[((2, 9), (2, 10)),Vessel 2]: 0.0
+x[((2, 9), (3, 10)),Vessel 2]: 0.0
+x[((2, 9), (4, 10)),Vessel 2]: 0.0
+x[((3, 9), (1, 10)),Vessel 2]: 0.0
+x[((3, 9), (2, 10)),Vessel 2]: 0.0
+x[((3, 9), (3, 10)),Vessel 2]: 0.0
+x[((3, 9), (4, 10)),Vessel 2]: 0.0
+x[((4, 9), (1, 10)),Vessel 2]: 0.0
+x[((4, 9), (2, 10)),Vessel 2]: 0.0
+x[((4, 9), (3, 10)),Vessel 2]: 0.0
+x[((4, 9), (4, 10)),Vessel 2]: 0.0
+x[((0, 0), (5, 11)),Vessel 2]: 0.0
+x[((1, 1), (5, 11)),Vessel 2]: 0.0
+x[((2, 1), (5, 11)),Vessel 2]: 0.0
+x[((3, 1), (5, 11)),Vessel 2]: 0.0
+x[((4, 1), (5, 11)),Vessel 2]: 0.0
+x[((1, 2), (5, 11)),Vessel 2]: 0.0
+x[((2, 2), (5, 11)),Vessel 2]: 0.0
+x[((3, 2), (5, 11)),Vessel 2]: 0.0
+x[((4, 2), (5, 11)),Vessel 2]: 0.0
+x[((1, 3), (5, 11)),Vessel 2]: 0.0
+x[((2, 3), (5, 11)),Vessel 2]: 0.0
+x[((3, 3), (5, 11)),Vessel 2]: 0.0
+x[((4, 3), (5, 11)),Vessel 2]: 0.0
+x[((1, 4), (5, 11)),Vessel 2]: 0.0
+x[((2, 4), (5, 11)),Vessel 2]: 0.0
+x[((3, 4), (5, 11)),Vessel 2]: 0.0
+x[((4, 4), (5, 11)),Vessel 2]: 0.0
+x[((1, 5), (5, 11)),Vessel 2]: 0.0
+x[((2, 5), (5, 11)),Vessel 2]: 0.0
+x[((3, 5), (5, 11)),Vessel 2]: 0.0
+x[((4, 5), (5, 11)),Vessel 2]: 0.0
+x[((1, 6), (5, 11)),Vessel 2]: 1.0
+x[((2, 6), (5, 11)),Vessel 2]: 0.0
+x[((3, 6), (5, 11)),Vessel 2]: 0.0
+x[((4, 6), (5, 11)),Vessel 2]: 0.0
+x[((1, 7), (5, 11)),Vessel 2]: 0.0
+x[((2, 7), (5, 11)),Vessel 2]: 0.0
+x[((3, 7), (5, 11)),Vessel 2]: 0.0
+x[((4, 7), (5, 11)),Vessel 2]: 0.0
+x[((1, 8), (5, 11)),Vessel 2]: 0.0
+x[((2, 8), (5, 11)),Vessel 2]: 0.0
+x[((3, 8), (5, 11)),Vessel 2]: 0.0
+x[((4, 8), (5, 11)),Vessel 2]: 0.0
+x[((1, 9), (5, 11)),Vessel 2]: 0.0
+x[((2, 9), (5, 11)),Vessel 2]: 0.0
+x[((3, 9), (5, 11)),Vessel 2]: 0.0
+x[((4, 9), (5, 11)),Vessel 2]: 0.0
+x[((1, 10), (5, 11)),Vessel 2]: 0.0
+x[((2, 10), (5, 11)),Vessel 2]: 0.0
+x[((3, 10), (5, 11)),Vessel 2]: 0.0
+x[((4, 10), (5, 11)),Vessel 2]: 0.0
+o[1,1,Vessel 1,1]: 0.0
+o[1,1,Vessel 1,2]: 0.0
+o[1,1,Vessel 1,3]: 0.0
+o[1,1,Vessel 1,4]: 0.0
+o[1,1,Vessel 1,5]: 0.0
+o[1,1,Vessel 1,6]: 0.0
+o[1,1,Vessel 1,7]: 0.0
+o[1,1,Vessel 1,8]: 0.0
+o[1,1,Vessel 1,9]: 0.0
+o[1,1,Vessel 1,10]: 0.0
+o[1,1,Vessel 2,1]: 0.0
+o[1,1,Vessel 2,2]: 0.0
+o[1,1,Vessel 2,3]: 0.0
+o[1,1,Vessel 2,4]: 0.0
+o[1,1,Vessel 2,5]: 0.0
+o[1,1,Vessel 2,6]: 0.0
+o[1,1,Vessel 2,7]: 0.0
+o[1,1,Vessel 2,8]: 0.0
+o[1,1,Vessel 2,9]: 0.0
+o[1,1,Vessel 2,10]: 1.0
+o[2,1,Vessel 1,1]: 0.0
+o[2,1,Vessel 1,2]: 0.0
+o[2,1,Vessel 1,3]: 0.0
+o[2,1,Vessel 1,4]: 0.0
+o[2,1,Vessel 1,5]: 0.0
+o[2,1,Vessel 1,6]: 0.0
+o[2,1,Vessel 1,7]: 0.0
+o[2,1,Vessel 1,8]: 0.0
+o[2,1,Vessel 1,9]: 0.0
+o[2,1,Vessel 1,10]: 0.0
+o[2,1,Vessel 2,1]: 0.0
+o[2,1,Vessel 2,2]: 0.0
+o[2,1,Vessel 2,3]: 0.0
+o[2,1,Vessel 2,4]: 0.0
+o[2,1,Vessel 2,5]: 0.0
+o[2,1,Vessel 2,6]: 0.0
+o[2,1,Vessel 2,7]: 0.0
+o[2,1,Vessel 2,8]: 0.0
+o[2,1,Vessel 2,9]: 0.0
+o[2,1,Vessel 2,10]: 0.0
+o[3,1,Vessel 1,1]: 0.0
+o[3,1,Vessel 1,2]: 0.0
+o[3,1,Vessel 1,3]: 0.0
+o[3,1,Vessel 1,4]: 0.0
+o[3,1,Vessel 1,5]: 0.0
+o[3,1,Vessel 1,6]: 0.0
+o[3,1,Vessel 1,7]: 0.0
+o[3,1,Vessel 1,8]: 0.0
+o[3,1,Vessel 1,9]: 0.0
+o[3,1,Vessel 1,10]: 0.0
+o[3,1,Vessel 2,1]: 0.0
+o[3,1,Vessel 2,2]: 0.0
+o[3,1,Vessel 2,3]: 0.0
+o[3,1,Vessel 2,4]: 0.0
+o[3,1,Vessel 2,5]: 0.0
+o[3,1,Vessel 2,6]: 0.0
+o[3,1,Vessel 2,7]: 0.0
+o[3,1,Vessel 2,8]: 0.0
+o[3,1,Vessel 2,9]: 0.0
+o[3,1,Vessel 2,10]: 0.0
+o[4,1,Vessel 1,1]: 0.0
+o[4,1,Vessel 1,2]: 0.0
+o[4,1,Vessel 1,3]: 0.0
+o[4,1,Vessel 1,4]: 0.0
+o[4,1,Vessel 1,5]: 0.0
+o[4,1,Vessel 1,6]: 0.0
+o[4,1,Vessel 1,7]: 0.0
+o[4,1,Vessel 1,8]: 0.0
+o[4,1,Vessel 1,9]: 0.0
+o[4,1,Vessel 1,10]: 0.0
+o[4,1,Vessel 2,1]: 0.0
+o[4,1,Vessel 2,2]: 0.0
+o[4,1,Vessel 2,3]: 0.0
+o[4,1,Vessel 2,4]: 0.0
+o[4,1,Vessel 2,5]: 0.0
+o[4,1,Vessel 2,6]: 0.0
+o[4,1,Vessel 2,7]: 0.0
+o[4,1,Vessel 2,8]: 0.0
+o[4,1,Vessel 2,9]: 0.0
+o[4,1,Vessel 2,10]: 0.0
+o[1,2,Vessel 1,1]: 0.0
+o[1,2,Vessel 1,2]: 0.0
+o[1,2,Vessel 1,3]: 0.0
+o[1,2,Vessel 1,4]: 0.0
+o[1,2,Vessel 1,5]: 0.0
+o[1,2,Vessel 1,6]: 0.0
+o[1,2,Vessel 1,7]: 0.0
+o[1,2,Vessel 1,8]: 0.0
+o[1,2,Vessel 1,9]: 0.0
+o[1,2,Vessel 1,10]: 0.0
+o[1,2,Vessel 2,1]: 0.0
+o[1,2,Vessel 2,2]: 0.0
+o[1,2,Vessel 2,3]: 0.0
+o[1,2,Vessel 2,4]: 0.0
+o[1,2,Vessel 2,5]: 0.0
+o[1,2,Vessel 2,6]: 0.0
+o[1,2,Vessel 2,7]: 0.0
+o[1,2,Vessel 2,8]: 0.0
+o[1,2,Vessel 2,9]: 0.0
+o[1,2,Vessel 2,10]: 0.0
+o[2,2,Vessel 1,1]: 0.0
+o[2,2,Vessel 1,2]: 0.0
+o[2,2,Vessel 1,3]: 0.0
+o[2,2,Vessel 1,4]: 0.0
+o[2,2,Vessel 1,5]: 0.0
+o[2,2,Vessel 1,6]: 0.0
+o[2,2,Vessel 1,7]: 0.0
+o[2,2,Vessel 1,8]: 0.0
+o[2,2,Vessel 1,9]: 0.0
+o[2,2,Vessel 1,10]: 0.0
+o[2,2,Vessel 2,1]: 0.0
+o[2,2,Vessel 2,2]: 0.0
+o[2,2,Vessel 2,3]: 0.0
+o[2,2,Vessel 2,4]: 0.0
+o[2,2,Vessel 2,5]: 0.0
+o[2,2,Vessel 2,6]: 0.0
+o[2,2,Vessel 2,7]: 0.0
+o[2,2,Vessel 2,8]: 0.0
+o[2,2,Vessel 2,9]: 0.0
+o[2,2,Vessel 2,10]: 1.0
+o[3,2,Vessel 1,1]: 0.0
+o[3,2,Vessel 1,2]: 0.0
+o[3,2,Vessel 1,3]: 0.0
+o[3,2,Vessel 1,4]: 0.0
+o[3,2,Vessel 1,5]: 0.0
+o[3,2,Vessel 1,6]: 0.0
+o[3,2,Vessel 1,7]: 0.0
+o[3,2,Vessel 1,8]: 0.0
+o[3,2,Vessel 1,9]: 0.0
+o[3,2,Vessel 1,10]: 0.0
+o[3,2,Vessel 2,1]: 0.0
+o[3,2,Vessel 2,2]: 0.0
+o[3,2,Vessel 2,3]: 0.0
+o[3,2,Vessel 2,4]: 0.0
+o[3,2,Vessel 2,5]: 0.0
+o[3,2,Vessel 2,6]: 0.0
+o[3,2,Vessel 2,7]: 0.0
+o[3,2,Vessel 2,8]: 0.0
+o[3,2,Vessel 2,9]: 0.0
+o[3,2,Vessel 2,10]: 0.0
+o[4,2,Vessel 1,1]: 0.0
+o[4,2,Vessel 1,2]: 0.0
+o[4,2,Vessel 1,3]: 0.0
+o[4,2,Vessel 1,4]: 0.0
+o[4,2,Vessel 1,5]: 0.0
+o[4,2,Vessel 1,6]: 0.0
+o[4,2,Vessel 1,7]: 0.0
+o[4,2,Vessel 1,8]: 0.0
+o[4,2,Vessel 1,9]: 0.0
+o[4,2,Vessel 1,10]: 0.0
+o[4,2,Vessel 2,1]: 0.0
+o[4,2,Vessel 2,2]: 0.0
+o[4,2,Vessel 2,3]: 0.0
+o[4,2,Vessel 2,4]: 0.0
+o[4,2,Vessel 2,5]: 0.0
+o[4,2,Vessel 2,6]: 0.0
+o[4,2,Vessel 2,7]: 0.0
+o[4,2,Vessel 2,8]: 0.0
+o[4,2,Vessel 2,9]: 0.0
+o[4,2,Vessel 2,10]: 0.0
+o[1,3,Vessel 1,1]: 0.0
+o[1,3,Vessel 1,2]: 0.0
+o[1,3,Vessel 1,3]: 0.0
+o[1,3,Vessel 1,4]: 0.0
+o[1,3,Vessel 1,5]: 0.0
+o[1,3,Vessel 1,6]: 0.0
+o[1,3,Vessel 1,7]: 0.0
+o[1,3,Vessel 1,8]: 0.0
+o[1,3,Vessel 1,9]: 0.0
+o[1,3,Vessel 1,10]: 0.0
+o[1,3,Vessel 2,1]: 0.0
+o[1,3,Vessel 2,2]: 0.0
+o[1,3,Vessel 2,3]: 1.0
+o[1,3,Vessel 2,4]: 0.0
+o[1,3,Vessel 2,5]: 0.0
+o[1,3,Vessel 2,6]: 0.0
+o[1,3,Vessel 2,7]: 0.0
+o[1,3,Vessel 2,8]: 0.0
+o[1,3,Vessel 2,9]: 0.0
+o[1,3,Vessel 2,10]: 0.0
+o[2,3,Vessel 1,1]: 0.0
+o[2,3,Vessel 1,2]: 0.0
+o[2,3,Vessel 1,3]: 0.0
+o[2,3,Vessel 1,4]: 0.0
+o[2,3,Vessel 1,5]: 0.0
+o[2,3,Vessel 1,6]: 0.0
+o[2,3,Vessel 1,7]: 0.0
+o[2,3,Vessel 1,8]: 0.0
+o[2,3,Vessel 1,9]: 0.0
+o[2,3,Vessel 1,10]: 0.0
+o[2,3,Vessel 2,1]: 0.0
+o[2,3,Vessel 2,2]: 0.0
+o[2,3,Vessel 2,3]: 0.0
+o[2,3,Vessel 2,4]: 0.0
+o[2,3,Vessel 2,5]: 0.0
+o[2,3,Vessel 2,6]: 0.0
+o[2,3,Vessel 2,7]: 0.0
+o[2,3,Vessel 2,8]: 0.0
+o[2,3,Vessel 2,9]: 0.0
+o[2,3,Vessel 2,10]: 0.0
+o[3,3,Vessel 1,1]: 0.0
+o[3,3,Vessel 1,2]: 0.0
+o[3,3,Vessel 1,3]: 0.0
+o[3,3,Vessel 1,4]: 0.0
+o[3,3,Vessel 1,5]: 0.0
+o[3,3,Vessel 1,6]: 0.0
+o[3,3,Vessel 1,7]: 0.0
+o[3,3,Vessel 1,8]: 0.0
+o[3,3,Vessel 1,9]: 0.0
+o[3,3,Vessel 1,10]: 0.0
+o[3,3,Vessel 2,1]: 0.0
+o[3,3,Vessel 2,2]: 0.0
+o[3,3,Vessel 2,3]: 0.0
+o[3,3,Vessel 2,4]: 0.0
+o[3,3,Vessel 2,5]: 0.0
+o[3,3,Vessel 2,6]: 0.0
+o[3,3,Vessel 2,7]: 0.0
+o[3,3,Vessel 2,8]: 0.0
+o[3,3,Vessel 2,9]: 0.0
+o[3,3,Vessel 2,10]: 0.0
+o[4,3,Vessel 1,1]: 0.0
+o[4,3,Vessel 1,2]: 0.0
+o[4,3,Vessel 1,3]: 0.0
+o[4,3,Vessel 1,4]: 0.0
+o[4,3,Vessel 1,5]: 0.0
+o[4,3,Vessel 1,6]: 0.0
+o[4,3,Vessel 1,7]: 0.0
+o[4,3,Vessel 1,8]: 0.0
+o[4,3,Vessel 1,9]: 0.0
+o[4,3,Vessel 1,10]: 0.0
+o[4,3,Vessel 2,1]: 0.0
+o[4,3,Vessel 2,2]: 0.0
+o[4,3,Vessel 2,3]: 0.0
+o[4,3,Vessel 2,4]: 0.0
+o[4,3,Vessel 2,5]: 0.0
+o[4,3,Vessel 2,6]: 0.0
+o[4,3,Vessel 2,7]: 0.0
+o[4,3,Vessel 2,8]: 0.0
+o[4,3,Vessel 2,9]: 0.0
+o[4,3,Vessel 2,10]: 0.0
+o[1,4,Vessel 1,1]: 0.0
+o[1,4,Vessel 1,2]: 0.0
+o[1,4,Vessel 1,3]: 0.0
+o[1,4,Vessel 1,4]: 0.0
+o[1,4,Vessel 1,5]: 0.0
+o[1,4,Vessel 1,6]: 0.0
+o[1,4,Vessel 1,7]: 0.0
+o[1,4,Vessel 1,8]: 0.0
+o[1,4,Vessel 1,9]: 0.0
+o[1,4,Vessel 1,10]: 0.0
+o[1,4,Vessel 2,1]: 0.0
+o[1,4,Vessel 2,2]: 0.0
+o[1,4,Vessel 2,3]: 0.0
+o[1,4,Vessel 2,4]: 0.0
+o[1,4,Vessel 2,5]: 0.0
+o[1,4,Vessel 2,6]: 0.0
+o[1,4,Vessel 2,7]: 0.0
+o[1,4,Vessel 2,8]: 0.0
+o[1,4,Vessel 2,9]: 0.0
+o[1,4,Vessel 2,10]: 0.0
+o[2,4,Vessel 1,1]: 0.0
+o[2,4,Vessel 1,2]: 0.0
+o[2,4,Vessel 1,3]: 0.0
+o[2,4,Vessel 1,4]: 0.0
+o[2,4,Vessel 1,5]: 0.0
+o[2,4,Vessel 1,6]: 0.0
+o[2,4,Vessel 1,7]: 0.0
+o[2,4,Vessel 1,8]: 0.0
+o[2,4,Vessel 1,9]: 0.0
+o[2,4,Vessel 1,10]: 0.0
+o[2,4,Vessel 2,1]: 0.0
+o[2,4,Vessel 2,2]: 0.0
+o[2,4,Vessel 2,3]: 0.0
+o[2,4,Vessel 2,4]: 0.0
+o[2,4,Vessel 2,5]: 0.0
+o[2,4,Vessel 2,6]: 0.0
+o[2,4,Vessel 2,7]: 0.0
+o[2,4,Vessel 2,8]: 0.0
+o[2,4,Vessel 2,9]: 0.0
+o[2,4,Vessel 2,10]: 0.0
+o[3,4,Vessel 1,1]: 0.0
+o[3,4,Vessel 1,2]: 0.0
+o[3,4,Vessel 1,3]: 0.0
+o[3,4,Vessel 1,4]: 0.0
+o[3,4,Vessel 1,5]: 0.0
+o[3,4,Vessel 1,6]: 0.0
+o[3,4,Vessel 1,7]: 0.0
+o[3,4,Vessel 1,8]: 0.0
+o[3,4,Vessel 1,9]: 0.0
+o[3,4,Vessel 1,10]: 0.0
+o[3,4,Vessel 2,1]: 0.0
+o[3,4,Vessel 2,2]: 0.0
+o[3,4,Vessel 2,3]: 0.0
+o[3,4,Vessel 2,4]: 0.0
+o[3,4,Vessel 2,5]: 0.0
+o[3,4,Vessel 2,6]: 0.0
+o[3,4,Vessel 2,7]: 0.0
+o[3,4,Vessel 2,8]: 0.0
+o[3,4,Vessel 2,9]: 0.0
+o[3,4,Vessel 2,10]: 0.0
+o[4,4,Vessel 1,1]: 0.0
+o[4,4,Vessel 1,2]: 0.0
+o[4,4,Vessel 1,3]: 0.0
+o[4,4,Vessel 1,4]: 0.0
+o[4,4,Vessel 1,5]: 0.0
+o[4,4,Vessel 1,6]: 0.0
+o[4,4,Vessel 1,7]: 0.0
+o[4,4,Vessel 1,8]: 0.0
+o[4,4,Vessel 1,9]: 0.0
+o[4,4,Vessel 1,10]: 0.0
+o[4,4,Vessel 2,1]: 0.0
+o[4,4,Vessel 2,2]: 0.0
+o[4,4,Vessel 2,3]: 0.0
+o[4,4,Vessel 2,4]: 0.0
+o[4,4,Vessel 2,5]: 0.0
+o[4,4,Vessel 2,6]: 1.0
+o[4,4,Vessel 2,7]: 0.0
+o[4,4,Vessel 2,8]: 0.0
+o[4,4,Vessel 2,9]: 0.0
+o[4,4,Vessel 2,10]: 0.0
+o[1,5,Vessel 1,1]: 0.0
+o[1,5,Vessel 1,2]: 0.0
+o[1,5,Vessel 1,3]: 0.0
+o[1,5,Vessel 1,4]: 0.0
+o[1,5,Vessel 1,5]: 0.0
+o[1,5,Vessel 1,6]: 0.0
+o[1,5,Vessel 1,7]: 0.0
+o[1,5,Vessel 1,8]: 0.0
+o[1,5,Vessel 1,9]: 0.0
+o[1,5,Vessel 1,10]: 0.0
+o[1,5,Vessel 2,1]: 0.0
+o[1,5,Vessel 2,2]: 0.0
+o[1,5,Vessel 2,3]: 0.0
+o[1,5,Vessel 2,4]: 0.0
+o[1,5,Vessel 2,5]: 0.0
+o[1,5,Vessel 2,6]: 0.0
+o[1,5,Vessel 2,7]: 0.0
+o[1,5,Vessel 2,8]: 0.0
+o[1,5,Vessel 2,9]: 0.0
+o[1,5,Vessel 2,10]: 0.0
+o[2,5,Vessel 1,1]: 0.0
+o[2,5,Vessel 1,2]: 0.0
+o[2,5,Vessel 1,3]: 0.0
+o[2,5,Vessel 1,4]: 0.0
+o[2,5,Vessel 1,5]: 0.0
+o[2,5,Vessel 1,6]: 0.0
+o[2,5,Vessel 1,7]: 0.0
+o[2,5,Vessel 1,8]: 0.0
+o[2,5,Vessel 1,9]: 0.0
+o[2,5,Vessel 1,10]: 0.0
+o[2,5,Vessel 2,1]: 0.0
+o[2,5,Vessel 2,2]: 0.0
+o[2,5,Vessel 2,3]: 0.0
+o[2,5,Vessel 2,4]: 0.0
+o[2,5,Vessel 2,5]: 0.0
+o[2,5,Vessel 2,6]: 0.0
+o[2,5,Vessel 2,7]: 0.0
+o[2,5,Vessel 2,8]: 0.0
+o[2,5,Vessel 2,9]: 0.0
+o[2,5,Vessel 2,10]: 0.0
+o[3,5,Vessel 1,1]: 0.0
+o[3,5,Vessel 1,2]: 0.0
+o[3,5,Vessel 1,3]: 0.0
+o[3,5,Vessel 1,4]: 0.0
+o[3,5,Vessel 1,5]: 0.0
+o[3,5,Vessel 1,6]: 0.0
+o[3,5,Vessel 1,7]: 0.0
+o[3,5,Vessel 1,8]: 0.0
+o[3,5,Vessel 1,9]: 0.0
+o[3,5,Vessel 1,10]: 0.0
+o[3,5,Vessel 2,1]: 0.0
+o[3,5,Vessel 2,2]: 0.0
+o[3,5,Vessel 2,3]: 0.0
+o[3,5,Vessel 2,4]: 0.0
+o[3,5,Vessel 2,5]: 0.0
+o[3,5,Vessel 2,6]: 0.0
+o[3,5,Vessel 2,7]: 0.0
+o[3,5,Vessel 2,8]: 0.0
+o[3,5,Vessel 2,9]: 0.0
+o[3,5,Vessel 2,10]: 1.0
+o[4,5,Vessel 1,1]: 0.0
+o[4,5,Vessel 1,2]: 0.0
+o[4,5,Vessel 1,3]: 0.0
+o[4,5,Vessel 1,4]: 0.0
+o[4,5,Vessel 1,5]: 0.0
+o[4,5,Vessel 1,6]: 0.0
+o[4,5,Vessel 1,7]: 0.0
+o[4,5,Vessel 1,8]: 0.0
+o[4,5,Vessel 1,9]: 0.0
+o[4,5,Vessel 1,10]: 0.0
+o[4,5,Vessel 2,1]: 0.0
+o[4,5,Vessel 2,2]: 0.0
+o[4,5,Vessel 2,3]: 0.0
+o[4,5,Vessel 2,4]: 0.0
+o[4,5,Vessel 2,5]: 0.0
+o[4,5,Vessel 2,6]: 0.0
+o[4,5,Vessel 2,7]: 0.0
+o[4,5,Vessel 2,8]: 0.0
+o[4,5,Vessel 2,9]: 0.0
+o[4,5,Vessel 2,10]: 0.0
+o[1,6,Vessel 1,1]: 0.0
+o[1,6,Vessel 1,2]: 0.0
+o[1,6,Vessel 1,3]: 0.0
+o[1,6,Vessel 1,4]: 0.0
+o[1,6,Vessel 1,5]: 0.0
+o[1,6,Vessel 1,6]: 0.0
+o[1,6,Vessel 1,7]: 0.0
+o[1,6,Vessel 1,8]: 0.0
+o[1,6,Vessel 1,9]: 0.0
+o[1,6,Vessel 1,10]: 0.0
+o[1,6,Vessel 2,1]: 0.0
+o[1,6,Vessel 2,2]: 0.0
+o[1,6,Vessel 2,3]: 1.0
+o[1,6,Vessel 2,4]: 0.0
+o[1,6,Vessel 2,5]: 0.0
+o[1,6,Vessel 2,6]: 0.0
+o[1,6,Vessel 2,7]: 0.0
+o[1,6,Vessel 2,8]: 0.0
+o[1,6,Vessel 2,9]: 0.0
+o[1,6,Vessel 2,10]: 0.0
+o[2,6,Vessel 1,1]: 0.0
+o[2,6,Vessel 1,2]: 0.0
+o[2,6,Vessel 1,3]: 0.0
+o[2,6,Vessel 1,4]: 0.0
+o[2,6,Vessel 1,5]: 0.0
+o[2,6,Vessel 1,6]: 0.0
+o[2,6,Vessel 1,7]: 0.0
+o[2,6,Vessel 1,8]: 0.0
+o[2,6,Vessel 1,9]: 0.0
+o[2,6,Vessel 1,10]: 0.0
+o[2,6,Vessel 2,1]: 0.0
+o[2,6,Vessel 2,2]: 0.0
+o[2,6,Vessel 2,3]: 0.0
+o[2,6,Vessel 2,4]: 0.0
+o[2,6,Vessel 2,5]: 0.0
+o[2,6,Vessel 2,6]: 0.0
+o[2,6,Vessel 2,7]: 0.0
+o[2,6,Vessel 2,8]: 0.0
+o[2,6,Vessel 2,9]: 0.0
+o[2,6,Vessel 2,10]: 0.0
+o[3,6,Vessel 1,1]: 0.0
+o[3,6,Vessel 1,2]: 0.0
+o[3,6,Vessel 1,3]: 0.0
+o[3,6,Vessel 1,4]: 0.0
+o[3,6,Vessel 1,5]: 0.0
+o[3,6,Vessel 1,6]: 0.0
+o[3,6,Vessel 1,7]: 0.0
+o[3,6,Vessel 1,8]: 0.0
+o[3,6,Vessel 1,9]: 0.0
+o[3,6,Vessel 1,10]: 0.0
+o[3,6,Vessel 2,1]: 0.0
+o[3,6,Vessel 2,2]: 0.0
+o[3,6,Vessel 2,3]: 0.0
+o[3,6,Vessel 2,4]: 0.0
+o[3,6,Vessel 2,5]: 0.0
+o[3,6,Vessel 2,6]: 0.0
+o[3,6,Vessel 2,7]: 0.0
+o[3,6,Vessel 2,8]: 0.0
+o[3,6,Vessel 2,9]: 0.0
+o[3,6,Vessel 2,10]: 0.0
+o[4,6,Vessel 1,1]: 0.0
+o[4,6,Vessel 1,2]: 0.0
+o[4,6,Vessel 1,3]: 0.0
+o[4,6,Vessel 1,4]: 0.0
+o[4,6,Vessel 1,5]: 0.0
+o[4,6,Vessel 1,6]: 0.0
+o[4,6,Vessel 1,7]: 0.0
+o[4,6,Vessel 1,8]: 0.0
+o[4,6,Vessel 1,9]: 0.0
+o[4,6,Vessel 1,10]: 0.0
+o[4,6,Vessel 2,1]: 0.0
+o[4,6,Vessel 2,2]: 0.0
+o[4,6,Vessel 2,3]: 0.0
+o[4,6,Vessel 2,4]: 0.0
+o[4,6,Vessel 2,5]: 0.0
+o[4,6,Vessel 2,6]: 0.0
+o[4,6,Vessel 2,7]: 0.0
+o[4,6,Vessel 2,8]: 0.0
+o[4,6,Vessel 2,9]: 0.0
+o[4,6,Vessel 2,10]: 0.0
+o[1,7,Vessel 1,1]: 0.0
+o[1,7,Vessel 1,2]: 0.0
+o[1,7,Vessel 1,3]: 0.0
+o[1,7,Vessel 1,4]: 0.0
+o[1,7,Vessel 1,5]: 0.0
+o[1,7,Vessel 1,6]: 0.0
+o[1,7,Vessel 1,7]: 0.0
+o[1,7,Vessel 1,8]: 0.0
+o[1,7,Vessel 1,9]: 0.0
+o[1,7,Vessel 1,10]: 0.0
+o[1,7,Vessel 2,1]: 0.0
+o[1,7,Vessel 2,2]: 0.0
+o[1,7,Vessel 2,3]: 0.0
+o[1,7,Vessel 2,4]: 0.0
+o[1,7,Vessel 2,5]: 0.0
+o[1,7,Vessel 2,6]: 0.0
+o[1,7,Vessel 2,7]: 0.0
+o[1,7,Vessel 2,8]: 0.0
+o[1,7,Vessel 2,9]: 0.0
+o[1,7,Vessel 2,10]: 0.0
+o[2,7,Vessel 1,1]: 0.0
+o[2,7,Vessel 1,2]: 0.0
+o[2,7,Vessel 1,3]: 0.0
+o[2,7,Vessel 1,4]: 0.0
+o[2,7,Vessel 1,5]: 0.0
+o[2,7,Vessel 1,6]: 0.0
+o[2,7,Vessel 1,7]: 0.0
+o[2,7,Vessel 1,8]: 0.0
+o[2,7,Vessel 1,9]: 0.0
+o[2,7,Vessel 1,10]: 0.0
+o[2,7,Vessel 2,1]: 0.0
+o[2,7,Vessel 2,2]: 0.0
+o[2,7,Vessel 2,3]: 0.0
+o[2,7,Vessel 2,4]: 0.0
+o[2,7,Vessel 2,5]: 0.0
+o[2,7,Vessel 2,6]: 0.0
+o[2,7,Vessel 2,7]: 0.0
+o[2,7,Vessel 2,8]: 0.0
+o[2,7,Vessel 2,9]: 0.0
+o[2,7,Vessel 2,10]: 0.0
+o[3,7,Vessel 1,1]: 0.0
+o[3,7,Vessel 1,2]: 0.0
+o[3,7,Vessel 1,3]: 0.0
+o[3,7,Vessel 1,4]: 0.0
+o[3,7,Vessel 1,5]: 0.0
+o[3,7,Vessel 1,6]: 0.0
+o[3,7,Vessel 1,7]: 0.0
+o[3,7,Vessel 1,8]: 0.0
+o[3,7,Vessel 1,9]: 0.0
+o[3,7,Vessel 1,10]: 0.0
+o[3,7,Vessel 2,1]: 0.0
+o[3,7,Vessel 2,2]: 0.0
+o[3,7,Vessel 2,3]: 0.0
+o[3,7,Vessel 2,4]: 0.0
+o[3,7,Vessel 2,5]: 0.0
+o[3,7,Vessel 2,6]: 0.0
+o[3,7,Vessel 2,7]: 0.0
+o[3,7,Vessel 2,8]: 0.0
+o[3,7,Vessel 2,9]: 0.0
+o[3,7,Vessel 2,10]: 0.0
+o[4,7,Vessel 1,1]: 0.0
+o[4,7,Vessel 1,2]: 0.0
+o[4,7,Vessel 1,3]: 0.0
+o[4,7,Vessel 1,4]: 0.0
+o[4,7,Vessel 1,5]: 0.0
+o[4,7,Vessel 1,6]: 0.0
+o[4,7,Vessel 1,7]: 0.0
+o[4,7,Vessel 1,8]: 0.0
+o[4,7,Vessel 1,9]: 0.0
+o[4,7,Vessel 1,10]: 0.0
+o[4,7,Vessel 2,1]: 0.0
+o[4,7,Vessel 2,2]: 0.0
+o[4,7,Vessel 2,3]: 0.0
+o[4,7,Vessel 2,4]: 0.0
+o[4,7,Vessel 2,5]: 0.0
+o[4,7,Vessel 2,6]: 0.0
+o[4,7,Vessel 2,7]: 0.0
+o[4,7,Vessel 2,8]: 0.0
+o[4,7,Vessel 2,9]: 0.0
+o[4,7,Vessel 2,10]: 0.0
+o[1,8,Vessel 1,1]: 0.0
+o[1,8,Vessel 1,2]: 0.0
+o[1,8,Vessel 1,3]: 0.0
+o[1,8,Vessel 1,4]: 0.0
+o[1,8,Vessel 1,5]: 0.0
+o[1,8,Vessel 1,6]: 0.0
+o[1,8,Vessel 1,7]: 0.0
+o[1,8,Vessel 1,8]: 0.0
+o[1,8,Vessel 1,9]: 0.0
+o[1,8,Vessel 1,10]: 0.0
+o[1,8,Vessel 2,1]: 0.0
+o[1,8,Vessel 2,2]: 0.0
+o[1,8,Vessel 2,3]: 0.0
+o[1,8,Vessel 2,4]: 0.0
+o[1,8,Vessel 2,5]: 0.0
+o[1,8,Vessel 2,6]: 0.0
+o[1,8,Vessel 2,7]: 0.0
+o[1,8,Vessel 2,8]: 0.0
+o[1,8,Vessel 2,9]: 0.0
+o[1,8,Vessel 2,10]: 0.0
+o[2,8,Vessel 1,1]: 0.0
+o[2,8,Vessel 1,2]: 0.0
+o[2,8,Vessel 1,3]: 0.0
+o[2,8,Vessel 1,4]: 0.0
+o[2,8,Vessel 1,5]: 0.0
+o[2,8,Vessel 1,6]: 0.0
+o[2,8,Vessel 1,7]: 0.0
+o[2,8,Vessel 1,8]: 0.0
+o[2,8,Vessel 1,9]: 0.0
+o[2,8,Vessel 1,10]: 0.0
+o[2,8,Vessel 2,1]: 0.0
+o[2,8,Vessel 2,2]: 0.0
+o[2,8,Vessel 2,3]: 0.0
+o[2,8,Vessel 2,4]: 0.0
+o[2,8,Vessel 2,5]: 0.0
+o[2,8,Vessel 2,6]: 0.0
+o[2,8,Vessel 2,7]: 0.0
+o[2,8,Vessel 2,8]: 0.0
+o[2,8,Vessel 2,9]: 0.0
+o[2,8,Vessel 2,10]: 0.0
+o[3,8,Vessel 1,1]: 0.0
+o[3,8,Vessel 1,2]: 0.0
+o[3,8,Vessel 1,3]: 0.0
+o[3,8,Vessel 1,4]: 0.0
+o[3,8,Vessel 1,5]: 0.0
+o[3,8,Vessel 1,6]: 0.0
+o[3,8,Vessel 1,7]: 0.0
+o[3,8,Vessel 1,8]: 0.0
+o[3,8,Vessel 1,9]: 0.0
+o[3,8,Vessel 1,10]: 0.0
+o[3,8,Vessel 2,1]: 0.0
+o[3,8,Vessel 2,2]: 0.0
+o[3,8,Vessel 2,3]: 0.0
+o[3,8,Vessel 2,4]: 0.0
+o[3,8,Vessel 2,5]: 0.0
+o[3,8,Vessel 2,6]: 0.0
+o[3,8,Vessel 2,7]: 0.0
+o[3,8,Vessel 2,8]: 0.0
+o[3,8,Vessel 2,9]: 0.0
+o[3,8,Vessel 2,10]: 0.0
+o[4,8,Vessel 1,1]: 0.0
+o[4,8,Vessel 1,2]: 0.0
+o[4,8,Vessel 1,3]: 0.0
+o[4,8,Vessel 1,4]: 0.0
+o[4,8,Vessel 1,5]: 0.0
+o[4,8,Vessel 1,6]: 0.0
+o[4,8,Vessel 1,7]: 0.0
+o[4,8,Vessel 1,8]: 0.0
+o[4,8,Vessel 1,9]: 0.0
+o[4,8,Vessel 1,10]: 0.0
+o[4,8,Vessel 2,1]: 0.0
+o[4,8,Vessel 2,2]: 0.0
+o[4,8,Vessel 2,3]: 0.0
+o[4,8,Vessel 2,4]: 0.0
+o[4,8,Vessel 2,5]: 0.0
+o[4,8,Vessel 2,6]: 0.0
+o[4,8,Vessel 2,7]: 0.0
+o[4,8,Vessel 2,8]: 0.0
+o[4,8,Vessel 2,9]: 0.0
+o[4,8,Vessel 2,10]: 0.0
+o[1,9,Vessel 1,1]: 0.0
+o[1,9,Vessel 1,2]: 0.0
+o[1,9,Vessel 1,3]: 0.0
+o[1,9,Vessel 1,4]: 0.0
+o[1,9,Vessel 1,5]: 0.0
+o[1,9,Vessel 1,6]: 0.0
+o[1,9,Vessel 1,7]: 0.0
+o[1,9,Vessel 1,8]: 0.0
+o[1,9,Vessel 1,9]: 0.0
+o[1,9,Vessel 1,10]: 0.0
+o[1,9,Vessel 2,1]: 0.0
+o[1,9,Vessel 2,2]: 0.0
+o[1,9,Vessel 2,3]: 0.0
+o[1,9,Vessel 2,4]: 0.0
+o[1,9,Vessel 2,5]: 0.0
+o[1,9,Vessel 2,6]: 0.0
+o[1,9,Vessel 2,7]: 0.0
+o[1,9,Vessel 2,8]: 0.0
+o[1,9,Vessel 2,9]: 0.0
+o[1,9,Vessel 2,10]: 0.0
+o[2,9,Vessel 1,1]: 0.0
+o[2,9,Vessel 1,2]: 0.0
+o[2,9,Vessel 1,3]: 0.0
+o[2,9,Vessel 1,4]: 0.0
+o[2,9,Vessel 1,5]: 0.0
+o[2,9,Vessel 1,6]: 0.0
+o[2,9,Vessel 1,7]: 0.0
+o[2,9,Vessel 1,8]: 0.0
+o[2,9,Vessel 1,9]: 0.0
+o[2,9,Vessel 1,10]: 0.0
+o[2,9,Vessel 2,1]: 0.0
+o[2,9,Vessel 2,2]: 0.0
+o[2,9,Vessel 2,3]: 0.0
+o[2,9,Vessel 2,4]: 0.0
+o[2,9,Vessel 2,5]: 0.0
+o[2,9,Vessel 2,6]: 0.0
+o[2,9,Vessel 2,7]: 0.0
+o[2,9,Vessel 2,8]: 0.0
+o[2,9,Vessel 2,9]: 0.0
+o[2,9,Vessel 2,10]: 0.0
+o[3,9,Vessel 1,1]: 0.0
+o[3,9,Vessel 1,2]: 0.0
+o[3,9,Vessel 1,3]: 0.0
+o[3,9,Vessel 1,4]: 0.0
+o[3,9,Vessel 1,5]: 0.0
+o[3,9,Vessel 1,6]: 0.0
+o[3,9,Vessel 1,7]: 0.0
+o[3,9,Vessel 1,8]: 0.0
+o[3,9,Vessel 1,9]: 0.0
+o[3,9,Vessel 1,10]: 0.0
+o[3,9,Vessel 2,1]: 0.0
+o[3,9,Vessel 2,2]: 0.0
+o[3,9,Vessel 2,3]: 0.0
+o[3,9,Vessel 2,4]: 0.0
+o[3,9,Vessel 2,5]: 0.0
+o[3,9,Vessel 2,6]: 0.0
+o[3,9,Vessel 2,7]: 0.0
+o[3,9,Vessel 2,8]: 0.0
+o[3,9,Vessel 2,9]: 0.0
+o[3,9,Vessel 2,10]: 0.0
+o[4,9,Vessel 1,1]: 0.0
+o[4,9,Vessel 1,2]: 0.0
+o[4,9,Vessel 1,3]: 0.0
+o[4,9,Vessel 1,4]: 0.0
+o[4,9,Vessel 1,5]: 0.0
+o[4,9,Vessel 1,6]: 0.0
+o[4,9,Vessel 1,7]: 0.0
+o[4,9,Vessel 1,8]: 0.0
+o[4,9,Vessel 1,9]: 0.0
+o[4,9,Vessel 1,10]: 0.0
+o[4,9,Vessel 2,1]: 0.0
+o[4,9,Vessel 2,2]: 0.0
+o[4,9,Vessel 2,3]: 0.0
+o[4,9,Vessel 2,4]: 0.0
+o[4,9,Vessel 2,5]: 0.0
+o[4,9,Vessel 2,6]: 0.0
+o[4,9,Vessel 2,7]: 0.0
+o[4,9,Vessel 2,8]: 0.0
+o[4,9,Vessel 2,9]: 0.0
+o[4,9,Vessel 2,10]: 0.0
+o[1,10,Vessel 1,1]: 0.0
+o[1,10,Vessel 1,2]: 0.0
+o[1,10,Vessel 1,3]: 0.0
+o[1,10,Vessel 1,4]: 0.0
+o[1,10,Vessel 1,5]: 0.0
+o[1,10,Vessel 1,6]: 0.0
+o[1,10,Vessel 1,7]: 0.0
+o[1,10,Vessel 1,8]: 0.0
+o[1,10,Vessel 1,9]: 0.0
+o[1,10,Vessel 1,10]: 0.0
+o[1,10,Vessel 2,1]: 0.0
+o[1,10,Vessel 2,2]: 0.0
+o[1,10,Vessel 2,3]: 0.0
+o[1,10,Vessel 2,4]: 0.0
+o[1,10,Vessel 2,5]: 0.0
+o[1,10,Vessel 2,6]: 0.0
+o[1,10,Vessel 2,7]: 0.0
+o[1,10,Vessel 2,8]: 0.0
+o[1,10,Vessel 2,9]: 0.0
+o[1,10,Vessel 2,10]: 0.0
+o[2,10,Vessel 1,1]: 0.0
+o[2,10,Vessel 1,2]: 0.0
+o[2,10,Vessel 1,3]: 0.0
+o[2,10,Vessel 1,4]: 0.0
+o[2,10,Vessel 1,5]: 0.0
+o[2,10,Vessel 1,6]: 0.0
+o[2,10,Vessel 1,7]: 0.0
+o[2,10,Vessel 1,8]: 0.0
+o[2,10,Vessel 1,9]: 0.0
+o[2,10,Vessel 1,10]: 0.0
+o[2,10,Vessel 2,1]: 0.0
+o[2,10,Vessel 2,2]: 0.0
+o[2,10,Vessel 2,3]: 0.0
+o[2,10,Vessel 2,4]: 0.0
+o[2,10,Vessel 2,5]: 0.0
+o[2,10,Vessel 2,6]: 0.0
+o[2,10,Vessel 2,7]: 0.0
+o[2,10,Vessel 2,8]: 0.0
+o[2,10,Vessel 2,9]: 0.0
+o[2,10,Vessel 2,10]: 0.0
+o[3,10,Vessel 1,1]: 0.0
+o[3,10,Vessel 1,2]: 0.0
+o[3,10,Vessel 1,3]: 0.0
+o[3,10,Vessel 1,4]: 0.0
+o[3,10,Vessel 1,5]: 0.0
+o[3,10,Vessel 1,6]: 0.0
+o[3,10,Vessel 1,7]: 0.0
+o[3,10,Vessel 1,8]: 0.0
+o[3,10,Vessel 1,9]: 0.0
+o[3,10,Vessel 1,10]: 0.0
+o[3,10,Vessel 2,1]: 0.0
+o[3,10,Vessel 2,2]: 0.0
+o[3,10,Vessel 2,3]: 0.0
+o[3,10,Vessel 2,4]: 0.0
+o[3,10,Vessel 2,5]: 0.0
+o[3,10,Vessel 2,6]: 0.0
+o[3,10,Vessel 2,7]: 0.0
+o[3,10,Vessel 2,8]: 0.0
+o[3,10,Vessel 2,9]: 0.0
+o[3,10,Vessel 2,10]: 0.0
+o[4,10,Vessel 1,1]: 0.0
+o[4,10,Vessel 1,2]: 0.0
+o[4,10,Vessel 1,3]: 0.0
+o[4,10,Vessel 1,4]: 0.0
+o[4,10,Vessel 1,5]: 0.0
+o[4,10,Vessel 1,6]: 0.0
+o[4,10,Vessel 1,7]: 0.0
+o[4,10,Vessel 1,8]: 0.0
+o[4,10,Vessel 1,9]: 0.0
+o[4,10,Vessel 1,10]: 0.0
+o[4,10,Vessel 2,1]: 0.0
+o[4,10,Vessel 2,2]: 0.0
+o[4,10,Vessel 2,3]: 0.0
+o[4,10,Vessel 2,4]: 0.0
+o[4,10,Vessel 2,5]: 0.0
+o[4,10,Vessel 2,6]: 0.0
+o[4,10,Vessel 2,7]: 0.0
+o[4,10,Vessel 2,8]: 0.0
+o[4,10,Vessel 2,9]: 0.0
+o[4,10,Vessel 2,10]: 0.0
+q[1,1,Vessel 1]: 0.0
+q[1,1,Vessel 2]: 222.0
+q[2,1,Vessel 1]: 0.0
+q[2,1,Vessel 2]: 0.0
+q[3,1,Vessel 1]: 0.0
+q[3,1,Vessel 2]: 0.0
+q[4,1,Vessel 1]: 0.0
+q[4,1,Vessel 2]: 0.0
+q[1,2,Vessel 1]: 0.0
+q[1,2,Vessel 2]: 0.0
+q[2,2,Vessel 1]: 0.0
+q[2,2,Vessel 2]: 222.0
+q[3,2,Vessel 1]: 0.0
+q[3,2,Vessel 2]: 0.0
+q[4,2,Vessel 1]: 0.0
+q[4,2,Vessel 2]: 0.0
+q[1,3,Vessel 1]: 0.0
+q[1,3,Vessel 2]: 189.0
+q[2,3,Vessel 1]: 0.0
+q[2,3,Vessel 2]: 0.0
+q[3,3,Vessel 1]: 0.0
+q[3,3,Vessel 2]: 0.0
+q[4,3,Vessel 1]: 0.0
+q[4,3,Vessel 2]: 0.0
+q[1,4,Vessel 1]: 0.0
+q[1,4,Vessel 2]: 0.0
+q[2,4,Vessel 1]: 0.0
+q[2,4,Vessel 2]: 0.0
+q[3,4,Vessel 1]: 0.0
+q[3,4,Vessel 2]: 0.0
+q[4,4,Vessel 1]: 0.0
+q[4,4,Vessel 2]: 104.0
+q[1,5,Vessel 1]: 0.0
+q[1,5,Vessel 2]: 0.0
+q[2,5,Vessel 1]: 0.0
+q[2,5,Vessel 2]: 0.0
+q[3,5,Vessel 1]: 0.0
+q[3,5,Vessel 2]: 85.0
+q[4,5,Vessel 1]: 0.0
+q[4,5,Vessel 2]: 0.0
+q[1,6,Vessel 1]: 0.0
+q[1,6,Vessel 2]: 300.0
+q[2,6,Vessel 1]: 0.0
+q[2,6,Vessel 2]: 0.0
+q[3,6,Vessel 1]: 0.0
+q[3,6,Vessel 2]: 0.0
+q[4,6,Vessel 1]: 0.0
+q[4,6,Vessel 2]: 0.0
+q[1,7,Vessel 1]: 0.0
+q[1,7,Vessel 2]: 0.0
+q[2,7,Vessel 1]: 0.0
+q[2,7,Vessel 2]: 0.0
+q[3,7,Vessel 1]: 0.0
+q[3,7,Vessel 2]: 0.0
+q[4,7,Vessel 1]: 0.0
+q[4,7,Vessel 2]: 0.0
+q[1,8,Vessel 1]: 0.0
+q[1,8,Vessel 2]: 0.0
+q[2,8,Vessel 1]: 0.0
+q[2,8,Vessel 2]: 0.0
+q[3,8,Vessel 1]: 0.0
+q[3,8,Vessel 2]: 0.0
+q[4,8,Vessel 1]: 0.0
+q[4,8,Vessel 2]: 0.0
+q[1,9,Vessel 1]: 0.0
+q[1,9,Vessel 2]: 0.0
+q[2,9,Vessel 1]: 0.0
+q[2,9,Vessel 2]: 0.0
+q[3,9,Vessel 1]: 0.0
+q[3,9,Vessel 2]: 0.0
+q[4,9,Vessel 1]: 0.0
+q[4,9,Vessel 2]: 0.0
+q[1,10,Vessel 1]: 0.0
+q[1,10,Vessel 2]: 0.0
+q[2,10,Vessel 1]: 0.0
+q[2,10,Vessel 2]: 0.0
+q[3,10,Vessel 1]: 0.0
+q[3,10,Vessel 2]: 0.0
+q[4,10,Vessel 1]: 0.0
+q[4,10,Vessel 2]: 0.0
+s[1,1]: 174.0
+s[2,1]: 129.0
+s[3,1]: 221.0
+s[4,1]: 130.0
+s[1,2]: 273.0
+s[2,2]: 312.0
+s[3,2]: 187.0
+s[4,2]: 104.0
+s[1,3]: 183.0
+s[2,3]: 273.0
+s[3,3]: 153.0
+s[4,3]: 78.0
+s[1,4]: 282.0
+s[2,4]: 234.0
+s[3,4]: 119.0
+s[4,4]: 156.0
+s[1,5]: 381.0
+s[2,5]: 195.0
+s[3,5]: 170.0
+s[4,5]: 130.0
+s[1,6]: 180.0
+s[2,6]: 156.0
+s[3,6]: 136.0
+s[4,6]: 104.0
+s[1,7]: 279.0
+s[2,7]: 117.0
+s[3,7]: 102.0
+s[4,7]: 78.0
+s[1,8]: 378.0
+s[2,8]: 78.0
+s[3,8]: 68.0
+s[4,8]: 52.0
+s[1,9]: 477.0
+s[2,9]: 39.0
+s[3,9]: 34.0
+s[4,9]: 26.0
+s[1,10]: 576.0
+s[2,10]: 0.0
+s[3,10]: 0.0
+s[4,10]: 0.0
+s[1,0]: 297.0
+s[2,0]: 168.0
+s[3,0]: 255.0
+s[4,0]: 156.0
+w[1,Vessel 1]: 0.0
+w[2,Vessel 1]: 0.0
+w[3,Vessel 1]: 0.0
+w[4,Vessel 1]: 0.0
+w[5,Vessel 1]: 0.0
+w[6,Vessel 1]: 0.0
+w[7,Vessel 1]: 0.0
+w[8,Vessel 1]: 0.0
+w[9,Vessel 1]: 0.0
+w[10,Vessel 1]: 0.0
+w[1,Vessel 2]: 222.0
+w[2,Vessel 2]: 0.0
+w[3,Vessel 2]: 189.0
+w[4,Vessel 2]: 85.0
+w[5,Vessel 2]: 0.0
+w[6,Vessel 2]: 300.0
+w[7,Vessel 2]: 300.0
+w[8,Vessel 2]: 300.0
+w[9,Vessel 2]: 300.0
+w[10,Vessel 2]: 300.0
+w[0,Vessel 1]: 0.0
+w[0,Vessel 2]: 0.0
