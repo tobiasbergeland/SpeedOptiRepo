@@ -3,7 +3,14 @@
 ssh solstorm-login.iot.ntnu.no -l tobiaskb  
 
 
-screen
+screen -S "name"
+
+Crtl + a      fjerner koblingen til screenen
+Ctrl + d      lukker skjermen lokalt
+Ctrl + a og ctrl +d må kjøres i rekkefølge
+
+screen -r "name"    Henter opp screenen igjen.
+
 
 gstat -a
 
@@ -19,5 +26,10 @@ module load gurobi
 cd SpeedOptiRepo
 
 jupyter nbconvert --to python mirpso.ipynb
+jupyter nbconvert --to python MIRP_operating_speed.ipynb
+jupyter nbconvert --to python MIRP_Route_Fixed_Speed_Optimization.ipynb
+
 
 python mirpso.py
+python MIRP_operating_speed.py
+python MIRP_Route_Fixed_Speed_Optimization.py
