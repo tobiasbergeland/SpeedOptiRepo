@@ -1,5 +1,0 @@
-Vessel Vessel 1
-
-Vessel Vessel 2
-Vessel Vessel 2 is operating at port 1 at time 1
-
