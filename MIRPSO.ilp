@@ -3,439 +3,826 @@
 Minimize
  
 Subject To
- SourceFlow: x[((0,_0),_(1,_1)),Vessel_1] + x[((0,_0),_(2,_1)),Vessel_1]
-   + x[((0,_0),_(3,_1)),Vessel_1] + x[((0,_0),_(4,_1)),Vessel_1]
-   + x[((0,_0),_(5,_1)),Vessel_1] + x[((0,_0),_(6,_1)),Vessel_1]
-   + x[((0,_0),_(7,_1)),Vessel_1] + x[((0,_0),_(8,_1)),Vessel_1]
-   + x[((0,_0),_(9,_13)),Vessel_1] = 1
- SourceFlow: x[((0,_0),_(1,_1)),Vessel_2] + x[((0,_0),_(2,_1)),Vessel_2]
-   + x[((0,_0),_(3,_1)),Vessel_2] + x[((0,_0),_(4,_1)),Vessel_2]
-   + x[((0,_0),_(5,_1)),Vessel_2] + x[((0,_0),_(6,_1)),Vessel_2]
-   + x[((0,_0),_(7,_1)),Vessel_2] + x[((0,_0),_(8,_1)),Vessel_2]
-   + x[((0,_0),_(9,_13)),Vessel_2] = 1
- SourceFlow: x[((0,_0),_(1,_1)),Vessel_3] + x[((0,_0),_(2,_1)),Vessel_3]
-   + x[((0,_0),_(3,_1)),Vessel_3] + x[((0,_0),_(4,_1)),Vessel_3]
-   + x[((0,_0),_(5,_1)),Vessel_3] + x[((0,_0),_(6,_1)),Vessel_3]
-   + x[((0,_0),_(7,_1)),Vessel_3] + x[((0,_0),_(8,_1)),Vessel_3]
-   + x[((0,_0),_(9,_13)),Vessel_3] = 1
- SourceFlow: x[((0,_0),_(1,_1)),Vessel_4] + x[((0,_0),_(2,_1)),Vessel_4]
-   + x[((0,_0),_(3,_1)),Vessel_4] + x[((0,_0),_(4,_1)),Vessel_4]
-   + x[((0,_0),_(5,_1)),Vessel_4] + x[((0,_0),_(6,_1)),Vessel_4]
-   + x[((0,_0),_(7,_1)),Vessel_4] + x[((0,_0),_(8,_1)),Vessel_4]
-   + x[((0,_0),_(9,_13)),Vessel_4] = 1
- SourceFlow: x[((0,_0),_(1,_1)),Vessel_5] + x[((0,_0),_(2,_1)),Vessel_5]
-   + x[((0,_0),_(3,_1)),Vessel_5] + x[((0,_0),_(4,_1)),Vessel_5]
-   + x[((0,_0),_(5,_1)),Vessel_5] + x[((0,_0),_(6,_1)),Vessel_5]
-   + x[((0,_0),_(7,_1)),Vessel_5] + x[((0,_0),_(8,_1)),Vessel_5]
-   + x[((0,_0),_(9,_13)),Vessel_5] = 1
- SourceFlow: x[((0,_0),_(1,_1)),Vessel_6] + x[((0,_0),_(2,_1)),Vessel_6]
-   + x[((0,_0),_(3,_1)),Vessel_6] + x[((0,_0),_(4,_1)),Vessel_6]
-   + x[((0,_0),_(5,_1)),Vessel_6] + x[((0,_0),_(6,_1)),Vessel_6]
-   + x[((0,_0),_(7,_1)),Vessel_6] + x[((0,_0),_(8,_1)),Vessel_6]
-   + x[((0,_0),_(9,_13)),Vessel_6] = 1
- SourceFlow: x[((0,_0),_(1,_1)),Vessel_7] + x[((0,_0),_(2,_1)),Vessel_7]
-   + x[((0,_0),_(3,_1)),Vessel_7] + x[((0,_0),_(4,_1)),Vessel_7]
-   + x[((0,_0),_(5,_1)),Vessel_7] + x[((0,_0),_(6,_1)),Vessel_7]
-   + x[((0,_0),_(7,_1)),Vessel_7] + x[((0,_0),_(8,_1)),Vessel_7]
-   + x[((0,_0),_(9,_13)),Vessel_7] = 1
- SourceFlow: x[((0,_0),_(1,_1)),Vessel_8] + x[((0,_0),_(2,_1)),Vessel_8]
-   + x[((0,_0),_(3,_1)),Vessel_8] + x[((0,_0),_(4,_1)),Vessel_8]
-   + x[((0,_0),_(5,_1)),Vessel_8] + x[((0,_0),_(6,_1)),Vessel_8]
-   + x[((0,_0),_(7,_1)),Vessel_8] + x[((0,_0),_(8,_1)),Vessel_8]
-   + x[((0,_0),_(9,_13)),Vessel_8] = 1
- SourceFlow: x[((0,_0),_(1,_1)),Vessel_9] + x[((0,_0),_(2,_1)),Vessel_9]
-   + x[((0,_0),_(3,_1)),Vessel_9] + x[((0,_0),_(4,_1)),Vessel_9]
-   + x[((0,_0),_(5,_1)),Vessel_9] + x[((0,_0),_(6,_1)),Vessel_9]
-   + x[((0,_0),_(7,_1)),Vessel_9] + x[((0,_0),_(8,_1)),Vessel_9]
-   + x[((0,_0),_(9,_13)),Vessel_9] = 1
- SourceFlow: x[((0,_0),_(1,_1)),Vessel_10] + x[((0,_0),_(2,_1)),Vessel_10]
-   + x[((0,_0),_(3,_1)),Vessel_10] + x[((0,_0),_(4,_1)),Vessel_10]
-   + x[((0,_0),_(5,_1)),Vessel_10] + x[((0,_0),_(6,_1)),Vessel_10]
-   + x[((0,_0),_(7,_1)),Vessel_10] + x[((0,_0),_(8,_1)),Vessel_10]
-   + x[((0,_0),_(9,_13)),Vessel_10] = 1
- SourceFlow: x[((0,_0),_(1,_1)),Vessel_11] + x[((0,_0),_(2,_1)),Vessel_11]
-   + x[((0,_0),_(3,_1)),Vessel_11] + x[((0,_0),_(4,_1)),Vessel_11]
-   + x[((0,_0),_(5,_1)),Vessel_11] + x[((0,_0),_(6,_1)),Vessel_11]
-   + x[((0,_0),_(7,_1)),Vessel_11] + x[((0,_0),_(8,_1)),Vessel_11]
-   + x[((0,_0),_(9,_13)),Vessel_11] = 1
- FlowBalance: x[((0,_0),_(2,_1)),Vessel_2] - x[((2,_1),_(1,_2)),Vessel_2]
-   - x[((2,_1),_(2,_2)),Vessel_2] - x[((2,_1),_(3,_2)),Vessel_2]
-   - x[((2,_1),_(4,_2)),Vessel_2] - x[((2,_1),_(5,_2)),Vessel_2]
-   - x[((2,_1),_(6,_2)),Vessel_2] - x[((2,_1),_(7,_2)),Vessel_2]
-   - x[((2,_1),_(8,_2)),Vessel_2] - x[((2,_1),_(9,_13)),Vessel_2] = 0
- FlowBalance: x[((0,_0),_(5,_1)),Vessel_2] - x[((5,_1),_(1,_2)),Vessel_2]
-   - x[((5,_1),_(2,_2)),Vessel_2] - x[((5,_1),_(3,_2)),Vessel_2]
-   - x[((5,_1),_(4,_2)),Vessel_2] - x[((5,_1),_(5,_2)),Vessel_2]
-   - x[((5,_1),_(6,_2)),Vessel_2] - x[((5,_1),_(7,_2)),Vessel_2]
-   - x[((5,_1),_(8,_2)),Vessel_2] - x[((5,_1),_(9,_13)),Vessel_2] = 0
- FlowBalance: x[((0,_0),_(5,_1)),Vessel_5] - x[((5,_1),_(1,_2)),Vessel_5]
-   - x[((5,_1),_(2,_2)),Vessel_5] - x[((5,_1),_(3,_2)),Vessel_5]
-   - x[((5,_1),_(4,_2)),Vessel_5] - x[((5,_1),_(5,_2)),Vessel_5]
-   - x[((5,_1),_(6,_2)),Vessel_5] - x[((5,_1),_(7,_2)),Vessel_5]
-   - x[((5,_1),_(8,_2)),Vessel_5] - x[((5,_1),_(9,_13)),Vessel_5] = 0
- FlowBalance: x[((0,_0),_(1,_1)),Vessel_6] - x[((1,_1),_(1,_2)),Vessel_6]
-   - x[((1,_1),_(2,_2)),Vessel_6] - x[((1,_1),_(3,_2)),Vessel_6]
-   - x[((1,_1),_(4,_2)),Vessel_6] - x[((1,_1),_(5,_2)),Vessel_6]
-   - x[((1,_1),_(6,_2)),Vessel_6] - x[((1,_1),_(7,_2)),Vessel_6]
-   - x[((1,_1),_(8,_2)),Vessel_6] - x[((1,_1),_(9,_13)),Vessel_6] = 0
- FlowBalance: x[((0,_0),_(1,_1)),Vessel_7] - x[((1,_1),_(1,_2)),Vessel_7]
-   - x[((1,_1),_(2,_2)),Vessel_7] - x[((1,_1),_(3,_2)),Vessel_7]
-   - x[((1,_1),_(4,_2)),Vessel_7] - x[((1,_1),_(5,_2)),Vessel_7]
-   - x[((1,_1),_(6,_2)),Vessel_7] - x[((1,_1),_(7,_2)),Vessel_7]
-   - x[((1,_1),_(8,_2)),Vessel_7] - x[((1,_1),_(9,_13)),Vessel_7] = 0
- FlowBalance: x[((0,_0),_(2,_1)),Vessel_8] - x[((2,_1),_(1,_2)),Vessel_8]
-   - x[((2,_1),_(2,_2)),Vessel_8] - x[((2,_1),_(3,_2)),Vessel_8]
-   - x[((2,_1),_(4,_2)),Vessel_8] - x[((2,_1),_(5,_2)),Vessel_8]
-   - x[((2,_1),_(6,_2)),Vessel_8] - x[((2,_1),_(7,_2)),Vessel_8]
-   - x[((2,_1),_(8,_2)),Vessel_8] - x[((2,_1),_(9,_13)),Vessel_8] = 0
- FlowBalance: x[((0,_0),_(5,_1)),Vessel_8] - x[((5,_1),_(1,_2)),Vessel_8]
-   - x[((5,_1),_(2,_2)),Vessel_8] - x[((5,_1),_(3,_2)),Vessel_8]
-   - x[((5,_1),_(4,_2)),Vessel_8] - x[((5,_1),_(5,_2)),Vessel_8]
-   - x[((5,_1),_(6,_2)),Vessel_8] - x[((5,_1),_(7,_2)),Vessel_8]
-   - x[((5,_1),_(8,_2)),Vessel_8] - x[((5,_1),_(9,_13)),Vessel_8] = 0
- FlowBalance: x[((0,_0),_(2,_1)),Vessel_9] - x[((2,_1),_(1,_2)),Vessel_9]
-   - x[((2,_1),_(2,_2)),Vessel_9] - x[((2,_1),_(3,_2)),Vessel_9]
-   - x[((2,_1),_(4,_2)),Vessel_9] - x[((2,_1),_(5,_2)),Vessel_9]
-   - x[((2,_1),_(6,_2)),Vessel_9] - x[((2,_1),_(7,_2)),Vessel_9]
-   - x[((2,_1),_(8,_2)),Vessel_9] - x[((2,_1),_(9,_13)),Vessel_9] = 0
- FlowBalance: x[((0,_0),_(5,_1)),Vessel_9] - x[((5,_1),_(1,_2)),Vessel_9]
-   - x[((5,_1),_(2,_2)),Vessel_9] - x[((5,_1),_(3,_2)),Vessel_9]
-   - x[((5,_1),_(4,_2)),Vessel_9] - x[((5,_1),_(5,_2)),Vessel_9]
-   - x[((5,_1),_(6,_2)),Vessel_9] - x[((5,_1),_(7,_2)),Vessel_9]
-   - x[((5,_1),_(8,_2)),Vessel_9] - x[((5,_1),_(9,_13)),Vessel_9] = 0
- FlowBalance: x[((0,_0),_(1,_1)),Vessel_11] - x[((1,_1),_(1,_2)),Vessel_11]
-   - x[((1,_1),_(2,_2)),Vessel_11] - x[((1,_1),_(3,_2)),Vessel_11]
-   - x[((1,_1),_(4,_2)),Vessel_11] - x[((1,_1),_(5,_2)),Vessel_11]
-   - x[((1,_1),_(6,_2)),Vessel_11] - x[((1,_1),_(7,_2)),Vessel_11]
-   - x[((1,_1),_(8,_2)),Vessel_11] - x[((1,_1),_(9,_13)),Vessel_11] = 0
- InitialInventoryPort: s[5,0] = 0
- PortBalance: - q[5,1,Vessel_1] - q[5,1,Vessel_2] - q[5,1,Vessel_3]
-   - q[5,1,Vessel_4] - q[5,1,Vessel_5] - q[5,1,Vessel_6] - q[5,1,Vessel_7]
-   - q[5,1,Vessel_8] - q[5,1,Vessel_9] - q[5,1,Vessel_10]
-   - q[5,1,Vessel_11] + s[5,1] - s[5,0] = -15
- InitialInventoryVessel: w[0,Vessel_1] = 0
- InitialInventoryVessel: w[0,Vessel_2] = 0
+ FlowBalance: - x[((3,_1),_(1,_13)),Vessel_1]
+   - x[((3,_1),_(1,_14)),Vessel_1] - x[((3,_1),_(1,_15)),Vessel_1]
+   - x[((3,_1),_(1,_16)),Vessel_1] - x[((3,_1),_(1,_17)),Vessel_1]
+   - x[((3,_1),_(1,_18)),Vessel_1] - x[((3,_1),_(1,_19)),Vessel_1]
+   - x[((3,_1),_(1,_20)),Vessel_1] - x[((3,_1),_(2,_12)),Vessel_1]
+   - x[((3,_1),_(2,_13)),Vessel_1] - x[((3,_1),_(2,_14)),Vessel_1]
+   - x[((3,_1),_(2,_15)),Vessel_1] - x[((3,_1),_(2,_16)),Vessel_1]
+   - x[((3,_1),_(2,_17)),Vessel_1] - x[((3,_1),_(2,_18)),Vessel_1]
+   - x[((3,_1),_(2,_19)),Vessel_1] - x[((3,_1),_(2,_20)),Vessel_1]
+   - x[((3,_1),_(3,_2)),Vessel_1] - x[((3,_1),_(4,_2)),Vessel_1]
+   - x[((3,_1),_(5,_16)),Vessel_1] - x[((3,_1),_(5,_17)),Vessel_1]
+   - x[((3,_1),_(5,_18)),Vessel_1] - x[((3,_1),_(5,_19)),Vessel_1]
+   - x[((3,_1),_(5,_20)),Vessel_1] - x[((3,_1),_(6,_16)),Vessel_1]
+   - x[((3,_1),_(6,_17)),Vessel_1] - x[((3,_1),_(6,_18)),Vessel_1]
+   - x[((3,_1),_(6,_19)),Vessel_1] - x[((3,_1),_(6,_20)),Vessel_1]
+   - x[((3,_1),_(7,_21)),Vessel_1] = 0
+ FlowBalance: - x[((4,_1),_(1,_12)),Vessel_1]
+   - x[((4,_1),_(1,_13)),Vessel_1] - x[((4,_1),_(1,_14)),Vessel_1]
+   - x[((4,_1),_(1,_15)),Vessel_1] - x[((4,_1),_(1,_16)),Vessel_1]
+   - x[((4,_1),_(1,_17)),Vessel_1] - x[((4,_1),_(1,_18)),Vessel_1]
+   - x[((4,_1),_(1,_19)),Vessel_1] - x[((4,_1),_(1,_20)),Vessel_1]
+   - x[((4,_1),_(2,_12)),Vessel_1] - x[((4,_1),_(2,_13)),Vessel_1]
+   - x[((4,_1),_(2,_14)),Vessel_1] - x[((4,_1),_(2,_15)),Vessel_1]
+   - x[((4,_1),_(2,_16)),Vessel_1] - x[((4,_1),_(2,_17)),Vessel_1]
+   - x[((4,_1),_(2,_18)),Vessel_1] - x[((4,_1),_(2,_19)),Vessel_1]
+   - x[((4,_1),_(2,_20)),Vessel_1] - x[((4,_1),_(3,_2)),Vessel_1]
+   - x[((4,_1),_(4,_2)),Vessel_1] - x[((4,_1),_(5,_16)),Vessel_1]
+   - x[((4,_1),_(5,_17)),Vessel_1] - x[((4,_1),_(5,_18)),Vessel_1]
+   - x[((4,_1),_(5,_19)),Vessel_1] - x[((4,_1),_(5,_20)),Vessel_1]
+   - x[((4,_1),_(6,_16)),Vessel_1] - x[((4,_1),_(6,_17)),Vessel_1]
+   - x[((4,_1),_(6,_18)),Vessel_1] - x[((4,_1),_(6,_19)),Vessel_1]
+   - x[((4,_1),_(6,_20)),Vessel_1] - x[((4,_1),_(7,_21)),Vessel_1] = 0
+ FlowBalance: x[((3,_1),_(3,_2)),Vessel_1] + x[((4,_1),_(3,_2)),Vessel_1]
+   - x[((3,_2),_(1,_14)),Vessel_1] - x[((3,_2),_(1,_15)),Vessel_1]
+   - x[((3,_2),_(1,_16)),Vessel_1] - x[((3,_2),_(1,_17)),Vessel_1]
+   - x[((3,_2),_(1,_18)),Vessel_1] - x[((3,_2),_(1,_19)),Vessel_1]
+   - x[((3,_2),_(1,_20)),Vessel_1] - x[((3,_2),_(2,_13)),Vessel_1]
+   - x[((3,_2),_(2,_14)),Vessel_1] - x[((3,_2),_(2,_15)),Vessel_1]
+   - x[((3,_2),_(2,_16)),Vessel_1] - x[((3,_2),_(2,_17)),Vessel_1]
+   - x[((3,_2),_(2,_18)),Vessel_1] - x[((3,_2),_(2,_19)),Vessel_1]
+   - x[((3,_2),_(2,_20)),Vessel_1] - x[((3,_2),_(3,_3)),Vessel_1]
+   - x[((3,_2),_(4,_3)),Vessel_1] - x[((3,_2),_(5,_17)),Vessel_1]
+   - x[((3,_2),_(5,_18)),Vessel_1] - x[((3,_2),_(5,_19)),Vessel_1]
+   - x[((3,_2),_(5,_20)),Vessel_1] - x[((3,_2),_(6,_17)),Vessel_1]
+   - x[((3,_2),_(6,_18)),Vessel_1] - x[((3,_2),_(6,_19)),Vessel_1]
+   - x[((3,_2),_(6,_20)),Vessel_1] - x[((3,_2),_(7,_21)),Vessel_1] = 0
+ FlowBalance: x[((3,_1),_(4,_2)),Vessel_1] + x[((4,_1),_(4,_2)),Vessel_1]
+   - x[((4,_2),_(1,_13)),Vessel_1] - x[((4,_2),_(1,_14)),Vessel_1]
+   - x[((4,_2),_(1,_15)),Vessel_1] - x[((4,_2),_(1,_16)),Vessel_1]
+   - x[((4,_2),_(1,_17)),Vessel_1] - x[((4,_2),_(1,_18)),Vessel_1]
+   - x[((4,_2),_(1,_19)),Vessel_1] - x[((4,_2),_(1,_20)),Vessel_1]
+   - x[((4,_2),_(2,_13)),Vessel_1] - x[((4,_2),_(2,_14)),Vessel_1]
+   - x[((4,_2),_(2,_15)),Vessel_1] - x[((4,_2),_(2,_16)),Vessel_1]
+   - x[((4,_2),_(2,_17)),Vessel_1] - x[((4,_2),_(2,_18)),Vessel_1]
+   - x[((4,_2),_(2,_19)),Vessel_1] - x[((4,_2),_(2,_20)),Vessel_1]
+   - x[((4,_2),_(3,_3)),Vessel_1] - x[((4,_2),_(4,_3)),Vessel_1]
+   - x[((4,_2),_(5,_17)),Vessel_1] - x[((4,_2),_(5,_18)),Vessel_1]
+   - x[((4,_2),_(5,_19)),Vessel_1] - x[((4,_2),_(5,_20)),Vessel_1]
+   - x[((4,_2),_(6,_17)),Vessel_1] - x[((4,_2),_(6,_18)),Vessel_1]
+   - x[((4,_2),_(6,_19)),Vessel_1] - x[((4,_2),_(6,_20)),Vessel_1]
+   - x[((4,_2),_(7,_21)),Vessel_1] = 0
+ FlowBalance: x[((3,_2),_(3,_3)),Vessel_1] + x[((4,_2),_(3,_3)),Vessel_1]
+   - x[((3,_3),_(1,_15)),Vessel_1] - x[((3,_3),_(1,_16)),Vessel_1]
+   - x[((3,_3),_(1,_17)),Vessel_1] - x[((3,_3),_(1,_18)),Vessel_1]
+   - x[((3,_3),_(1,_19)),Vessel_1] - x[((3,_3),_(1,_20)),Vessel_1]
+   - x[((3,_3),_(2,_14)),Vessel_1] - x[((3,_3),_(2,_15)),Vessel_1]
+   - x[((3,_3),_(2,_16)),Vessel_1] - x[((3,_3),_(2,_17)),Vessel_1]
+   - x[((3,_3),_(2,_18)),Vessel_1] - x[((3,_3),_(2,_19)),Vessel_1]
+   - x[((3,_3),_(2,_20)),Vessel_1] - x[((3,_3),_(3,_4)),Vessel_1]
+   - x[((3,_3),_(4,_4)),Vessel_1] - x[((3,_3),_(5,_18)),Vessel_1]
+   - x[((3,_3),_(5,_19)),Vessel_1] - x[((3,_3),_(5,_20)),Vessel_1]
+   - x[((3,_3),_(6,_18)),Vessel_1] - x[((3,_3),_(6,_19)),Vessel_1]
+   - x[((3,_3),_(6,_20)),Vessel_1] - x[((3,_3),_(7,_21)),Vessel_1] = 0
+ FlowBalance: x[((3,_2),_(4,_3)),Vessel_1] + x[((4,_2),_(4,_3)),Vessel_1]
+   - x[((4,_3),_(1,_14)),Vessel_1] - x[((4,_3),_(1,_15)),Vessel_1]
+   - x[((4,_3),_(1,_16)),Vessel_1] - x[((4,_3),_(1,_17)),Vessel_1]
+   - x[((4,_3),_(1,_18)),Vessel_1] - x[((4,_3),_(1,_19)),Vessel_1]
+   - x[((4,_3),_(1,_20)),Vessel_1] - x[((4,_3),_(2,_14)),Vessel_1]
+   - x[((4,_3),_(2,_15)),Vessel_1] - x[((4,_3),_(2,_16)),Vessel_1]
+   - x[((4,_3),_(2,_17)),Vessel_1] - x[((4,_3),_(2,_18)),Vessel_1]
+   - x[((4,_3),_(2,_19)),Vessel_1] - x[((4,_3),_(2,_20)),Vessel_1]
+   - x[((4,_3),_(3,_4)),Vessel_1] - x[((4,_3),_(4,_4)),Vessel_1]
+   - x[((4,_3),_(5,_18)),Vessel_1] - x[((4,_3),_(5,_19)),Vessel_1]
+   - x[((4,_3),_(5,_20)),Vessel_1] - x[((4,_3),_(6,_18)),Vessel_1]
+   - x[((4,_3),_(6,_19)),Vessel_1] - x[((4,_3),_(6,_20)),Vessel_1]
+   - x[((4,_3),_(7,_21)),Vessel_1] = 0
+ FlowBalance: - x[((3,_1),_(1,_13)),Vessel_4]
+   - x[((3,_1),_(1,_14)),Vessel_4] - x[((3,_1),_(1,_15)),Vessel_4]
+   - x[((3,_1),_(1,_16)),Vessel_4] - x[((3,_1),_(1,_17)),Vessel_4]
+   - x[((3,_1),_(1,_18)),Vessel_4] - x[((3,_1),_(1,_19)),Vessel_4]
+   - x[((3,_1),_(1,_20)),Vessel_4] - x[((3,_1),_(2,_12)),Vessel_4]
+   - x[((3,_1),_(2,_13)),Vessel_4] - x[((3,_1),_(2,_14)),Vessel_4]
+   - x[((3,_1),_(2,_15)),Vessel_4] - x[((3,_1),_(2,_16)),Vessel_4]
+   - x[((3,_1),_(2,_17)),Vessel_4] - x[((3,_1),_(2,_18)),Vessel_4]
+   - x[((3,_1),_(2,_19)),Vessel_4] - x[((3,_1),_(2,_20)),Vessel_4]
+   - x[((3,_1),_(3,_2)),Vessel_4] - x[((3,_1),_(4,_2)),Vessel_4]
+   - x[((3,_1),_(5,_16)),Vessel_4] - x[((3,_1),_(5,_17)),Vessel_4]
+   - x[((3,_1),_(5,_18)),Vessel_4] - x[((3,_1),_(5,_19)),Vessel_4]
+   - x[((3,_1),_(5,_20)),Vessel_4] - x[((3,_1),_(6,_16)),Vessel_4]
+   - x[((3,_1),_(6,_17)),Vessel_4] - x[((3,_1),_(6,_18)),Vessel_4]
+   - x[((3,_1),_(6,_19)),Vessel_4] - x[((3,_1),_(6,_20)),Vessel_4]
+   - x[((3,_1),_(7,_21)),Vessel_4] = 0
+ FlowBalance: - x[((4,_1),_(1,_12)),Vessel_4]
+   - x[((4,_1),_(1,_13)),Vessel_4] - x[((4,_1),_(1,_14)),Vessel_4]
+   - x[((4,_1),_(1,_15)),Vessel_4] - x[((4,_1),_(1,_16)),Vessel_4]
+   - x[((4,_1),_(1,_17)),Vessel_4] - x[((4,_1),_(1,_18)),Vessel_4]
+   - x[((4,_1),_(1,_19)),Vessel_4] - x[((4,_1),_(1,_20)),Vessel_4]
+   - x[((4,_1),_(2,_12)),Vessel_4] - x[((4,_1),_(2,_13)),Vessel_4]
+   - x[((4,_1),_(2,_14)),Vessel_4] - x[((4,_1),_(2,_15)),Vessel_4]
+   - x[((4,_1),_(2,_16)),Vessel_4] - x[((4,_1),_(2,_17)),Vessel_4]
+   - x[((4,_1),_(2,_18)),Vessel_4] - x[((4,_1),_(2,_19)),Vessel_4]
+   - x[((4,_1),_(2,_20)),Vessel_4] - x[((4,_1),_(3,_2)),Vessel_4]
+   - x[((4,_1),_(4,_2)),Vessel_4] - x[((4,_1),_(5,_16)),Vessel_4]
+   - x[((4,_1),_(5,_17)),Vessel_4] - x[((4,_1),_(5,_18)),Vessel_4]
+   - x[((4,_1),_(5,_19)),Vessel_4] - x[((4,_1),_(5,_20)),Vessel_4]
+   - x[((4,_1),_(6,_16)),Vessel_4] - x[((4,_1),_(6,_17)),Vessel_4]
+   - x[((4,_1),_(6,_18)),Vessel_4] - x[((4,_1),_(6,_19)),Vessel_4]
+   - x[((4,_1),_(6,_20)),Vessel_4] - x[((4,_1),_(7,_21)),Vessel_4] = 0
+ FlowBalance: x[((3,_1),_(3,_2)),Vessel_4] + x[((4,_1),_(3,_2)),Vessel_4]
+   - x[((3,_2),_(1,_14)),Vessel_4] - x[((3,_2),_(1,_15)),Vessel_4]
+   - x[((3,_2),_(1,_16)),Vessel_4] - x[((3,_2),_(1,_17)),Vessel_4]
+   - x[((3,_2),_(1,_18)),Vessel_4] - x[((3,_2),_(1,_19)),Vessel_4]
+   - x[((3,_2),_(1,_20)),Vessel_4] - x[((3,_2),_(2,_13)),Vessel_4]
+   - x[((3,_2),_(2,_14)),Vessel_4] - x[((3,_2),_(2,_15)),Vessel_4]
+   - x[((3,_2),_(2,_16)),Vessel_4] - x[((3,_2),_(2,_17)),Vessel_4]
+   - x[((3,_2),_(2,_18)),Vessel_4] - x[((3,_2),_(2,_19)),Vessel_4]
+   - x[((3,_2),_(2,_20)),Vessel_4] - x[((3,_2),_(3,_3)),Vessel_4]
+   - x[((3,_2),_(4,_3)),Vessel_4] - x[((3,_2),_(5,_17)),Vessel_4]
+   - x[((3,_2),_(5,_18)),Vessel_4] - x[((3,_2),_(5,_19)),Vessel_4]
+   - x[((3,_2),_(5,_20)),Vessel_4] - x[((3,_2),_(6,_17)),Vessel_4]
+   - x[((3,_2),_(6,_18)),Vessel_4] - x[((3,_2),_(6,_19)),Vessel_4]
+   - x[((3,_2),_(6,_20)),Vessel_4] - x[((3,_2),_(7,_21)),Vessel_4] = 0
+ FlowBalance: x[((3,_1),_(4,_2)),Vessel_4] + x[((4,_1),_(4,_2)),Vessel_4]
+   - x[((4,_2),_(1,_13)),Vessel_4] - x[((4,_2),_(1,_14)),Vessel_4]
+   - x[((4,_2),_(1,_15)),Vessel_4] - x[((4,_2),_(1,_16)),Vessel_4]
+   - x[((4,_2),_(1,_17)),Vessel_4] - x[((4,_2),_(1,_18)),Vessel_4]
+   - x[((4,_2),_(1,_19)),Vessel_4] - x[((4,_2),_(1,_20)),Vessel_4]
+   - x[((4,_2),_(2,_13)),Vessel_4] - x[((4,_2),_(2,_14)),Vessel_4]
+   - x[((4,_2),_(2,_15)),Vessel_4] - x[((4,_2),_(2,_16)),Vessel_4]
+   - x[((4,_2),_(2,_17)),Vessel_4] - x[((4,_2),_(2,_18)),Vessel_4]
+   - x[((4,_2),_(2,_19)),Vessel_4] - x[((4,_2),_(2,_20)),Vessel_4]
+   - x[((4,_2),_(3,_3)),Vessel_4] - x[((4,_2),_(4,_3)),Vessel_4]
+   - x[((4,_2),_(5,_17)),Vessel_4] - x[((4,_2),_(5,_18)),Vessel_4]
+   - x[((4,_2),_(5,_19)),Vessel_4] - x[((4,_2),_(5,_20)),Vessel_4]
+   - x[((4,_2),_(6,_17)),Vessel_4] - x[((4,_2),_(6,_18)),Vessel_4]
+   - x[((4,_2),_(6,_19)),Vessel_4] - x[((4,_2),_(6,_20)),Vessel_4]
+   - x[((4,_2),_(7,_21)),Vessel_4] = 0
+ FlowBalance: x[((3,_2),_(3,_3)),Vessel_4] + x[((4,_2),_(3,_3)),Vessel_4]
+   - x[((3,_3),_(1,_15)),Vessel_4] - x[((3,_3),_(1,_16)),Vessel_4]
+   - x[((3,_3),_(1,_17)),Vessel_4] - x[((3,_3),_(1,_18)),Vessel_4]
+   - x[((3,_3),_(1,_19)),Vessel_4] - x[((3,_3),_(1,_20)),Vessel_4]
+   - x[((3,_3),_(2,_14)),Vessel_4] - x[((3,_3),_(2,_15)),Vessel_4]
+   - x[((3,_3),_(2,_16)),Vessel_4] - x[((3,_3),_(2,_17)),Vessel_4]
+   - x[((3,_3),_(2,_18)),Vessel_4] - x[((3,_3),_(2,_19)),Vessel_4]
+   - x[((3,_3),_(2,_20)),Vessel_4] - x[((3,_3),_(3,_4)),Vessel_4]
+   - x[((3,_3),_(4,_4)),Vessel_4] - x[((3,_3),_(5,_18)),Vessel_4]
+   - x[((3,_3),_(5,_19)),Vessel_4] - x[((3,_3),_(5,_20)),Vessel_4]
+   - x[((3,_3),_(6,_18)),Vessel_4] - x[((3,_3),_(6,_19)),Vessel_4]
+   - x[((3,_3),_(6,_20)),Vessel_4] - x[((3,_3),_(7,_21)),Vessel_4] = 0
+ FlowBalance: x[((3,_2),_(4,_3)),Vessel_4] + x[((4,_2),_(4,_3)),Vessel_4]
+   - x[((4,_3),_(1,_14)),Vessel_4] - x[((4,_3),_(1,_15)),Vessel_4]
+   - x[((4,_3),_(1,_16)),Vessel_4] - x[((4,_3),_(1,_17)),Vessel_4]
+   - x[((4,_3),_(1,_18)),Vessel_4] - x[((4,_3),_(1,_19)),Vessel_4]
+   - x[((4,_3),_(1,_20)),Vessel_4] - x[((4,_3),_(2,_14)),Vessel_4]
+   - x[((4,_3),_(2,_15)),Vessel_4] - x[((4,_3),_(2,_16)),Vessel_4]
+   - x[((4,_3),_(2,_17)),Vessel_4] - x[((4,_3),_(2,_18)),Vessel_4]
+   - x[((4,_3),_(2,_19)),Vessel_4] - x[((4,_3),_(2,_20)),Vessel_4]
+   - x[((4,_3),_(3,_4)),Vessel_4] - x[((4,_3),_(4,_4)),Vessel_4]
+   - x[((4,_3),_(5,_18)),Vessel_4] - x[((4,_3),_(5,_19)),Vessel_4]
+   - x[((4,_3),_(5,_20)),Vessel_4] - x[((4,_3),_(6,_18)),Vessel_4]
+   - x[((4,_3),_(6,_19)),Vessel_4] - x[((4,_3),_(6,_20)),Vessel_4]
+   - x[((4,_3),_(7,_21)),Vessel_4] = 0
+ FlowBalance: - x[((3,_2),_(1,_14)),Vessel_5]
+   - x[((3,_2),_(1,_15)),Vessel_5] - x[((3,_2),_(1,_16)),Vessel_5]
+   - x[((3,_2),_(1,_17)),Vessel_5] - x[((3,_2),_(1,_18)),Vessel_5]
+   - x[((3,_2),_(1,_19)),Vessel_5] - x[((3,_2),_(1,_20)),Vessel_5]
+   - x[((3,_2),_(2,_13)),Vessel_5] - x[((3,_2),_(2,_14)),Vessel_5]
+   - x[((3,_2),_(2,_15)),Vessel_5] - x[((3,_2),_(2,_16)),Vessel_5]
+   - x[((3,_2),_(2,_17)),Vessel_5] - x[((3,_2),_(2,_18)),Vessel_5]
+   - x[((3,_2),_(2,_19)),Vessel_5] - x[((3,_2),_(2,_20)),Vessel_5]
+   - x[((3,_2),_(3,_3)),Vessel_5] - x[((3,_2),_(4,_3)),Vessel_5]
+   - x[((3,_2),_(5,_17)),Vessel_5] - x[((3,_2),_(5,_18)),Vessel_5]
+   - x[((3,_2),_(5,_19)),Vessel_5] - x[((3,_2),_(5,_20)),Vessel_5]
+   - x[((3,_2),_(6,_17)),Vessel_5] - x[((3,_2),_(6,_18)),Vessel_5]
+   - x[((3,_2),_(6,_19)),Vessel_5] - x[((3,_2),_(6,_20)),Vessel_5]
+   - x[((3,_2),_(7,_21)),Vessel_5] = 0
+ FlowBalance: - x[((4,_2),_(1,_13)),Vessel_5]
+   - x[((4,_2),_(1,_14)),Vessel_5] - x[((4,_2),_(1,_15)),Vessel_5]
+   - x[((4,_2),_(1,_16)),Vessel_5] - x[((4,_2),_(1,_17)),Vessel_5]
+   - x[((4,_2),_(1,_18)),Vessel_5] - x[((4,_2),_(1,_19)),Vessel_5]
+   - x[((4,_2),_(1,_20)),Vessel_5] - x[((4,_2),_(2,_13)),Vessel_5]
+   - x[((4,_2),_(2,_14)),Vessel_5] - x[((4,_2),_(2,_15)),Vessel_5]
+   - x[((4,_2),_(2,_16)),Vessel_5] - x[((4,_2),_(2,_17)),Vessel_5]
+   - x[((4,_2),_(2,_18)),Vessel_5] - x[((4,_2),_(2,_19)),Vessel_5]
+   - x[((4,_2),_(2,_20)),Vessel_5] - x[((4,_2),_(3,_3)),Vessel_5]
+   - x[((4,_2),_(4,_3)),Vessel_5] - x[((4,_2),_(5,_17)),Vessel_5]
+   - x[((4,_2),_(5,_18)),Vessel_5] - x[((4,_2),_(5,_19)),Vessel_5]
+   - x[((4,_2),_(5,_20)),Vessel_5] - x[((4,_2),_(6,_17)),Vessel_5]
+   - x[((4,_2),_(6,_18)),Vessel_5] - x[((4,_2),_(6,_19)),Vessel_5]
+   - x[((4,_2),_(6,_20)),Vessel_5] - x[((4,_2),_(7,_21)),Vessel_5] = 0
+ FlowBalance: x[((3,_2),_(3,_3)),Vessel_5] + x[((4,_2),_(3,_3)),Vessel_5]
+   - x[((3,_3),_(1,_15)),Vessel_5] - x[((3,_3),_(1,_16)),Vessel_5]
+   - x[((3,_3),_(1,_17)),Vessel_5] - x[((3,_3),_(1,_18)),Vessel_5]
+   - x[((3,_3),_(1,_19)),Vessel_5] - x[((3,_3),_(1,_20)),Vessel_5]
+   - x[((3,_3),_(2,_14)),Vessel_5] - x[((3,_3),_(2,_15)),Vessel_5]
+   - x[((3,_3),_(2,_16)),Vessel_5] - x[((3,_3),_(2,_17)),Vessel_5]
+   - x[((3,_3),_(2,_18)),Vessel_5] - x[((3,_3),_(2,_19)),Vessel_5]
+   - x[((3,_3),_(2,_20)),Vessel_5] - x[((3,_3),_(3,_4)),Vessel_5]
+   - x[((3,_3),_(4,_4)),Vessel_5] - x[((3,_3),_(5,_18)),Vessel_5]
+   - x[((3,_3),_(5,_19)),Vessel_5] - x[((3,_3),_(5,_20)),Vessel_5]
+   - x[((3,_3),_(6,_18)),Vessel_5] - x[((3,_3),_(6,_19)),Vessel_5]
+   - x[((3,_3),_(6,_20)),Vessel_5] - x[((3,_3),_(7,_21)),Vessel_5] = 0
+ FlowBalance: x[((3,_2),_(4,_3)),Vessel_5] + x[((4,_2),_(4,_3)),Vessel_5]
+   - x[((4,_3),_(1,_14)),Vessel_5] - x[((4,_3),_(1,_15)),Vessel_5]
+   - x[((4,_3),_(1,_16)),Vessel_5] - x[((4,_3),_(1,_17)),Vessel_5]
+   - x[((4,_3),_(1,_18)),Vessel_5] - x[((4,_3),_(1,_19)),Vessel_5]
+   - x[((4,_3),_(1,_20)),Vessel_5] - x[((4,_3),_(2,_14)),Vessel_5]
+   - x[((4,_3),_(2,_15)),Vessel_5] - x[((4,_3),_(2,_16)),Vessel_5]
+   - x[((4,_3),_(2,_17)),Vessel_5] - x[((4,_3),_(2,_18)),Vessel_5]
+   - x[((4,_3),_(2,_19)),Vessel_5] - x[((4,_3),_(2,_20)),Vessel_5]
+   - x[((4,_3),_(3,_4)),Vessel_5] - x[((4,_3),_(4,_4)),Vessel_5]
+   - x[((4,_3),_(5,_18)),Vessel_5] - x[((4,_3),_(5,_19)),Vessel_5]
+   - x[((4,_3),_(5,_20)),Vessel_5] - x[((4,_3),_(6,_18)),Vessel_5]
+   - x[((4,_3),_(6,_19)),Vessel_5] - x[((4,_3),_(6,_20)),Vessel_5]
+   - x[((4,_3),_(7,_21)),Vessel_5] = 0
+ FlowBalance: - x[((3,_1),_(1,_13)),Vessel_6]
+   - x[((3,_1),_(1,_14)),Vessel_6] - x[((3,_1),_(1,_15)),Vessel_6]
+   - x[((3,_1),_(1,_16)),Vessel_6] - x[((3,_1),_(1,_17)),Vessel_6]
+   - x[((3,_1),_(1,_18)),Vessel_6] - x[((3,_1),_(1,_19)),Vessel_6]
+   - x[((3,_1),_(1,_20)),Vessel_6] - x[((3,_1),_(2,_12)),Vessel_6]
+   - x[((3,_1),_(2,_13)),Vessel_6] - x[((3,_1),_(2,_14)),Vessel_6]
+   - x[((3,_1),_(2,_15)),Vessel_6] - x[((3,_1),_(2,_16)),Vessel_6]
+   - x[((3,_1),_(2,_17)),Vessel_6] - x[((3,_1),_(2,_18)),Vessel_6]
+   - x[((3,_1),_(2,_19)),Vessel_6] - x[((3,_1),_(2,_20)),Vessel_6]
+   - x[((3,_1),_(3,_2)),Vessel_6] - x[((3,_1),_(4,_2)),Vessel_6]
+   - x[((3,_1),_(5,_16)),Vessel_6] - x[((3,_1),_(5,_17)),Vessel_6]
+   - x[((3,_1),_(5,_18)),Vessel_6] - x[((3,_1),_(5,_19)),Vessel_6]
+   - x[((3,_1),_(5,_20)),Vessel_6] - x[((3,_1),_(6,_16)),Vessel_6]
+   - x[((3,_1),_(6,_17)),Vessel_6] - x[((3,_1),_(6,_18)),Vessel_6]
+   - x[((3,_1),_(6,_19)),Vessel_6] - x[((3,_1),_(6,_20)),Vessel_6]
+   - x[((3,_1),_(7,_21)),Vessel_6] = 0
+ FlowBalance: - x[((4,_1),_(1,_12)),Vessel_6]
+   - x[((4,_1),_(1,_13)),Vessel_6] - x[((4,_1),_(1,_14)),Vessel_6]
+   - x[((4,_1),_(1,_15)),Vessel_6] - x[((4,_1),_(1,_16)),Vessel_6]
+   - x[((4,_1),_(1,_17)),Vessel_6] - x[((4,_1),_(1,_18)),Vessel_6]
+   - x[((4,_1),_(1,_19)),Vessel_6] - x[((4,_1),_(1,_20)),Vessel_6]
+   - x[((4,_1),_(2,_12)),Vessel_6] - x[((4,_1),_(2,_13)),Vessel_6]
+   - x[((4,_1),_(2,_14)),Vessel_6] - x[((4,_1),_(2,_15)),Vessel_6]
+   - x[((4,_1),_(2,_16)),Vessel_6] - x[((4,_1),_(2,_17)),Vessel_6]
+   - x[((4,_1),_(2,_18)),Vessel_6] - x[((4,_1),_(2,_19)),Vessel_6]
+   - x[((4,_1),_(2,_20)),Vessel_6] - x[((4,_1),_(3,_2)),Vessel_6]
+   - x[((4,_1),_(4,_2)),Vessel_6] - x[((4,_1),_(5,_16)),Vessel_6]
+   - x[((4,_1),_(5,_17)),Vessel_6] - x[((4,_1),_(5,_18)),Vessel_6]
+   - x[((4,_1),_(5,_19)),Vessel_6] - x[((4,_1),_(5,_20)),Vessel_6]
+   - x[((4,_1),_(6,_16)),Vessel_6] - x[((4,_1),_(6,_17)),Vessel_6]
+   - x[((4,_1),_(6,_18)),Vessel_6] - x[((4,_1),_(6,_19)),Vessel_6]
+   - x[((4,_1),_(6,_20)),Vessel_6] - x[((4,_1),_(7,_21)),Vessel_6] = 0
+ FlowBalance: x[((3,_1),_(3,_2)),Vessel_6] + x[((4,_1),_(3,_2)),Vessel_6]
+   - x[((3,_2),_(1,_14)),Vessel_6] - x[((3,_2),_(1,_15)),Vessel_6]
+   - x[((3,_2),_(1,_16)),Vessel_6] - x[((3,_2),_(1,_17)),Vessel_6]
+   - x[((3,_2),_(1,_18)),Vessel_6] - x[((3,_2),_(1,_19)),Vessel_6]
+   - x[((3,_2),_(1,_20)),Vessel_6] - x[((3,_2),_(2,_13)),Vessel_6]
+   - x[((3,_2),_(2,_14)),Vessel_6] - x[((3,_2),_(2,_15)),Vessel_6]
+   - x[((3,_2),_(2,_16)),Vessel_6] - x[((3,_2),_(2,_17)),Vessel_6]
+   - x[((3,_2),_(2,_18)),Vessel_6] - x[((3,_2),_(2,_19)),Vessel_6]
+   - x[((3,_2),_(2,_20)),Vessel_6] - x[((3,_2),_(3,_3)),Vessel_6]
+   - x[((3,_2),_(4,_3)),Vessel_6] - x[((3,_2),_(5,_17)),Vessel_6]
+   - x[((3,_2),_(5,_18)),Vessel_6] - x[((3,_2),_(5,_19)),Vessel_6]
+   - x[((3,_2),_(5,_20)),Vessel_6] - x[((3,_2),_(6,_17)),Vessel_6]
+   - x[((3,_2),_(6,_18)),Vessel_6] - x[((3,_2),_(6,_19)),Vessel_6]
+   - x[((3,_2),_(6,_20)),Vessel_6] - x[((3,_2),_(7,_21)),Vessel_6] = 0
+ FlowBalance: x[((3,_1),_(4,_2)),Vessel_6] + x[((4,_1),_(4,_2)),Vessel_6]
+   - x[((4,_2),_(1,_13)),Vessel_6] - x[((4,_2),_(1,_14)),Vessel_6]
+   - x[((4,_2),_(1,_15)),Vessel_6] - x[((4,_2),_(1,_16)),Vessel_6]
+   - x[((4,_2),_(1,_17)),Vessel_6] - x[((4,_2),_(1,_18)),Vessel_6]
+   - x[((4,_2),_(1,_19)),Vessel_6] - x[((4,_2),_(1,_20)),Vessel_6]
+   - x[((4,_2),_(2,_13)),Vessel_6] - x[((4,_2),_(2,_14)),Vessel_6]
+   - x[((4,_2),_(2,_15)),Vessel_6] - x[((4,_2),_(2,_16)),Vessel_6]
+   - x[((4,_2),_(2,_17)),Vessel_6] - x[((4,_2),_(2,_18)),Vessel_6]
+   - x[((4,_2),_(2,_19)),Vessel_6] - x[((4,_2),_(2,_20)),Vessel_6]
+   - x[((4,_2),_(3,_3)),Vessel_6] - x[((4,_2),_(4,_3)),Vessel_6]
+   - x[((4,_2),_(5,_17)),Vessel_6] - x[((4,_2),_(5,_18)),Vessel_6]
+   - x[((4,_2),_(5,_19)),Vessel_6] - x[((4,_2),_(5,_20)),Vessel_6]
+   - x[((4,_2),_(6,_17)),Vessel_6] - x[((4,_2),_(6,_18)),Vessel_6]
+   - x[((4,_2),_(6,_19)),Vessel_6] - x[((4,_2),_(6,_20)),Vessel_6]
+   - x[((4,_2),_(7,_21)),Vessel_6] = 0
+ FlowBalance: x[((3,_2),_(3,_3)),Vessel_6] + x[((4,_2),_(3,_3)),Vessel_6]
+   - x[((3,_3),_(1,_15)),Vessel_6] - x[((3,_3),_(1,_16)),Vessel_6]
+   - x[((3,_3),_(1,_17)),Vessel_6] - x[((3,_3),_(1,_18)),Vessel_6]
+   - x[((3,_3),_(1,_19)),Vessel_6] - x[((3,_3),_(1,_20)),Vessel_6]
+   - x[((3,_3),_(2,_14)),Vessel_6] - x[((3,_3),_(2,_15)),Vessel_6]
+   - x[((3,_3),_(2,_16)),Vessel_6] - x[((3,_3),_(2,_17)),Vessel_6]
+   - x[((3,_3),_(2,_18)),Vessel_6] - x[((3,_3),_(2,_19)),Vessel_6]
+   - x[((3,_3),_(2,_20)),Vessel_6] - x[((3,_3),_(3,_4)),Vessel_6]
+   - x[((3,_3),_(4,_4)),Vessel_6] - x[((3,_3),_(5,_18)),Vessel_6]
+   - x[((3,_3),_(5,_19)),Vessel_6] - x[((3,_3),_(5,_20)),Vessel_6]
+   - x[((3,_3),_(6,_18)),Vessel_6] - x[((3,_3),_(6,_19)),Vessel_6]
+   - x[((3,_3),_(6,_20)),Vessel_6] - x[((3,_3),_(7,_21)),Vessel_6] = 0
+ FlowBalance: x[((3,_2),_(4,_3)),Vessel_6] + x[((4,_2),_(4,_3)),Vessel_6]
+   - x[((4,_3),_(1,_14)),Vessel_6] - x[((4,_3),_(1,_15)),Vessel_6]
+   - x[((4,_3),_(1,_16)),Vessel_6] - x[((4,_3),_(1,_17)),Vessel_6]
+   - x[((4,_3),_(1,_18)),Vessel_6] - x[((4,_3),_(1,_19)),Vessel_6]
+   - x[((4,_3),_(1,_20)),Vessel_6] - x[((4,_3),_(2,_14)),Vessel_6]
+   - x[((4,_3),_(2,_15)),Vessel_6] - x[((4,_3),_(2,_16)),Vessel_6]
+   - x[((4,_3),_(2,_17)),Vessel_6] - x[((4,_3),_(2,_18)),Vessel_6]
+   - x[((4,_3),_(2,_19)),Vessel_6] - x[((4,_3),_(2,_20)),Vessel_6]
+   - x[((4,_3),_(3,_4)),Vessel_6] - x[((4,_3),_(4,_4)),Vessel_6]
+   - x[((4,_3),_(5,_18)),Vessel_6] - x[((4,_3),_(5,_19)),Vessel_6]
+   - x[((4,_3),_(5,_20)),Vessel_6] - x[((4,_3),_(6,_18)),Vessel_6]
+   - x[((4,_3),_(6,_19)),Vessel_6] - x[((4,_3),_(6,_20)),Vessel_6]
+   - x[((4,_3),_(7,_21)),Vessel_6] = 0
+ FlowBalance: x[((3,_3),_(4,_4)),Vessel_6] + x[((4,_3),_(4,_4)),Vessel_6]
+   - x[((4,_4),_(1,_15)),Vessel_6] - x[((4,_4),_(1,_16)),Vessel_6]
+   - x[((4,_4),_(1,_17)),Vessel_6] - x[((4,_4),_(1,_18)),Vessel_6]
+   - x[((4,_4),_(1,_19)),Vessel_6] - x[((4,_4),_(1,_20)),Vessel_6]
+   - x[((4,_4),_(2,_15)),Vessel_6] - x[((4,_4),_(2,_16)),Vessel_6]
+   - x[((4,_4),_(2,_17)),Vessel_6] - x[((4,_4),_(2,_18)),Vessel_6]
+   - x[((4,_4),_(2,_19)),Vessel_6] - x[((4,_4),_(2,_20)),Vessel_6]
+   - x[((4,_4),_(3,_5)),Vessel_6] - x[((4,_4),_(4,_5)),Vessel_6]
+   - x[((4,_4),_(5,_19)),Vessel_6] - x[((4,_4),_(5,_20)),Vessel_6]
+   - x[((4,_4),_(6,_19)),Vessel_6] - x[((4,_4),_(6,_20)),Vessel_6]
+   - x[((4,_4),_(7,_21)),Vessel_6] = 0
+ InitialInventoryPort: s[4,0] = 15
+ PortBalance: - q[4,1,Vessel_1] - q[4,1,Vessel_2] - q[4,1,Vessel_3]
+   - q[4,1,Vessel_4] - q[4,1,Vessel_5] - q[4,1,Vessel_6] + s[4,1] - s[4,0]
+   = -15
+ PortBalance: - q[4,2,Vessel_1] - q[4,2,Vessel_2] - q[4,2,Vessel_3]
+   - q[4,2,Vessel_4] - q[4,2,Vessel_5] - q[4,2,Vessel_6] - s[4,1] + s[4,2]
+   = -15
+ PortBalance: - q[4,3,Vessel_1] - q[4,3,Vessel_2] - q[4,3,Vessel_3]
+   - q[4,3,Vessel_4] - q[4,3,Vessel_5] - q[4,3,Vessel_6] - s[4,2] + s[4,3]
+   = -15
+ PortBalance: - q[4,4,Vessel_1] - q[4,4,Vessel_2] - q[4,4,Vessel_3]
+   - q[4,4,Vessel_4] - q[4,4,Vessel_5] - q[4,4,Vessel_6] - s[4,3] + s[4,4]
+   = -15
  InitialInventoryVessel: w[0,Vessel_3] = 0
- InitialInventoryVessel: w[0,Vessel_4] = 0
- InitialInventoryVessel: w[0,Vessel_5] = 0
- InitialInventoryVessel: w[0,Vessel_6] = 0
- InitialInventoryVessel: w[0,Vessel_7] = 0
- InitialInventoryVessel: w[0,Vessel_8] = 0
- InitialInventoryVessel: w[0,Vessel_9] = 0
- InitialInventoryVessel: w[0,Vessel_10] = 0
- InitialInventoryVessel: w[0,Vessel_11] = 0
- VesselBalance: - q[1,1,Vessel_1] - q[2,1,Vessel_1] + q[3,1,Vessel_1]
-   + q[4,1,Vessel_1] + q[5,1,Vessel_1] + q[6,1,Vessel_1] + q[7,1,Vessel_1]
-   + q[8,1,Vessel_1] + w[1,Vessel_1] - w[0,Vessel_1] = 0
- VesselBalance: - q[1,1,Vessel_2] - q[2,1,Vessel_2] + q[3,1,Vessel_2]
-   + q[4,1,Vessel_2] + q[5,1,Vessel_2] + q[6,1,Vessel_2] + q[7,1,Vessel_2]
-   + q[8,1,Vessel_2] + w[1,Vessel_2] - w[0,Vessel_2] = 0
  VesselBalance: - q[1,1,Vessel_3] - q[2,1,Vessel_3] + q[3,1,Vessel_3]
-   + q[4,1,Vessel_3] + q[5,1,Vessel_3] + q[6,1,Vessel_3] + q[7,1,Vessel_3]
-   + q[8,1,Vessel_3] + w[1,Vessel_3] - w[0,Vessel_3] = 0
- VesselBalance: - q[1,1,Vessel_4] - q[2,1,Vessel_4] + q[3,1,Vessel_4]
-   + q[4,1,Vessel_4] + q[5,1,Vessel_4] + q[6,1,Vessel_4] + q[7,1,Vessel_4]
-   + q[8,1,Vessel_4] + w[1,Vessel_4] - w[0,Vessel_4] = 0
- VesselBalance: - q[1,1,Vessel_5] - q[2,1,Vessel_5] + q[3,1,Vessel_5]
-   + q[4,1,Vessel_5] + q[5,1,Vessel_5] + q[6,1,Vessel_5] + q[7,1,Vessel_5]
-   + q[8,1,Vessel_5] + w[1,Vessel_5] - w[0,Vessel_5] = 0
- VesselBalance: - q[1,1,Vessel_6] - q[2,1,Vessel_6] + q[3,1,Vessel_6]
-   + q[4,1,Vessel_6] + q[5,1,Vessel_6] + q[6,1,Vessel_6] + q[7,1,Vessel_6]
-   + q[8,1,Vessel_6] + w[1,Vessel_6] - w[0,Vessel_6] = 0
- VesselBalance: - q[1,1,Vessel_7] - q[2,1,Vessel_7] + q[3,1,Vessel_7]
-   + q[4,1,Vessel_7] + q[5,1,Vessel_7] + q[6,1,Vessel_7] + q[7,1,Vessel_7]
-   + q[8,1,Vessel_7] + w[1,Vessel_7] - w[0,Vessel_7] = 0
- VesselBalance: - q[1,1,Vessel_8] - q[2,1,Vessel_8] + q[3,1,Vessel_8]
-   + q[4,1,Vessel_8] + q[5,1,Vessel_8] + q[6,1,Vessel_8] + q[7,1,Vessel_8]
-   + q[8,1,Vessel_8] + w[1,Vessel_8] - w[0,Vessel_8] = 0
- VesselBalance: - q[1,1,Vessel_9] - q[2,1,Vessel_9] + q[3,1,Vessel_9]
-   + q[4,1,Vessel_9] + q[5,1,Vessel_9] + q[6,1,Vessel_9] + q[7,1,Vessel_9]
-   + q[8,1,Vessel_9] + w[1,Vessel_9] - w[0,Vessel_9] = 0
- VesselBalance: - q[1,1,Vessel_10] - q[2,1,Vessel_10] + q[3,1,Vessel_10]
-   + q[4,1,Vessel_10] + q[5,1,Vessel_10] + q[6,1,Vessel_10]
-   + q[7,1,Vessel_10] + q[8,1,Vessel_10] + w[1,Vessel_10] - w[0,Vessel_10]
-   = 0
- VesselBalance: - q[1,1,Vessel_11] - q[2,1,Vessel_11] + q[3,1,Vessel_11]
-   + q[4,1,Vessel_11] + q[5,1,Vessel_11] + q[6,1,Vessel_11]
-   + q[7,1,Vessel_11] + q[8,1,Vessel_11] + w[1,Vessel_11] - w[0,Vessel_11]
-   = 0
- Cannot_operate_unless_vessel_is_at_node: - x[((0,_0),_(1,_1)),Vessel_1]
-   + o[1,1,Vessel_1] <= 0
- Cannot_operate_unless_vessel_is_at_node: - x[((0,_0),_(2,_1)),Vessel_1]
-   + o[2,1,Vessel_1] <= 0
- Cannot_operate_unless_vessel_is_at_node: - x[((0,_0),_(5,_1)),Vessel_1]
-   + o[5,1,Vessel_1] <= 0
- Cannot_operate_unless_vessel_is_at_node: - x[((0,_0),_(1,_1)),Vessel_2]
-   + o[1,1,Vessel_2] <= 0
- Cannot_operate_unless_vessel_is_at_node: - x[((0,_0),_(1,_1)),Vessel_3]
-   + o[1,1,Vessel_3] <= 0
- Cannot_operate_unless_vessel_is_at_node: - x[((0,_0),_(2,_1)),Vessel_3]
-   + o[2,1,Vessel_3] <= 0
- Cannot_operate_unless_vessel_is_at_node: - x[((0,_0),_(5,_1)),Vessel_3]
-   + o[5,1,Vessel_3] <= 0
- Cannot_operate_unless_vessel_is_at_node: - x[((0,_0),_(1,_1)),Vessel_4]
-   + o[1,1,Vessel_4] <= 0
- Cannot_operate_unless_vessel_is_at_node: - x[((0,_0),_(2,_1)),Vessel_4]
-   + o[2,1,Vessel_4] <= 0
- Cannot_operate_unless_vessel_is_at_node: - x[((0,_0),_(5,_1)),Vessel_4]
-   + o[5,1,Vessel_4] <= 0
- Cannot_operate_unless_vessel_is_at_node: - x[((0,_0),_(1,_1)),Vessel_5]
-   + o[1,1,Vessel_5] <= 0
- Cannot_operate_unless_vessel_is_at_node: - x[((0,_0),_(2,_1)),Vessel_5]
-   + o[2,1,Vessel_5] <= 0
- Cannot_operate_unless_vessel_is_at_node: - x[((0,_0),_(2,_1)),Vessel_6]
-   + o[2,1,Vessel_6] <= 0
- Cannot_operate_unless_vessel_is_at_node: - x[((0,_0),_(5,_1)),Vessel_6]
-   + o[5,1,Vessel_6] <= 0
- Cannot_operate_unless_vessel_is_at_node: - x[((0,_0),_(2,_1)),Vessel_7]
-   + o[2,1,Vessel_7] <= 0
- Cannot_operate_unless_vessel_is_at_node: - x[((0,_0),_(5,_1)),Vessel_7]
-   + o[5,1,Vessel_7] <= 0
- Cannot_operate_unless_vessel_is_at_node: - x[((0,_0),_(1,_1)),Vessel_8]
-   + o[1,1,Vessel_8] <= 0
- Cannot_operate_unless_vessel_is_at_node: - x[((0,_0),_(1,_1)),Vessel_9]
-   + o[1,1,Vessel_9] <= 0
- Cannot_operate_unless_vessel_is_at_node: - x[((0,_0),_(1,_1)),Vessel_10]
-   + o[1,1,Vessel_10] <= 0
- Cannot_operate_unless_vessel_is_at_node: - x[((0,_0),_(2,_1)),Vessel_10]
-   + o[2,1,Vessel_10] <= 0
- Cannot_operate_unless_vessel_is_at_node: - x[((0,_0),_(5,_1)),Vessel_10]
-   + o[5,1,Vessel_10] <= 0
- Cannot_operate_unless_vessel_is_at_node: - x[((0,_0),_(2,_1)),Vessel_11]
-   + o[2,1,Vessel_11] <= 0
- Cannot_operate_unless_vessel_is_at_node: - x[((0,_0),_(5,_1)),Vessel_11]
-   + o[5,1,Vessel_11] <= 0
- Max_operating_quantity: - 300 o[1,1,Vessel_1] + q[1,1,Vessel_1] <= 0
- Max_operating_quantity: - 300 o[2,1,Vessel_1] + q[2,1,Vessel_1] <= 0
- Max_operating_quantity: - 300 o[5,1,Vessel_1] + q[5,1,Vessel_1] <= 0
- Max_operating_quantity: - 300 o[1,1,Vessel_2] + q[1,1,Vessel_2] <= 0
- Max_operating_quantity: - 300 o[2,1,Vessel_2] + q[2,1,Vessel_2] <= 0
- Max_operating_quantity: - 300 o[5,1,Vessel_2] + q[5,1,Vessel_2] <= 0
- Max_operating_quantity: - 260 o[1,1,Vessel_3] + q[1,1,Vessel_3] <= 0
- Max_operating_quantity: - 260 o[2,1,Vessel_3] + q[2,1,Vessel_3] <= 0
- Max_operating_quantity: - 260 o[5,1,Vessel_3] + q[5,1,Vessel_3] <= 0
- Max_operating_quantity: - 260 o[1,1,Vessel_4] + q[1,1,Vessel_4] <= 0
- Max_operating_quantity: - 260 o[2,1,Vessel_4] + q[2,1,Vessel_4] <= 0
- Max_operating_quantity: - 260 o[5,1,Vessel_4] + q[5,1,Vessel_4] <= 0
- Max_operating_quantity: - 260 o[1,1,Vessel_5] + q[1,1,Vessel_5] <= 0
- Max_operating_quantity: - 260 o[2,1,Vessel_5] + q[2,1,Vessel_5] <= 0
- Max_operating_quantity: - 260 o[5,1,Vessel_5] + q[5,1,Vessel_5] <= 0
- Max_operating_quantity: - 260 o[1,1,Vessel_6] + q[1,1,Vessel_6] <= 0
- Max_operating_quantity: - 260 o[2,1,Vessel_6] + q[2,1,Vessel_6] <= 0
- Max_operating_quantity: - 260 o[5,1,Vessel_6] + q[5,1,Vessel_6] <= 0
- Max_operating_quantity: - 220 o[1,1,Vessel_7] + q[1,1,Vessel_7] <= 0
- Max_operating_quantity: - 220 o[2,1,Vessel_7] + q[2,1,Vessel_7] <= 0
- Max_operating_quantity: - 220 o[5,1,Vessel_7] + q[5,1,Vessel_7] <= 0
- Max_operating_quantity: - 220 o[1,1,Vessel_8] + q[1,1,Vessel_8] <= 0
- Max_operating_quantity: - 220 o[2,1,Vessel_8] + q[2,1,Vessel_8] <= 0
- Max_operating_quantity: - 220 o[5,1,Vessel_8] + q[5,1,Vessel_8] <= 0
- Max_operating_quantity: - 180 o[1,1,Vessel_9] + q[1,1,Vessel_9] <= 0
- Max_operating_quantity: - 180 o[2,1,Vessel_9] + q[2,1,Vessel_9] <= 0
- Max_operating_quantity: - 180 o[5,1,Vessel_9] + q[5,1,Vessel_9] <= 0
- Max_operating_quantity: - 180 o[1,1,Vessel_10] + q[1,1,Vessel_10] <= 0
- Max_operating_quantity: - 180 o[2,1,Vessel_10] + q[2,1,Vessel_10] <= 0
- Max_operating_quantity: - 180 o[5,1,Vessel_10] + q[5,1,Vessel_10] <= 0
- Max_operating_quantity: - 180 o[1,1,Vessel_11] + q[1,1,Vessel_11] <= 0
- Max_operating_quantity: - 180 o[2,1,Vessel_11] + q[2,1,Vessel_11] <= 0
- Max_operating_quantity: - 180 o[5,1,Vessel_11] + q[5,1,Vessel_11] <= 0
- Must_operate_in_every_port: - x[((2,_1),_(1,_2)),Vessel_2]
-   - x[((2,_1),_(3,_2)),Vessel_2] - x[((2,_1),_(4,_2)),Vessel_2]
-   - x[((2,_1),_(5,_2)),Vessel_2] - x[((2,_1),_(6,_2)),Vessel_2]
-   - x[((2,_1),_(7,_2)),Vessel_2] - x[((2,_1),_(8,_2)),Vessel_2]
-   - x[((2,_1),_(9,_13)),Vessel_2] + o[2,1,Vessel_2] <= 0
- Must_operate_in_every_port: - x[((5,_1),_(1,_2)),Vessel_2]
-   - x[((5,_1),_(2,_2)),Vessel_2] - x[((5,_1),_(3,_2)),Vessel_2]
-   - x[((5,_1),_(4,_2)),Vessel_2] - x[((5,_1),_(6,_2)),Vessel_2]
-   - x[((5,_1),_(7,_2)),Vessel_2] - x[((5,_1),_(8,_2)),Vessel_2]
-   - x[((5,_1),_(9,_13)),Vessel_2] + o[5,1,Vessel_2] <= 0
- Must_operate_in_every_port: - x[((5,_1),_(1,_2)),Vessel_5]
-   - x[((5,_1),_(2,_2)),Vessel_5] - x[((5,_1),_(3,_2)),Vessel_5]
-   - x[((5,_1),_(4,_2)),Vessel_5] - x[((5,_1),_(6,_2)),Vessel_5]
-   - x[((5,_1),_(7,_2)),Vessel_5] - x[((5,_1),_(8,_2)),Vessel_5]
-   - x[((5,_1),_(9,_13)),Vessel_5] + o[5,1,Vessel_5] <= 0
- Must_operate_in_every_port: - x[((1,_1),_(2,_2)),Vessel_6]
-   - x[((1,_1),_(3,_2)),Vessel_6] - x[((1,_1),_(4,_2)),Vessel_6]
-   - x[((1,_1),_(5,_2)),Vessel_6] - x[((1,_1),_(6,_2)),Vessel_6]
-   - x[((1,_1),_(7,_2)),Vessel_6] - x[((1,_1),_(8,_2)),Vessel_6]
-   - x[((1,_1),_(9,_13)),Vessel_6] + o[1,1,Vessel_6] <= 0
- Must_operate_in_every_port: - x[((1,_1),_(2,_2)),Vessel_7]
-   - x[((1,_1),_(3,_2)),Vessel_7] - x[((1,_1),_(4,_2)),Vessel_7]
-   - x[((1,_1),_(5,_2)),Vessel_7] - x[((1,_1),_(6,_2)),Vessel_7]
-   - x[((1,_1),_(7,_2)),Vessel_7] - x[((1,_1),_(8,_2)),Vessel_7]
-   - x[((1,_1),_(9,_13)),Vessel_7] + o[1,1,Vessel_7] <= 0
- Must_operate_in_every_port: - x[((2,_1),_(1,_2)),Vessel_8]
-   - x[((2,_1),_(3,_2)),Vessel_8] - x[((2,_1),_(4,_2)),Vessel_8]
-   - x[((2,_1),_(5,_2)),Vessel_8] - x[((2,_1),_(6,_2)),Vessel_8]
-   - x[((2,_1),_(7,_2)),Vessel_8] - x[((2,_1),_(8,_2)),Vessel_8]
-   - x[((2,_1),_(9,_13)),Vessel_8] + o[2,1,Vessel_8] <= 0
- Must_operate_in_every_port: - x[((5,_1),_(1,_2)),Vessel_8]
-   - x[((5,_1),_(2,_2)),Vessel_8] - x[((5,_1),_(3,_2)),Vessel_8]
-   - x[((5,_1),_(4,_2)),Vessel_8] - x[((5,_1),_(6,_2)),Vessel_8]
-   - x[((5,_1),_(7,_2)),Vessel_8] - x[((5,_1),_(8,_2)),Vessel_8]
-   - x[((5,_1),_(9,_13)),Vessel_8] + o[5,1,Vessel_8] <= 0
- Must_operate_in_every_port: - x[((2,_1),_(1,_2)),Vessel_9]
-   - x[((2,_1),_(3,_2)),Vessel_9] - x[((2,_1),_(4,_2)),Vessel_9]
-   - x[((2,_1),_(5,_2)),Vessel_9] - x[((2,_1),_(6,_2)),Vessel_9]
-   - x[((2,_1),_(7,_2)),Vessel_9] - x[((2,_1),_(8,_2)),Vessel_9]
-   - x[((2,_1),_(9,_13)),Vessel_9] + o[2,1,Vessel_9] <= 0
- Must_operate_in_every_port: - x[((5,_1),_(1,_2)),Vessel_9]
-   - x[((5,_1),_(2,_2)),Vessel_9] - x[((5,_1),_(3,_2)),Vessel_9]
-   - x[((5,_1),_(4,_2)),Vessel_9] - x[((5,_1),_(6,_2)),Vessel_9]
-   - x[((5,_1),_(7,_2)),Vessel_9] - x[((5,_1),_(8,_2)),Vessel_9]
-   - x[((5,_1),_(9,_13)),Vessel_9] + o[5,1,Vessel_9] <= 0
- Must_operate_in_every_port: - x[((1,_1),_(2,_2)),Vessel_11]
-   - x[((1,_1),_(3,_2)),Vessel_11] - x[((1,_1),_(4,_2)),Vessel_11]
-   - x[((1,_1),_(5,_2)),Vessel_11] - x[((1,_1),_(6,_2)),Vessel_11]
-   - x[((1,_1),_(7,_2)),Vessel_11] - x[((1,_1),_(8,_2)),Vessel_11]
-   - x[((1,_1),_(9,_13)),Vessel_11] + o[1,1,Vessel_11] <= 0
+   + q[4,1,Vessel_3] + q[5,1,Vessel_3] + q[6,1,Vessel_3] + w[1,Vessel_3]
+   - w[0,Vessel_3] = 0
+ VesselBalance: - q[1,2,Vessel_3] - q[2,2,Vessel_3] + q[3,2,Vessel_3]
+   + q[4,2,Vessel_3] + q[5,2,Vessel_3] + q[6,2,Vessel_3] - w[1,Vessel_3]
+   + w[2,Vessel_3] = 0
+ Cannot_operate_unless_vessel_is_at_node: - x[((3,_3),_(4,_4)),Vessel_1]
+   - x[((4,_3),_(4,_4)),Vessel_1] + o[4,4,Vessel_1] <= 0
+ Cannot_operate_unless_vessel_is_at_node: o[4,2,Vessel_2] <= 0
+ Cannot_operate_unless_vessel_is_at_node: o[1,1,Vessel_3] <= 0
+ Cannot_operate_unless_vessel_is_at_node: o[1,2,Vessel_3] <= 0
+ Cannot_operate_unless_vessel_is_at_node: o[2,2,Vessel_3] <= 0
+ Cannot_operate_unless_vessel_is_at_node: o[4,3,Vessel_3] <= 0
+ Cannot_operate_unless_vessel_is_at_node: o[4,4,Vessel_3] <= 0
+ Cannot_operate_unless_vessel_is_at_node: o[4,1,Vessel_4] <= 0
+ Cannot_operate_unless_vessel_is_at_node: - x[((3,_1),_(4,_2)),Vessel_4]
+   - x[((4,_1),_(4,_2)),Vessel_4] + o[4,2,Vessel_4] <= 0
+ Cannot_operate_unless_vessel_is_at_node: - x[((3,_2),_(4,_3)),Vessel_4]
+   - x[((4,_2),_(4,_3)),Vessel_4] + o[4,3,Vessel_4] <= 0
+ Cannot_operate_unless_vessel_is_at_node: - x[((3,_3),_(4,_4)),Vessel_4]
+   - x[((4,_3),_(4,_4)),Vessel_4] + o[4,4,Vessel_4] <= 0
+ Cannot_operate_unless_vessel_is_at_node: o[4,2,Vessel_5] <= 0
+ Cannot_operate_unless_vessel_is_at_node: - x[((3,_3),_(4,_4)),Vessel_5]
+   - x[((4,_3),_(4,_4)),Vessel_5] + o[4,4,Vessel_5] <= 0
+ Cannot_operate_unless_vessel_is_at_node: o[4,1,Vessel_6] <= 0
+ Max_operating_quantity: - 300 o[4,1,Vessel_1] + q[4,1,Vessel_1] <= 0
+ Max_operating_quantity: - 300 o[4,2,Vessel_1] + q[4,2,Vessel_1] <= 0
+ Max_operating_quantity: - 300 o[4,3,Vessel_1] + q[4,3,Vessel_1] <= 0
+ Max_operating_quantity: - 300 o[4,4,Vessel_1] + q[4,4,Vessel_1] <= 0
+ Max_operating_quantity: - 300 o[4,1,Vessel_2] + q[4,1,Vessel_2] <= 0
+ Max_operating_quantity: - 300 o[4,2,Vessel_2] + q[4,2,Vessel_2] <= 0
+ Max_operating_quantity: - 300 o[4,3,Vessel_2] + q[4,3,Vessel_2] <= 0
+ Max_operating_quantity: - 300 o[4,4,Vessel_2] + q[4,4,Vessel_2] <= 0
+ Max_operating_quantity: - 300 o[1,1,Vessel_3] + q[1,1,Vessel_3] <= 0
+ Max_operating_quantity: - 300 o[2,1,Vessel_3] + q[2,1,Vessel_3] <= 0
+ Max_operating_quantity: - 300 o[1,2,Vessel_3] + q[1,2,Vessel_3] <= 0
+ Max_operating_quantity: - 300 o[2,2,Vessel_3] + q[2,2,Vessel_3] <= 0
+ Max_operating_quantity: - 300 o[4,3,Vessel_3] + q[4,3,Vessel_3] <= 0
+ Max_operating_quantity: - 300 o[4,4,Vessel_3] + q[4,4,Vessel_3] <= 0
+ Max_operating_quantity: - 300 o[4,1,Vessel_4] + q[4,1,Vessel_4] <= 0
+ Max_operating_quantity: - 300 o[4,2,Vessel_4] + q[4,2,Vessel_4] <= 0
+ Max_operating_quantity: - 300 o[4,3,Vessel_4] + q[4,3,Vessel_4] <= 0
+ Max_operating_quantity: - 300 o[4,4,Vessel_4] + q[4,4,Vessel_4] <= 0
+ Max_operating_quantity: - 300 o[4,1,Vessel_5] + q[4,1,Vessel_5] <= 0
+ Max_operating_quantity: - 300 o[4,2,Vessel_5] + q[4,2,Vessel_5] <= 0
+ Max_operating_quantity: - 300 o[4,3,Vessel_5] + q[4,3,Vessel_5] <= 0
+ Max_operating_quantity: - 300 o[4,4,Vessel_5] + q[4,4,Vessel_5] <= 0
+ Max_operating_quantity: - 300 o[4,1,Vessel_6] + q[4,1,Vessel_6] <= 0
+ Max_operating_quantity: - 300 o[4,2,Vessel_6] + q[4,2,Vessel_6] <= 0
+ Max_operating_quantity: - 300 o[4,3,Vessel_6] + q[4,3,Vessel_6] <= 0
+ Max_operating_quantity: - 300 o[4,4,Vessel_6] + q[4,4,Vessel_6] <= 0
+ Must_operate_in_every_port: - x[((4,_1),_(1,_12)),Vessel_1]
+   - x[((4,_1),_(1,_13)),Vessel_1] - x[((4,_1),_(1,_14)),Vessel_1]
+   - x[((4,_1),_(1,_15)),Vessel_1] - x[((4,_1),_(1,_16)),Vessel_1]
+   - x[((4,_1),_(1,_17)),Vessel_1] - x[((4,_1),_(1,_18)),Vessel_1]
+   - x[((4,_1),_(1,_19)),Vessel_1] - x[((4,_1),_(1,_20)),Vessel_1]
+   - x[((4,_1),_(2,_12)),Vessel_1] - x[((4,_1),_(2,_13)),Vessel_1]
+   - x[((4,_1),_(2,_14)),Vessel_1] - x[((4,_1),_(2,_15)),Vessel_1]
+   - x[((4,_1),_(2,_16)),Vessel_1] - x[((4,_1),_(2,_17)),Vessel_1]
+   - x[((4,_1),_(2,_18)),Vessel_1] - x[((4,_1),_(2,_19)),Vessel_1]
+   - x[((4,_1),_(2,_20)),Vessel_1] - x[((4,_1),_(3,_2)),Vessel_1]
+   - x[((4,_1),_(5,_16)),Vessel_1] - x[((4,_1),_(5,_17)),Vessel_1]
+   - x[((4,_1),_(5,_18)),Vessel_1] - x[((4,_1),_(5,_19)),Vessel_1]
+   - x[((4,_1),_(5,_20)),Vessel_1] - x[((4,_1),_(6,_16)),Vessel_1]
+   - x[((4,_1),_(6,_17)),Vessel_1] - x[((4,_1),_(6,_18)),Vessel_1]
+   - x[((4,_1),_(6,_19)),Vessel_1] - x[((4,_1),_(6,_20)),Vessel_1]
+   - x[((4,_1),_(7,_21)),Vessel_1] + o[4,1,Vessel_1] <= 0
+ Must_operate_in_every_port: - x[((4,_2),_(1,_13)),Vessel_1]
+   - x[((4,_2),_(1,_14)),Vessel_1] - x[((4,_2),_(1,_15)),Vessel_1]
+   - x[((4,_2),_(1,_16)),Vessel_1] - x[((4,_2),_(1,_17)),Vessel_1]
+   - x[((4,_2),_(1,_18)),Vessel_1] - x[((4,_2),_(1,_19)),Vessel_1]
+   - x[((4,_2),_(1,_20)),Vessel_1] - x[((4,_2),_(2,_13)),Vessel_1]
+   - x[((4,_2),_(2,_14)),Vessel_1] - x[((4,_2),_(2,_15)),Vessel_1]
+   - x[((4,_2),_(2,_16)),Vessel_1] - x[((4,_2),_(2,_17)),Vessel_1]
+   - x[((4,_2),_(2,_18)),Vessel_1] - x[((4,_2),_(2,_19)),Vessel_1]
+   - x[((4,_2),_(2,_20)),Vessel_1] - x[((4,_2),_(3,_3)),Vessel_1]
+   - x[((4,_2),_(5,_17)),Vessel_1] - x[((4,_2),_(5,_18)),Vessel_1]
+   - x[((4,_2),_(5,_19)),Vessel_1] - x[((4,_2),_(5,_20)),Vessel_1]
+   - x[((4,_2),_(6,_17)),Vessel_1] - x[((4,_2),_(6,_18)),Vessel_1]
+   - x[((4,_2),_(6,_19)),Vessel_1] - x[((4,_2),_(6,_20)),Vessel_1]
+   - x[((4,_2),_(7,_21)),Vessel_1] + o[4,2,Vessel_1] <= 0
+ Must_operate_in_every_port: - x[((4,_3),_(1,_14)),Vessel_1]
+   - x[((4,_3),_(1,_15)),Vessel_1] - x[((4,_3),_(1,_16)),Vessel_1]
+   - x[((4,_3),_(1,_17)),Vessel_1] - x[((4,_3),_(1,_18)),Vessel_1]
+   - x[((4,_3),_(1,_19)),Vessel_1] - x[((4,_3),_(1,_20)),Vessel_1]
+   - x[((4,_3),_(2,_14)),Vessel_1] - x[((4,_3),_(2,_15)),Vessel_1]
+   - x[((4,_3),_(2,_16)),Vessel_1] - x[((4,_3),_(2,_17)),Vessel_1]
+   - x[((4,_3),_(2,_18)),Vessel_1] - x[((4,_3),_(2,_19)),Vessel_1]
+   - x[((4,_3),_(2,_20)),Vessel_1] - x[((4,_3),_(3,_4)),Vessel_1]
+   - x[((4,_3),_(5,_18)),Vessel_1] - x[((4,_3),_(5,_19)),Vessel_1]
+   - x[((4,_3),_(5,_20)),Vessel_1] - x[((4,_3),_(6,_18)),Vessel_1]
+   - x[((4,_3),_(6,_19)),Vessel_1] - x[((4,_3),_(6,_20)),Vessel_1]
+   - x[((4,_3),_(7,_21)),Vessel_1] + o[4,3,Vessel_1] <= 0
+ Must_operate_in_every_port: o[4,1,Vessel_2] <= 0
+ Must_operate_in_every_port: o[4,3,Vessel_2] <= 0
+ Must_operate_in_every_port: o[4,4,Vessel_2] <= 0
+ Must_operate_in_every_port: o[2,1,Vessel_3] <= 0
+ Must_operate_in_every_port: o[4,1,Vessel_5] <= 0
+ Must_operate_in_every_port: - x[((4,_3),_(1,_14)),Vessel_5]
+   - x[((4,_3),_(1,_15)),Vessel_5] - x[((4,_3),_(1,_16)),Vessel_5]
+   - x[((4,_3),_(1,_17)),Vessel_5] - x[((4,_3),_(1,_18)),Vessel_5]
+   - x[((4,_3),_(1,_19)),Vessel_5] - x[((4,_3),_(1,_20)),Vessel_5]
+   - x[((4,_3),_(2,_14)),Vessel_5] - x[((4,_3),_(2,_15)),Vessel_5]
+   - x[((4,_3),_(2,_16)),Vessel_5] - x[((4,_3),_(2,_17)),Vessel_5]
+   - x[((4,_3),_(2,_18)),Vessel_5] - x[((4,_3),_(2,_19)),Vessel_5]
+   - x[((4,_3),_(2,_20)),Vessel_5] - x[((4,_3),_(3,_4)),Vessel_5]
+   - x[((4,_3),_(5,_18)),Vessel_5] - x[((4,_3),_(5,_19)),Vessel_5]
+   - x[((4,_3),_(5,_20)),Vessel_5] - x[((4,_3),_(6,_18)),Vessel_5]
+   - x[((4,_3),_(6,_19)),Vessel_5] - x[((4,_3),_(6,_20)),Vessel_5]
+   - x[((4,_3),_(7,_21)),Vessel_5] + o[4,3,Vessel_5] <= 0
+ Must_operate_in_every_port: - x[((4,_2),_(1,_13)),Vessel_6]
+   - x[((4,_2),_(1,_14)),Vessel_6] - x[((4,_2),_(1,_15)),Vessel_6]
+   - x[((4,_2),_(1,_16)),Vessel_6] - x[((4,_2),_(1,_17)),Vessel_6]
+   - x[((4,_2),_(1,_18)),Vessel_6] - x[((4,_2),_(1,_19)),Vessel_6]
+   - x[((4,_2),_(1,_20)),Vessel_6] - x[((4,_2),_(2,_13)),Vessel_6]
+   - x[((4,_2),_(2,_14)),Vessel_6] - x[((4,_2),_(2,_15)),Vessel_6]
+   - x[((4,_2),_(2,_16)),Vessel_6] - x[((4,_2),_(2,_17)),Vessel_6]
+   - x[((4,_2),_(2,_18)),Vessel_6] - x[((4,_2),_(2,_19)),Vessel_6]
+   - x[((4,_2),_(2,_20)),Vessel_6] - x[((4,_2),_(3,_3)),Vessel_6]
+   - x[((4,_2),_(5,_17)),Vessel_6] - x[((4,_2),_(5,_18)),Vessel_6]
+   - x[((4,_2),_(5,_19)),Vessel_6] - x[((4,_2),_(5,_20)),Vessel_6]
+   - x[((4,_2),_(6,_17)),Vessel_6] - x[((4,_2),_(6,_18)),Vessel_6]
+   - x[((4,_2),_(6,_19)),Vessel_6] - x[((4,_2),_(6,_20)),Vessel_6]
+   - x[((4,_2),_(7,_21)),Vessel_6] + o[4,2,Vessel_6] <= 0
+ Must_operate_in_every_port: - x[((4,_3),_(1,_14)),Vessel_6]
+   - x[((4,_3),_(1,_15)),Vessel_6] - x[((4,_3),_(1,_16)),Vessel_6]
+   - x[((4,_3),_(1,_17)),Vessel_6] - x[((4,_3),_(1,_18)),Vessel_6]
+   - x[((4,_3),_(1,_19)),Vessel_6] - x[((4,_3),_(1,_20)),Vessel_6]
+   - x[((4,_3),_(2,_14)),Vessel_6] - x[((4,_3),_(2,_15)),Vessel_6]
+   - x[((4,_3),_(2,_16)),Vessel_6] - x[((4,_3),_(2,_17)),Vessel_6]
+   - x[((4,_3),_(2,_18)),Vessel_6] - x[((4,_3),_(2,_19)),Vessel_6]
+   - x[((4,_3),_(2,_20)),Vessel_6] - x[((4,_3),_(3,_4)),Vessel_6]
+   - x[((4,_3),_(5,_18)),Vessel_6] - x[((4,_3),_(5,_19)),Vessel_6]
+   - x[((4,_3),_(5,_20)),Vessel_6] - x[((4,_3),_(6,_18)),Vessel_6]
+   - x[((4,_3),_(6,_19)),Vessel_6] - x[((4,_3),_(6,_20)),Vessel_6]
+   - x[((4,_3),_(7,_21)),Vessel_6] + o[4,3,Vessel_6] <= 0
+ Must_operate_in_every_port: - x[((4,_4),_(1,_15)),Vessel_6]
+   - x[((4,_4),_(1,_16)),Vessel_6] - x[((4,_4),_(1,_17)),Vessel_6]
+   - x[((4,_4),_(1,_18)),Vessel_6] - x[((4,_4),_(1,_19)),Vessel_6]
+   - x[((4,_4),_(1,_20)),Vessel_6] - x[((4,_4),_(2,_15)),Vessel_6]
+   - x[((4,_4),_(2,_16)),Vessel_6] - x[((4,_4),_(2,_17)),Vessel_6]
+   - x[((4,_4),_(2,_18)),Vessel_6] - x[((4,_4),_(2,_19)),Vessel_6]
+   - x[((4,_4),_(2,_20)),Vessel_6] - x[((4,_4),_(3,_5)),Vessel_6]
+   - x[((4,_4),_(5,_19)),Vessel_6] - x[((4,_4),_(5,_20)),Vessel_6]
+   - x[((4,_4),_(6,_19)),Vessel_6] - x[((4,_4),_(6,_20)),Vessel_6]
+   - x[((4,_4),_(7,_21)),Vessel_6] + o[4,4,Vessel_6] <= 0
 Bounds
- q[1,1,Vessel_1] free
- q[1,1,Vessel_2] free
  q[1,1,Vessel_3] free
- q[1,1,Vessel_4] free
- q[1,1,Vessel_5] free
- q[1,1,Vessel_6] free
- q[1,1,Vessel_7] free
- q[1,1,Vessel_8] free
- q[1,1,Vessel_9] free
- q[1,1,Vessel_10] free
- q[1,1,Vessel_11] free
- q[2,1,Vessel_1] free
- q[2,1,Vessel_2] free
  q[2,1,Vessel_3] free
- q[2,1,Vessel_4] free
- q[2,1,Vessel_5] free
- q[2,1,Vessel_6] free
- q[2,1,Vessel_7] free
- q[2,1,Vessel_8] free
- q[2,1,Vessel_9] free
- q[2,1,Vessel_10] free
- q[2,1,Vessel_11] free
- q[5,1,Vessel_1] free
- q[5,1,Vessel_2] free
- q[5,1,Vessel_3] free
- q[5,1,Vessel_4] free
- q[5,1,Vessel_5] free
- q[5,1,Vessel_6] free
- q[5,1,Vessel_7] free
- q[5,1,Vessel_8] free
- q[5,1,Vessel_9] free
- q[5,1,Vessel_10] free
- q[5,1,Vessel_11] free
- s[5,0] free
- w[0,Vessel_1] free
- w[0,Vessel_2] free
+ q[4,1,Vessel_1] free
+ q[4,1,Vessel_2] free
+ q[4,1,Vessel_3] free
+ q[4,1,Vessel_4] free
+ q[4,1,Vessel_5] free
+ q[4,1,Vessel_6] free
+ q[1,2,Vessel_3] free
+ q[2,2,Vessel_3] free
+ q[4,2,Vessel_1] free
+ q[4,2,Vessel_2] free
+ q[4,2,Vessel_3] free
+ q[4,2,Vessel_4] free
+ q[4,2,Vessel_5] free
+ q[4,2,Vessel_6] free
+ q[4,3,Vessel_1] free
+ q[4,3,Vessel_2] free
+ q[4,3,Vessel_3] free
+ q[4,3,Vessel_4] free
+ q[4,3,Vessel_5] free
+ q[4,3,Vessel_6] free
+ q[4,4,Vessel_1] free
+ q[4,4,Vessel_2] free
+ q[4,4,Vessel_3] free
+ q[4,4,Vessel_4] free
+ q[4,4,Vessel_5] free
+ q[4,4,Vessel_6] free
+ s[4,1] free
+ s[4,2] free
+ s[4,3] free
+ s[4,0] free
+ w[1,Vessel_3] free
  w[0,Vessel_3] free
- w[0,Vessel_4] free
- w[0,Vessel_5] free
- w[0,Vessel_6] free
- w[0,Vessel_7] free
- w[0,Vessel_8] free
- w[0,Vessel_9] free
- w[0,Vessel_10] free
- w[0,Vessel_11] free
 Binaries
- x[((0,_0),_(1,_1)),Vessel_1] x[((0,_0),_(2,_1)),Vessel_1]
- x[((0,_0),_(3,_1)),Vessel_1] x[((0,_0),_(4,_1)),Vessel_1]
- x[((0,_0),_(5,_1)),Vessel_1] x[((0,_0),_(6,_1)),Vessel_1]
- x[((0,_0),_(7,_1)),Vessel_1] x[((0,_0),_(8,_1)),Vessel_1]
- x[((0,_0),_(9,_13)),Vessel_1] x[((0,_0),_(1,_1)),Vessel_2]
- x[((0,_0),_(2,_1)),Vessel_2] x[((0,_0),_(3,_1)),Vessel_2]
- x[((0,_0),_(4,_1)),Vessel_2] x[((0,_0),_(5,_1)),Vessel_2]
- x[((0,_0),_(6,_1)),Vessel_2] x[((0,_0),_(7,_1)),Vessel_2]
- x[((0,_0),_(8,_1)),Vessel_2] x[((2,_1),_(1,_2)),Vessel_2]
- x[((2,_1),_(2,_2)),Vessel_2] x[((2,_1),_(3,_2)),Vessel_2]
- x[((2,_1),_(4,_2)),Vessel_2] x[((2,_1),_(5,_2)),Vessel_2]
- x[((2,_1),_(6,_2)),Vessel_2] x[((2,_1),_(7,_2)),Vessel_2]
- x[((2,_1),_(8,_2)),Vessel_2] x[((5,_1),_(1,_2)),Vessel_2]
- x[((5,_1),_(2,_2)),Vessel_2] x[((5,_1),_(3,_2)),Vessel_2]
- x[((5,_1),_(4,_2)),Vessel_2] x[((5,_1),_(5,_2)),Vessel_2]
- x[((5,_1),_(6,_2)),Vessel_2] x[((5,_1),_(7,_2)),Vessel_2]
- x[((5,_1),_(8,_2)),Vessel_2] x[((0,_0),_(9,_13)),Vessel_2]
- x[((2,_1),_(9,_13)),Vessel_2] x[((5,_1),_(9,_13)),Vessel_2]
- x[((0,_0),_(1,_1)),Vessel_3] x[((0,_0),_(2,_1)),Vessel_3]
- x[((0,_0),_(3,_1)),Vessel_3] x[((0,_0),_(4,_1)),Vessel_3]
- x[((0,_0),_(5,_1)),Vessel_3] x[((0,_0),_(6,_1)),Vessel_3]
- x[((0,_0),_(7,_1)),Vessel_3] x[((0,_0),_(8,_1)),Vessel_3]
- x[((0,_0),_(9,_13)),Vessel_3] x[((0,_0),_(1,_1)),Vessel_4]
- x[((0,_0),_(2,_1)),Vessel_4] x[((0,_0),_(3,_1)),Vessel_4]
- x[((0,_0),_(4,_1)),Vessel_4] x[((0,_0),_(5,_1)),Vessel_4]
- x[((0,_0),_(6,_1)),Vessel_4] x[((0,_0),_(7,_1)),Vessel_4]
- x[((0,_0),_(8,_1)),Vessel_4] x[((0,_0),_(9,_13)),Vessel_4]
- x[((0,_0),_(1,_1)),Vessel_5] x[((0,_0),_(2,_1)),Vessel_5]
- x[((0,_0),_(3,_1)),Vessel_5] x[((0,_0),_(4,_1)),Vessel_5]
- x[((0,_0),_(5,_1)),Vessel_5] x[((0,_0),_(6,_1)),Vessel_5]
- x[((0,_0),_(7,_1)),Vessel_5] x[((0,_0),_(8,_1)),Vessel_5]
- x[((5,_1),_(1,_2)),Vessel_5] x[((5,_1),_(2,_2)),Vessel_5]
- x[((5,_1),_(3,_2)),Vessel_5] x[((5,_1),_(4,_2)),Vessel_5]
- x[((5,_1),_(5,_2)),Vessel_5] x[((5,_1),_(6,_2)),Vessel_5]
- x[((5,_1),_(7,_2)),Vessel_5] x[((5,_1),_(8,_2)),Vessel_5]
- x[((0,_0),_(9,_13)),Vessel_5] x[((5,_1),_(9,_13)),Vessel_5]
- x[((0,_0),_(1,_1)),Vessel_6] x[((0,_0),_(2,_1)),Vessel_6]
- x[((0,_0),_(3,_1)),Vessel_6] x[((0,_0),_(4,_1)),Vessel_6]
- x[((0,_0),_(5,_1)),Vessel_6] x[((0,_0),_(6,_1)),Vessel_6]
- x[((0,_0),_(7,_1)),Vessel_6] x[((0,_0),_(8,_1)),Vessel_6]
- x[((1,_1),_(1,_2)),Vessel_6] x[((1,_1),_(2,_2)),Vessel_6]
- x[((1,_1),_(3,_2)),Vessel_6] x[((1,_1),_(4,_2)),Vessel_6]
- x[((1,_1),_(5,_2)),Vessel_6] x[((1,_1),_(6,_2)),Vessel_6]
- x[((1,_1),_(7,_2)),Vessel_6] x[((1,_1),_(8,_2)),Vessel_6]
- x[((0,_0),_(9,_13)),Vessel_6] x[((1,_1),_(9,_13)),Vessel_6]
- x[((0,_0),_(1,_1)),Vessel_7] x[((0,_0),_(2,_1)),Vessel_7]
- x[((0,_0),_(3,_1)),Vessel_7] x[((0,_0),_(4,_1)),Vessel_7]
- x[((0,_0),_(5,_1)),Vessel_7] x[((0,_0),_(6,_1)),Vessel_7]
- x[((0,_0),_(7,_1)),Vessel_7] x[((0,_0),_(8,_1)),Vessel_7]
- x[((1,_1),_(1,_2)),Vessel_7] x[((1,_1),_(2,_2)),Vessel_7]
- x[((1,_1),_(3,_2)),Vessel_7] x[((1,_1),_(4,_2)),Vessel_7]
- x[((1,_1),_(5,_2)),Vessel_7] x[((1,_1),_(6,_2)),Vessel_7]
- x[((1,_1),_(7,_2)),Vessel_7] x[((1,_1),_(8,_2)),Vessel_7]
- x[((0,_0),_(9,_13)),Vessel_7] x[((1,_1),_(9,_13)),Vessel_7]
- x[((0,_0),_(1,_1)),Vessel_8] x[((0,_0),_(2,_1)),Vessel_8]
- x[((0,_0),_(3,_1)),Vessel_8] x[((0,_0),_(4,_1)),Vessel_8]
- x[((0,_0),_(5,_1)),Vessel_8] x[((0,_0),_(6,_1)),Vessel_8]
- x[((0,_0),_(7,_1)),Vessel_8] x[((0,_0),_(8,_1)),Vessel_8]
- x[((2,_1),_(1,_2)),Vessel_8] x[((2,_1),_(2,_2)),Vessel_8]
- x[((2,_1),_(3,_2)),Vessel_8] x[((2,_1),_(4,_2)),Vessel_8]
- x[((2,_1),_(5,_2)),Vessel_8] x[((2,_1),_(6,_2)),Vessel_8]
- x[((2,_1),_(7,_2)),Vessel_8] x[((2,_1),_(8,_2)),Vessel_8]
- x[((5,_1),_(1,_2)),Vessel_8] x[((5,_1),_(2,_2)),Vessel_8]
- x[((5,_1),_(3,_2)),Vessel_8] x[((5,_1),_(4,_2)),Vessel_8]
- x[((5,_1),_(5,_2)),Vessel_8] x[((5,_1),_(6,_2)),Vessel_8]
- x[((5,_1),_(7,_2)),Vessel_8] x[((5,_1),_(8,_2)),Vessel_8]
- x[((0,_0),_(9,_13)),Vessel_8] x[((2,_1),_(9,_13)),Vessel_8]
- x[((5,_1),_(9,_13)),Vessel_8] x[((0,_0),_(1,_1)),Vessel_9]
- x[((0,_0),_(2,_1)),Vessel_9] x[((0,_0),_(3,_1)),Vessel_9]
- x[((0,_0),_(4,_1)),Vessel_9] x[((0,_0),_(5,_1)),Vessel_9]
- x[((0,_0),_(6,_1)),Vessel_9] x[((0,_0),_(7,_1)),Vessel_9]
- x[((0,_0),_(8,_1)),Vessel_9] x[((2,_1),_(1,_2)),Vessel_9]
- x[((2,_1),_(2,_2)),Vessel_9] x[((2,_1),_(3,_2)),Vessel_9]
- x[((2,_1),_(4,_2)),Vessel_9] x[((2,_1),_(5,_2)),Vessel_9]
- x[((2,_1),_(6,_2)),Vessel_9] x[((2,_1),_(7,_2)),Vessel_9]
- x[((2,_1),_(8,_2)),Vessel_9] x[((5,_1),_(1,_2)),Vessel_9]
- x[((5,_1),_(2,_2)),Vessel_9] x[((5,_1),_(3,_2)),Vessel_9]
- x[((5,_1),_(4,_2)),Vessel_9] x[((5,_1),_(5,_2)),Vessel_9]
- x[((5,_1),_(6,_2)),Vessel_9] x[((5,_1),_(7,_2)),Vessel_9]
- x[((5,_1),_(8,_2)),Vessel_9] x[((0,_0),_(9,_13)),Vessel_9]
- x[((2,_1),_(9,_13)),Vessel_9] x[((5,_1),_(9,_13)),Vessel_9]
- x[((0,_0),_(1,_1)),Vessel_10] x[((0,_0),_(2,_1)),Vessel_10]
- x[((0,_0),_(3,_1)),Vessel_10] x[((0,_0),_(4,_1)),Vessel_10]
- x[((0,_0),_(5,_1)),Vessel_10] x[((0,_0),_(6,_1)),Vessel_10]
- x[((0,_0),_(7,_1)),Vessel_10] x[((0,_0),_(8,_1)),Vessel_10]
- x[((0,_0),_(9,_13)),Vessel_10] x[((0,_0),_(1,_1)),Vessel_11]
- x[((0,_0),_(2,_1)),Vessel_11] x[((0,_0),_(3,_1)),Vessel_11]
- x[((0,_0),_(4,_1)),Vessel_11] x[((0,_0),_(5,_1)),Vessel_11]
- x[((0,_0),_(6,_1)),Vessel_11] x[((0,_0),_(7,_1)),Vessel_11]
- x[((0,_0),_(8,_1)),Vessel_11] x[((1,_1),_(1,_2)),Vessel_11]
- x[((1,_1),_(2,_2)),Vessel_11] x[((1,_1),_(3,_2)),Vessel_11]
- x[((1,_1),_(4,_2)),Vessel_11] x[((1,_1),_(5,_2)),Vessel_11]
- x[((1,_1),_(6,_2)),Vessel_11] x[((1,_1),_(7,_2)),Vessel_11]
- x[((1,_1),_(8,_2)),Vessel_11] x[((0,_0),_(9,_13)),Vessel_11]
- x[((1,_1),_(9,_13)),Vessel_11] o[1,1,Vessel_1] o[1,1,Vessel_2]
- o[1,1,Vessel_3] o[1,1,Vessel_4] o[1,1,Vessel_5] o[1,1,Vessel_6]
- o[1,1,Vessel_7] o[1,1,Vessel_8] o[1,1,Vessel_9] o[1,1,Vessel_10]
- o[1,1,Vessel_11] o[2,1,Vessel_1] o[2,1,Vessel_2] o[2,1,Vessel_3]
- o[2,1,Vessel_4] o[2,1,Vessel_5] o[2,1,Vessel_6] o[2,1,Vessel_7]
- o[2,1,Vessel_8] o[2,1,Vessel_9] o[2,1,Vessel_10] o[2,1,Vessel_11]
- o[5,1,Vessel_1] o[5,1,Vessel_2] o[5,1,Vessel_3] o[5,1,Vessel_4]
- o[5,1,Vessel_5] o[5,1,Vessel_6] o[5,1,Vessel_7] o[5,1,Vessel_8]
- o[5,1,Vessel_9] o[5,1,Vessel_10] o[5,1,Vessel_11]
+ x[((3,_1),_(1,_13)),Vessel_1] x[((3,_1),_(1,_14)),Vessel_1]
+ x[((3,_1),_(1,_15)),Vessel_1] x[((3,_1),_(1,_16)),Vessel_1]
+ x[((3,_1),_(1,_17)),Vessel_1] x[((3,_1),_(1,_18)),Vessel_1]
+ x[((3,_1),_(1,_19)),Vessel_1] x[((3,_1),_(1,_20)),Vessel_1]
+ x[((3,_1),_(2,_12)),Vessel_1] x[((3,_1),_(2,_13)),Vessel_1]
+ x[((3,_1),_(2,_14)),Vessel_1] x[((3,_1),_(2,_15)),Vessel_1]
+ x[((3,_1),_(2,_16)),Vessel_1] x[((3,_1),_(2,_17)),Vessel_1]
+ x[((3,_1),_(2,_18)),Vessel_1] x[((3,_1),_(2,_19)),Vessel_1]
+ x[((3,_1),_(2,_20)),Vessel_1] x[((3,_1),_(3,_2)),Vessel_1]
+ x[((3,_1),_(4,_2)),Vessel_1] x[((3,_1),_(5,_16)),Vessel_1]
+ x[((3,_1),_(5,_17)),Vessel_1] x[((3,_1),_(5,_18)),Vessel_1]
+ x[((3,_1),_(5,_19)),Vessel_1] x[((3,_1),_(5,_20)),Vessel_1]
+ x[((3,_1),_(6,_16)),Vessel_1] x[((3,_1),_(6,_17)),Vessel_1]
+ x[((3,_1),_(6,_18)),Vessel_1] x[((3,_1),_(6,_19)),Vessel_1]
+ x[((3,_1),_(6,_20)),Vessel_1] x[((4,_1),_(1,_12)),Vessel_1]
+ x[((4,_1),_(1,_13)),Vessel_1] x[((4,_1),_(1,_14)),Vessel_1]
+ x[((4,_1),_(1,_15)),Vessel_1] x[((4,_1),_(1,_16)),Vessel_1]
+ x[((4,_1),_(1,_17)),Vessel_1] x[((4,_1),_(1,_18)),Vessel_1]
+ x[((4,_1),_(1,_19)),Vessel_1] x[((4,_1),_(1,_20)),Vessel_1]
+ x[((4,_1),_(2,_12)),Vessel_1] x[((4,_1),_(2,_13)),Vessel_1]
+ x[((4,_1),_(2,_14)),Vessel_1] x[((4,_1),_(2,_15)),Vessel_1]
+ x[((4,_1),_(2,_16)),Vessel_1] x[((4,_1),_(2,_17)),Vessel_1]
+ x[((4,_1),_(2,_18)),Vessel_1] x[((4,_1),_(2,_19)),Vessel_1]
+ x[((4,_1),_(2,_20)),Vessel_1] x[((4,_1),_(3,_2)),Vessel_1]
+ x[((4,_1),_(4,_2)),Vessel_1] x[((4,_1),_(5,_16)),Vessel_1]
+ x[((4,_1),_(5,_17)),Vessel_1] x[((4,_1),_(5,_18)),Vessel_1]
+ x[((4,_1),_(5,_19)),Vessel_1] x[((4,_1),_(5,_20)),Vessel_1]
+ x[((4,_1),_(6,_16)),Vessel_1] x[((4,_1),_(6,_17)),Vessel_1]
+ x[((4,_1),_(6,_18)),Vessel_1] x[((4,_1),_(6,_19)),Vessel_1]
+ x[((4,_1),_(6,_20)),Vessel_1] x[((3,_2),_(1,_14)),Vessel_1]
+ x[((3,_2),_(1,_15)),Vessel_1] x[((3,_2),_(1,_16)),Vessel_1]
+ x[((3,_2),_(1,_17)),Vessel_1] x[((3,_2),_(1,_18)),Vessel_1]
+ x[((3,_2),_(1,_19)),Vessel_1] x[((3,_2),_(1,_20)),Vessel_1]
+ x[((3,_2),_(2,_13)),Vessel_1] x[((3,_2),_(2,_14)),Vessel_1]
+ x[((3,_2),_(2,_15)),Vessel_1] x[((3,_2),_(2,_16)),Vessel_1]
+ x[((3,_2),_(2,_17)),Vessel_1] x[((3,_2),_(2,_18)),Vessel_1]
+ x[((3,_2),_(2,_19)),Vessel_1] x[((3,_2),_(2,_20)),Vessel_1]
+ x[((3,_2),_(3,_3)),Vessel_1] x[((3,_2),_(4,_3)),Vessel_1]
+ x[((3,_2),_(5,_17)),Vessel_1] x[((3,_2),_(5,_18)),Vessel_1]
+ x[((3,_2),_(5,_19)),Vessel_1] x[((3,_2),_(5,_20)),Vessel_1]
+ x[((3,_2),_(6,_17)),Vessel_1] x[((3,_2),_(6,_18)),Vessel_1]
+ x[((3,_2),_(6,_19)),Vessel_1] x[((3,_2),_(6,_20)),Vessel_1]
+ x[((4,_2),_(1,_13)),Vessel_1] x[((4,_2),_(1,_14)),Vessel_1]
+ x[((4,_2),_(1,_15)),Vessel_1] x[((4,_2),_(1,_16)),Vessel_1]
+ x[((4,_2),_(1,_17)),Vessel_1] x[((4,_2),_(1,_18)),Vessel_1]
+ x[((4,_2),_(1,_19)),Vessel_1] x[((4,_2),_(1,_20)),Vessel_1]
+ x[((4,_2),_(2,_13)),Vessel_1] x[((4,_2),_(2,_14)),Vessel_1]
+ x[((4,_2),_(2,_15)),Vessel_1] x[((4,_2),_(2,_16)),Vessel_1]
+ x[((4,_2),_(2,_17)),Vessel_1] x[((4,_2),_(2,_18)),Vessel_1]
+ x[((4,_2),_(2,_19)),Vessel_1] x[((4,_2),_(2,_20)),Vessel_1]
+ x[((4,_2),_(3,_3)),Vessel_1] x[((4,_2),_(4,_3)),Vessel_1]
+ x[((4,_2),_(5,_17)),Vessel_1] x[((4,_2),_(5,_18)),Vessel_1]
+ x[((4,_2),_(5,_19)),Vessel_1] x[((4,_2),_(5,_20)),Vessel_1]
+ x[((4,_2),_(6,_17)),Vessel_1] x[((4,_2),_(6,_18)),Vessel_1]
+ x[((4,_2),_(6,_19)),Vessel_1] x[((4,_2),_(6,_20)),Vessel_1]
+ x[((3,_3),_(1,_15)),Vessel_1] x[((3,_3),_(1,_16)),Vessel_1]
+ x[((3,_3),_(1,_17)),Vessel_1] x[((3,_3),_(1,_18)),Vessel_1]
+ x[((3,_3),_(1,_19)),Vessel_1] x[((3,_3),_(1,_20)),Vessel_1]
+ x[((3,_3),_(2,_14)),Vessel_1] x[((3,_3),_(2,_15)),Vessel_1]
+ x[((3,_3),_(2,_16)),Vessel_1] x[((3,_3),_(2,_17)),Vessel_1]
+ x[((3,_3),_(2,_18)),Vessel_1] x[((3,_3),_(2,_19)),Vessel_1]
+ x[((3,_3),_(2,_20)),Vessel_1] x[((3,_3),_(3,_4)),Vessel_1]
+ x[((3,_3),_(4,_4)),Vessel_1] x[((3,_3),_(5,_18)),Vessel_1]
+ x[((3,_3),_(5,_19)),Vessel_1] x[((3,_3),_(5,_20)),Vessel_1]
+ x[((3,_3),_(6,_18)),Vessel_1] x[((3,_3),_(6,_19)),Vessel_1]
+ x[((3,_3),_(6,_20)),Vessel_1] x[((4,_3),_(1,_14)),Vessel_1]
+ x[((4,_3),_(1,_15)),Vessel_1] x[((4,_3),_(1,_16)),Vessel_1]
+ x[((4,_3),_(1,_17)),Vessel_1] x[((4,_3),_(1,_18)),Vessel_1]
+ x[((4,_3),_(1,_19)),Vessel_1] x[((4,_3),_(1,_20)),Vessel_1]
+ x[((4,_3),_(2,_14)),Vessel_1] x[((4,_3),_(2,_15)),Vessel_1]
+ x[((4,_3),_(2,_16)),Vessel_1] x[((4,_3),_(2,_17)),Vessel_1]
+ x[((4,_3),_(2,_18)),Vessel_1] x[((4,_3),_(2,_19)),Vessel_1]
+ x[((4,_3),_(2,_20)),Vessel_1] x[((4,_3),_(3,_4)),Vessel_1]
+ x[((4,_3),_(4,_4)),Vessel_1] x[((4,_3),_(5,_18)),Vessel_1]
+ x[((4,_3),_(5,_19)),Vessel_1] x[((4,_3),_(5,_20)),Vessel_1]
+ x[((4,_3),_(6,_18)),Vessel_1] x[((4,_3),_(6,_19)),Vessel_1]
+ x[((4,_3),_(6,_20)),Vessel_1] x[((3,_1),_(7,_21)),Vessel_1]
+ x[((4,_1),_(7,_21)),Vessel_1] x[((3,_2),_(7,_21)),Vessel_1]
+ x[((4,_2),_(7,_21)),Vessel_1] x[((3,_3),_(7,_21)),Vessel_1]
+ x[((4,_3),_(7,_21)),Vessel_1] x[((3,_1),_(1,_13)),Vessel_4]
+ x[((3,_1),_(1,_14)),Vessel_4] x[((3,_1),_(1,_15)),Vessel_4]
+ x[((3,_1),_(1,_16)),Vessel_4] x[((3,_1),_(1,_17)),Vessel_4]
+ x[((3,_1),_(1,_18)),Vessel_4] x[((3,_1),_(1,_19)),Vessel_4]
+ x[((3,_1),_(1,_20)),Vessel_4] x[((3,_1),_(2,_12)),Vessel_4]
+ x[((3,_1),_(2,_13)),Vessel_4] x[((3,_1),_(2,_14)),Vessel_4]
+ x[((3,_1),_(2,_15)),Vessel_4] x[((3,_1),_(2,_16)),Vessel_4]
+ x[((3,_1),_(2,_17)),Vessel_4] x[((3,_1),_(2,_18)),Vessel_4]
+ x[((3,_1),_(2,_19)),Vessel_4] x[((3,_1),_(2,_20)),Vessel_4]
+ x[((3,_1),_(3,_2)),Vessel_4] x[((3,_1),_(4,_2)),Vessel_4]
+ x[((3,_1),_(5,_16)),Vessel_4] x[((3,_1),_(5,_17)),Vessel_4]
+ x[((3,_1),_(5,_18)),Vessel_4] x[((3,_1),_(5,_19)),Vessel_4]
+ x[((3,_1),_(5,_20)),Vessel_4] x[((3,_1),_(6,_16)),Vessel_4]
+ x[((3,_1),_(6,_17)),Vessel_4] x[((3,_1),_(6,_18)),Vessel_4]
+ x[((3,_1),_(6,_19)),Vessel_4] x[((3,_1),_(6,_20)),Vessel_4]
+ x[((4,_1),_(1,_12)),Vessel_4] x[((4,_1),_(1,_13)),Vessel_4]
+ x[((4,_1),_(1,_14)),Vessel_4] x[((4,_1),_(1,_15)),Vessel_4]
+ x[((4,_1),_(1,_16)),Vessel_4] x[((4,_1),_(1,_17)),Vessel_4]
+ x[((4,_1),_(1,_18)),Vessel_4] x[((4,_1),_(1,_19)),Vessel_4]
+ x[((4,_1),_(1,_20)),Vessel_4] x[((4,_1),_(2,_12)),Vessel_4]
+ x[((4,_1),_(2,_13)),Vessel_4] x[((4,_1),_(2,_14)),Vessel_4]
+ x[((4,_1),_(2,_15)),Vessel_4] x[((4,_1),_(2,_16)),Vessel_4]
+ x[((4,_1),_(2,_17)),Vessel_4] x[((4,_1),_(2,_18)),Vessel_4]
+ x[((4,_1),_(2,_19)),Vessel_4] x[((4,_1),_(2,_20)),Vessel_4]
+ x[((4,_1),_(3,_2)),Vessel_4] x[((4,_1),_(4,_2)),Vessel_4]
+ x[((4,_1),_(5,_16)),Vessel_4] x[((4,_1),_(5,_17)),Vessel_4]
+ x[((4,_1),_(5,_18)),Vessel_4] x[((4,_1),_(5,_19)),Vessel_4]
+ x[((4,_1),_(5,_20)),Vessel_4] x[((4,_1),_(6,_16)),Vessel_4]
+ x[((4,_1),_(6,_17)),Vessel_4] x[((4,_1),_(6,_18)),Vessel_4]
+ x[((4,_1),_(6,_19)),Vessel_4] x[((4,_1),_(6,_20)),Vessel_4]
+ x[((3,_2),_(1,_14)),Vessel_4] x[((3,_2),_(1,_15)),Vessel_4]
+ x[((3,_2),_(1,_16)),Vessel_4] x[((3,_2),_(1,_17)),Vessel_4]
+ x[((3,_2),_(1,_18)),Vessel_4] x[((3,_2),_(1,_19)),Vessel_4]
+ x[((3,_2),_(1,_20)),Vessel_4] x[((3,_2),_(2,_13)),Vessel_4]
+ x[((3,_2),_(2,_14)),Vessel_4] x[((3,_2),_(2,_15)),Vessel_4]
+ x[((3,_2),_(2,_16)),Vessel_4] x[((3,_2),_(2,_17)),Vessel_4]
+ x[((3,_2),_(2,_18)),Vessel_4] x[((3,_2),_(2,_19)),Vessel_4]
+ x[((3,_2),_(2,_20)),Vessel_4] x[((3,_2),_(3,_3)),Vessel_4]
+ x[((3,_2),_(4,_3)),Vessel_4] x[((3,_2),_(5,_17)),Vessel_4]
+ x[((3,_2),_(5,_18)),Vessel_4] x[((3,_2),_(5,_19)),Vessel_4]
+ x[((3,_2),_(5,_20)),Vessel_4] x[((3,_2),_(6,_17)),Vessel_4]
+ x[((3,_2),_(6,_18)),Vessel_4] x[((3,_2),_(6,_19)),Vessel_4]
+ x[((3,_2),_(6,_20)),Vessel_4] x[((4,_2),_(1,_13)),Vessel_4]
+ x[((4,_2),_(1,_14)),Vessel_4] x[((4,_2),_(1,_15)),Vessel_4]
+ x[((4,_2),_(1,_16)),Vessel_4] x[((4,_2),_(1,_17)),Vessel_4]
+ x[((4,_2),_(1,_18)),Vessel_4] x[((4,_2),_(1,_19)),Vessel_4]
+ x[((4,_2),_(1,_20)),Vessel_4] x[((4,_2),_(2,_13)),Vessel_4]
+ x[((4,_2),_(2,_14)),Vessel_4] x[((4,_2),_(2,_15)),Vessel_4]
+ x[((4,_2),_(2,_16)),Vessel_4] x[((4,_2),_(2,_17)),Vessel_4]
+ x[((4,_2),_(2,_18)),Vessel_4] x[((4,_2),_(2,_19)),Vessel_4]
+ x[((4,_2),_(2,_20)),Vessel_4] x[((4,_2),_(3,_3)),Vessel_4]
+ x[((4,_2),_(4,_3)),Vessel_4] x[((4,_2),_(5,_17)),Vessel_4]
+ x[((4,_2),_(5,_18)),Vessel_4] x[((4,_2),_(5,_19)),Vessel_4]
+ x[((4,_2),_(5,_20)),Vessel_4] x[((4,_2),_(6,_17)),Vessel_4]
+ x[((4,_2),_(6,_18)),Vessel_4] x[((4,_2),_(6,_19)),Vessel_4]
+ x[((4,_2),_(6,_20)),Vessel_4] x[((3,_3),_(1,_15)),Vessel_4]
+ x[((3,_3),_(1,_16)),Vessel_4] x[((3,_3),_(1,_17)),Vessel_4]
+ x[((3,_3),_(1,_18)),Vessel_4] x[((3,_3),_(1,_19)),Vessel_4]
+ x[((3,_3),_(1,_20)),Vessel_4] x[((3,_3),_(2,_14)),Vessel_4]
+ x[((3,_3),_(2,_15)),Vessel_4] x[((3,_3),_(2,_16)),Vessel_4]
+ x[((3,_3),_(2,_17)),Vessel_4] x[((3,_3),_(2,_18)),Vessel_4]
+ x[((3,_3),_(2,_19)),Vessel_4] x[((3,_3),_(2,_20)),Vessel_4]
+ x[((3,_3),_(3,_4)),Vessel_4] x[((3,_3),_(4,_4)),Vessel_4]
+ x[((3,_3),_(5,_18)),Vessel_4] x[((3,_3),_(5,_19)),Vessel_4]
+ x[((3,_3),_(5,_20)),Vessel_4] x[((3,_3),_(6,_18)),Vessel_4]
+ x[((3,_3),_(6,_19)),Vessel_4] x[((3,_3),_(6,_20)),Vessel_4]
+ x[((4,_3),_(1,_14)),Vessel_4] x[((4,_3),_(1,_15)),Vessel_4]
+ x[((4,_3),_(1,_16)),Vessel_4] x[((4,_3),_(1,_17)),Vessel_4]
+ x[((4,_3),_(1,_18)),Vessel_4] x[((4,_3),_(1,_19)),Vessel_4]
+ x[((4,_3),_(1,_20)),Vessel_4] x[((4,_3),_(2,_14)),Vessel_4]
+ x[((4,_3),_(2,_15)),Vessel_4] x[((4,_3),_(2,_16)),Vessel_4]
+ x[((4,_3),_(2,_17)),Vessel_4] x[((4,_3),_(2,_18)),Vessel_4]
+ x[((4,_3),_(2,_19)),Vessel_4] x[((4,_3),_(2,_20)),Vessel_4]
+ x[((4,_3),_(3,_4)),Vessel_4] x[((4,_3),_(4,_4)),Vessel_4]
+ x[((4,_3),_(5,_18)),Vessel_4] x[((4,_3),_(5,_19)),Vessel_4]
+ x[((4,_3),_(5,_20)),Vessel_4] x[((4,_3),_(6,_18)),Vessel_4]
+ x[((4,_3),_(6,_19)),Vessel_4] x[((4,_3),_(6,_20)),Vessel_4]
+ x[((3,_1),_(7,_21)),Vessel_4] x[((4,_1),_(7,_21)),Vessel_4]
+ x[((3,_2),_(7,_21)),Vessel_4] x[((4,_2),_(7,_21)),Vessel_4]
+ x[((3,_3),_(7,_21)),Vessel_4] x[((4,_3),_(7,_21)),Vessel_4]
+ x[((3,_2),_(1,_14)),Vessel_5] x[((3,_2),_(1,_15)),Vessel_5]
+ x[((3,_2),_(1,_16)),Vessel_5] x[((3,_2),_(1,_17)),Vessel_5]
+ x[((3,_2),_(1,_18)),Vessel_5] x[((3,_2),_(1,_19)),Vessel_5]
+ x[((3,_2),_(1,_20)),Vessel_5] x[((3,_2),_(2,_13)),Vessel_5]
+ x[((3,_2),_(2,_14)),Vessel_5] x[((3,_2),_(2,_15)),Vessel_5]
+ x[((3,_2),_(2,_16)),Vessel_5] x[((3,_2),_(2,_17)),Vessel_5]
+ x[((3,_2),_(2,_18)),Vessel_5] x[((3,_2),_(2,_19)),Vessel_5]
+ x[((3,_2),_(2,_20)),Vessel_5] x[((3,_2),_(3,_3)),Vessel_5]
+ x[((3,_2),_(4,_3)),Vessel_5] x[((3,_2),_(5,_17)),Vessel_5]
+ x[((3,_2),_(5,_18)),Vessel_5] x[((3,_2),_(5,_19)),Vessel_5]
+ x[((3,_2),_(5,_20)),Vessel_5] x[((3,_2),_(6,_17)),Vessel_5]
+ x[((3,_2),_(6,_18)),Vessel_5] x[((3,_2),_(6,_19)),Vessel_5]
+ x[((3,_2),_(6,_20)),Vessel_5] x[((4,_2),_(1,_13)),Vessel_5]
+ x[((4,_2),_(1,_14)),Vessel_5] x[((4,_2),_(1,_15)),Vessel_5]
+ x[((4,_2),_(1,_16)),Vessel_5] x[((4,_2),_(1,_17)),Vessel_5]
+ x[((4,_2),_(1,_18)),Vessel_5] x[((4,_2),_(1,_19)),Vessel_5]
+ x[((4,_2),_(1,_20)),Vessel_5] x[((4,_2),_(2,_13)),Vessel_5]
+ x[((4,_2),_(2,_14)),Vessel_5] x[((4,_2),_(2,_15)),Vessel_5]
+ x[((4,_2),_(2,_16)),Vessel_5] x[((4,_2),_(2,_17)),Vessel_5]
+ x[((4,_2),_(2,_18)),Vessel_5] x[((4,_2),_(2,_19)),Vessel_5]
+ x[((4,_2),_(2,_20)),Vessel_5] x[((4,_2),_(3,_3)),Vessel_5]
+ x[((4,_2),_(4,_3)),Vessel_5] x[((4,_2),_(5,_17)),Vessel_5]
+ x[((4,_2),_(5,_18)),Vessel_5] x[((4,_2),_(5,_19)),Vessel_5]
+ x[((4,_2),_(5,_20)),Vessel_5] x[((4,_2),_(6,_17)),Vessel_5]
+ x[((4,_2),_(6,_18)),Vessel_5] x[((4,_2),_(6,_19)),Vessel_5]
+ x[((4,_2),_(6,_20)),Vessel_5] x[((3,_3),_(1,_15)),Vessel_5]
+ x[((3,_3),_(1,_16)),Vessel_5] x[((3,_3),_(1,_17)),Vessel_5]
+ x[((3,_3),_(1,_18)),Vessel_5] x[((3,_3),_(1,_19)),Vessel_5]
+ x[((3,_3),_(1,_20)),Vessel_5] x[((3,_3),_(2,_14)),Vessel_5]
+ x[((3,_3),_(2,_15)),Vessel_5] x[((3,_3),_(2,_16)),Vessel_5]
+ x[((3,_3),_(2,_17)),Vessel_5] x[((3,_3),_(2,_18)),Vessel_5]
+ x[((3,_3),_(2,_19)),Vessel_5] x[((3,_3),_(2,_20)),Vessel_5]
+ x[((3,_3),_(3,_4)),Vessel_5] x[((3,_3),_(4,_4)),Vessel_5]
+ x[((3,_3),_(5,_18)),Vessel_5] x[((3,_3),_(5,_19)),Vessel_5]
+ x[((3,_3),_(5,_20)),Vessel_5] x[((3,_3),_(6,_18)),Vessel_5]
+ x[((3,_3),_(6,_19)),Vessel_5] x[((3,_3),_(6,_20)),Vessel_5]
+ x[((4,_3),_(1,_14)),Vessel_5] x[((4,_3),_(1,_15)),Vessel_5]
+ x[((4,_3),_(1,_16)),Vessel_5] x[((4,_3),_(1,_17)),Vessel_5]
+ x[((4,_3),_(1,_18)),Vessel_5] x[((4,_3),_(1,_19)),Vessel_5]
+ x[((4,_3),_(1,_20)),Vessel_5] x[((4,_3),_(2,_14)),Vessel_5]
+ x[((4,_3),_(2,_15)),Vessel_5] x[((4,_3),_(2,_16)),Vessel_5]
+ x[((4,_3),_(2,_17)),Vessel_5] x[((4,_3),_(2,_18)),Vessel_5]
+ x[((4,_3),_(2,_19)),Vessel_5] x[((4,_3),_(2,_20)),Vessel_5]
+ x[((4,_3),_(3,_4)),Vessel_5] x[((4,_3),_(4,_4)),Vessel_5]
+ x[((4,_3),_(5,_18)),Vessel_5] x[((4,_3),_(5,_19)),Vessel_5]
+ x[((4,_3),_(5,_20)),Vessel_5] x[((4,_3),_(6,_18)),Vessel_5]
+ x[((4,_3),_(6,_19)),Vessel_5] x[((4,_3),_(6,_20)),Vessel_5]
+ x[((3,_2),_(7,_21)),Vessel_5] x[((4,_2),_(7,_21)),Vessel_5]
+ x[((3,_3),_(7,_21)),Vessel_5] x[((4,_3),_(7,_21)),Vessel_5]
+ x[((3,_1),_(1,_13)),Vessel_6] x[((3,_1),_(1,_14)),Vessel_6]
+ x[((3,_1),_(1,_15)),Vessel_6] x[((3,_1),_(1,_16)),Vessel_6]
+ x[((3,_1),_(1,_17)),Vessel_6] x[((3,_1),_(1,_18)),Vessel_6]
+ x[((3,_1),_(1,_19)),Vessel_6] x[((3,_1),_(1,_20)),Vessel_6]
+ x[((3,_1),_(2,_12)),Vessel_6] x[((3,_1),_(2,_13)),Vessel_6]
+ x[((3,_1),_(2,_14)),Vessel_6] x[((3,_1),_(2,_15)),Vessel_6]
+ x[((3,_1),_(2,_16)),Vessel_6] x[((3,_1),_(2,_17)),Vessel_6]
+ x[((3,_1),_(2,_18)),Vessel_6] x[((3,_1),_(2,_19)),Vessel_6]
+ x[((3,_1),_(2,_20)),Vessel_6] x[((3,_1),_(3,_2)),Vessel_6]
+ x[((3,_1),_(4,_2)),Vessel_6] x[((3,_1),_(5,_16)),Vessel_6]
+ x[((3,_1),_(5,_17)),Vessel_6] x[((3,_1),_(5,_18)),Vessel_6]
+ x[((3,_1),_(5,_19)),Vessel_6] x[((3,_1),_(5,_20)),Vessel_6]
+ x[((3,_1),_(6,_16)),Vessel_6] x[((3,_1),_(6,_17)),Vessel_6]
+ x[((3,_1),_(6,_18)),Vessel_6] x[((3,_1),_(6,_19)),Vessel_6]
+ x[((3,_1),_(6,_20)),Vessel_6] x[((4,_1),_(1,_12)),Vessel_6]
+ x[((4,_1),_(1,_13)),Vessel_6] x[((4,_1),_(1,_14)),Vessel_6]
+ x[((4,_1),_(1,_15)),Vessel_6] x[((4,_1),_(1,_16)),Vessel_6]
+ x[((4,_1),_(1,_17)),Vessel_6] x[((4,_1),_(1,_18)),Vessel_6]
+ x[((4,_1),_(1,_19)),Vessel_6] x[((4,_1),_(1,_20)),Vessel_6]
+ x[((4,_1),_(2,_12)),Vessel_6] x[((4,_1),_(2,_13)),Vessel_6]
+ x[((4,_1),_(2,_14)),Vessel_6] x[((4,_1),_(2,_15)),Vessel_6]
+ x[((4,_1),_(2,_16)),Vessel_6] x[((4,_1),_(2,_17)),Vessel_6]
+ x[((4,_1),_(2,_18)),Vessel_6] x[((4,_1),_(2,_19)),Vessel_6]
+ x[((4,_1),_(2,_20)),Vessel_6] x[((4,_1),_(3,_2)),Vessel_6]
+ x[((4,_1),_(4,_2)),Vessel_6] x[((4,_1),_(5,_16)),Vessel_6]
+ x[((4,_1),_(5,_17)),Vessel_6] x[((4,_1),_(5,_18)),Vessel_6]
+ x[((4,_1),_(5,_19)),Vessel_6] x[((4,_1),_(5,_20)),Vessel_6]
+ x[((4,_1),_(6,_16)),Vessel_6] x[((4,_1),_(6,_17)),Vessel_6]
+ x[((4,_1),_(6,_18)),Vessel_6] x[((4,_1),_(6,_19)),Vessel_6]
+ x[((4,_1),_(6,_20)),Vessel_6] x[((3,_2),_(1,_14)),Vessel_6]
+ x[((3,_2),_(1,_15)),Vessel_6] x[((3,_2),_(1,_16)),Vessel_6]
+ x[((3,_2),_(1,_17)),Vessel_6] x[((3,_2),_(1,_18)),Vessel_6]
+ x[((3,_2),_(1,_19)),Vessel_6] x[((3,_2),_(1,_20)),Vessel_6]
+ x[((3,_2),_(2,_13)),Vessel_6] x[((3,_2),_(2,_14)),Vessel_6]
+ x[((3,_2),_(2,_15)),Vessel_6] x[((3,_2),_(2,_16)),Vessel_6]
+ x[((3,_2),_(2,_17)),Vessel_6] x[((3,_2),_(2,_18)),Vessel_6]
+ x[((3,_2),_(2,_19)),Vessel_6] x[((3,_2),_(2,_20)),Vessel_6]
+ x[((3,_2),_(3,_3)),Vessel_6] x[((3,_2),_(4,_3)),Vessel_6]
+ x[((3,_2),_(5,_17)),Vessel_6] x[((3,_2),_(5,_18)),Vessel_6]
+ x[((3,_2),_(5,_19)),Vessel_6] x[((3,_2),_(5,_20)),Vessel_6]
+ x[((3,_2),_(6,_17)),Vessel_6] x[((3,_2),_(6,_18)),Vessel_6]
+ x[((3,_2),_(6,_19)),Vessel_6] x[((3,_2),_(6,_20)),Vessel_6]
+ x[((4,_2),_(1,_13)),Vessel_6] x[((4,_2),_(1,_14)),Vessel_6]
+ x[((4,_2),_(1,_15)),Vessel_6] x[((4,_2),_(1,_16)),Vessel_6]
+ x[((4,_2),_(1,_17)),Vessel_6] x[((4,_2),_(1,_18)),Vessel_6]
+ x[((4,_2),_(1,_19)),Vessel_6] x[((4,_2),_(1,_20)),Vessel_6]
+ x[((4,_2),_(2,_13)),Vessel_6] x[((4,_2),_(2,_14)),Vessel_6]
+ x[((4,_2),_(2,_15)),Vessel_6] x[((4,_2),_(2,_16)),Vessel_6]
+ x[((4,_2),_(2,_17)),Vessel_6] x[((4,_2),_(2,_18)),Vessel_6]
+ x[((4,_2),_(2,_19)),Vessel_6] x[((4,_2),_(2,_20)),Vessel_6]
+ x[((4,_2),_(3,_3)),Vessel_6] x[((4,_2),_(4,_3)),Vessel_6]
+ x[((4,_2),_(5,_17)),Vessel_6] x[((4,_2),_(5,_18)),Vessel_6]
+ x[((4,_2),_(5,_19)),Vessel_6] x[((4,_2),_(5,_20)),Vessel_6]
+ x[((4,_2),_(6,_17)),Vessel_6] x[((4,_2),_(6,_18)),Vessel_6]
+ x[((4,_2),_(6,_19)),Vessel_6] x[((4,_2),_(6,_20)),Vessel_6]
+ x[((3,_3),_(1,_15)),Vessel_6] x[((3,_3),_(1,_16)),Vessel_6]
+ x[((3,_3),_(1,_17)),Vessel_6] x[((3,_3),_(1,_18)),Vessel_6]
+ x[((3,_3),_(1,_19)),Vessel_6] x[((3,_3),_(1,_20)),Vessel_6]
+ x[((3,_3),_(2,_14)),Vessel_6] x[((3,_3),_(2,_15)),Vessel_6]
+ x[((3,_3),_(2,_16)),Vessel_6] x[((3,_3),_(2,_17)),Vessel_6]
+ x[((3,_3),_(2,_18)),Vessel_6] x[((3,_3),_(2,_19)),Vessel_6]
+ x[((3,_3),_(2,_20)),Vessel_6] x[((3,_3),_(3,_4)),Vessel_6]
+ x[((3,_3),_(4,_4)),Vessel_6] x[((3,_3),_(5,_18)),Vessel_6]
+ x[((3,_3),_(5,_19)),Vessel_6] x[((3,_3),_(5,_20)),Vessel_6]
+ x[((3,_3),_(6,_18)),Vessel_6] x[((3,_3),_(6,_19)),Vessel_6]
+ x[((3,_3),_(6,_20)),Vessel_6] x[((4,_3),_(1,_14)),Vessel_6]
+ x[((4,_3),_(1,_15)),Vessel_6] x[((4,_3),_(1,_16)),Vessel_6]
+ x[((4,_3),_(1,_17)),Vessel_6] x[((4,_3),_(1,_18)),Vessel_6]
+ x[((4,_3),_(1,_19)),Vessel_6] x[((4,_3),_(1,_20)),Vessel_6]
+ x[((4,_3),_(2,_14)),Vessel_6] x[((4,_3),_(2,_15)),Vessel_6]
+ x[((4,_3),_(2,_16)),Vessel_6] x[((4,_3),_(2,_17)),Vessel_6]
+ x[((4,_3),_(2,_18)),Vessel_6] x[((4,_3),_(2,_19)),Vessel_6]
+ x[((4,_3),_(2,_20)),Vessel_6] x[((4,_3),_(3,_4)),Vessel_6]
+ x[((4,_3),_(4,_4)),Vessel_6] x[((4,_3),_(5,_18)),Vessel_6]
+ x[((4,_3),_(5,_19)),Vessel_6] x[((4,_3),_(5,_20)),Vessel_6]
+ x[((4,_3),_(6,_18)),Vessel_6] x[((4,_3),_(6,_19)),Vessel_6]
+ x[((4,_3),_(6,_20)),Vessel_6] x[((4,_4),_(1,_15)),Vessel_6]
+ x[((4,_4),_(1,_16)),Vessel_6] x[((4,_4),_(1,_17)),Vessel_6]
+ x[((4,_4),_(1,_18)),Vessel_6] x[((4,_4),_(1,_19)),Vessel_6]
+ x[((4,_4),_(1,_20)),Vessel_6] x[((4,_4),_(2,_15)),Vessel_6]
+ x[((4,_4),_(2,_16)),Vessel_6] x[((4,_4),_(2,_17)),Vessel_6]
+ x[((4,_4),_(2,_18)),Vessel_6] x[((4,_4),_(2,_19)),Vessel_6]
+ x[((4,_4),_(2,_20)),Vessel_6] x[((4,_4),_(3,_5)),Vessel_6]
+ x[((4,_4),_(4,_5)),Vessel_6] x[((4,_4),_(5,_19)),Vessel_6]
+ x[((4,_4),_(5,_20)),Vessel_6] x[((4,_4),_(6,_19)),Vessel_6]
+ x[((4,_4),_(6,_20)),Vessel_6] x[((3,_1),_(7,_21)),Vessel_6]
+ x[((4,_1),_(7,_21)),Vessel_6] x[((3,_2),_(7,_21)),Vessel_6]
+ x[((4,_2),_(7,_21)),Vessel_6] x[((3,_3),_(7,_21)),Vessel_6]
+ x[((4,_3),_(7,_21)),Vessel_6] x[((4,_4),_(7,_21)),Vessel_6]
+ o[1,1,Vessel_3] o[2,1,Vessel_3] o[4,1,Vessel_1] o[4,1,Vessel_2]
+ o[4,1,Vessel_4] o[4,1,Vessel_5] o[4,1,Vessel_6] o[1,2,Vessel_3]
+ o[2,2,Vessel_3] o[4,2,Vessel_1] o[4,2,Vessel_2] o[4,2,Vessel_4]
+ o[4,2,Vessel_5] o[4,2,Vessel_6] o[4,3,Vessel_1] o[4,3,Vessel_2]
+ o[4,3,Vessel_3] o[4,3,Vessel_4] o[4,3,Vessel_5] o[4,3,Vessel_6]
+ o[4,4,Vessel_1] o[4,4,Vessel_2] o[4,4,Vessel_3] o[4,4,Vessel_4]
+ o[4,4,Vessel_5] o[4,4,Vessel_6]
 End
