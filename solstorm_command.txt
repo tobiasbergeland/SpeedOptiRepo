@@ -1,4 +1,3 @@
-
 ### Login
 ssh solstorm-login.iot.ntnu.no -l tobiaskb  
 
@@ -32,3 +31,12 @@ python MIRP_operating_speed.py
 
 jupyter nbconvert --to python MIRP_Route_Fixed_Speed_Optimization.ipynb
 python MIRP_Route_Fixed_Speed_Optimization.py
+
+
+
+FILEZILLA
+
+Host: sftp://solstorm-login.iot.ntnu.no
+Username: [username]
+Password: passwrd
+Port: 22
