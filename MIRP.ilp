@@ -1,0 +1,19 @@
+\ Model Maritime Inventory Routing Problem, operating speed_copy
+\ LP format - for model browsing. Use MPS format to capture full model detail.
+Minimize
+ 
+Subject To
+ InitialInventoryPort: s[1,0] = 297
+ PortBalance: q[1,1,Vessel_1] + q[1,1,Vessel_2] + q[1,1,Vessel_3]
+   + q[1,1,Vessel_4] + q[1,1,Vessel_5] + q[1,1,Vessel_6] + q[1,1,Vessel_7]
+   + s[1,1] - s[1,0] = 99
+Bounds
+ q[1,1,Vessel_1] >= 75
+ q[1,1,Vessel_2] >= 75
+ q[1,1,Vessel_3] >= 75
+ q[1,1,Vessel_4] >= 75
+ q[1,1,Vessel_5] >= 75
+ q[1,1,Vessel_6] >= 75
+ q[1,1,Vessel_7] >= 75
+ s[1,0] free
+End
