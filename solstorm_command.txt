@@ -11,9 +11,7 @@ Ctrl + a og ctrl +d må kjøres i rekkefølge
 
 screen -r "name"    Henter opp screenen igjen.
 
-
 gstat -a
-
 1.0 -> 1.15 er raskest
 
 ### Choose node
