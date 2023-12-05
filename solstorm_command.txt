@@ -22,11 +22,13 @@ module load gurobi
 
 cd SpeedOptiRepo
 
-jupyter nbconvert --to python mirpso.ipynb
-python mirpso.py
 
 jupyter nbconvert --to python MIRP_operating_speed.ipynb
 python MIRP_operating_speed.py
+
+
+jupyter nbconvert --to python mirpso.ipynb
+python mirpso.py
 
 
 jupyter nbconvert --to python MIRP_Route_Fixed_Speed_Optimization.ipynb
