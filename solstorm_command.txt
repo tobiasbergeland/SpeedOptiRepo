@@ -38,7 +38,9 @@ python MIRP_Route_Fixed_Speed_Optimization.py
 
 FILEZILLA
 
-Host: sftp://solstorm-login.iot.ntnu.no
+Host: 
+sftp://solstorm-login.iot.ntnu.no
+
 Username: [username]
 Password: passwrd
 Port: 22
