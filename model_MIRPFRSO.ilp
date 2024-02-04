@@ -1,0 +1,1391 @@
+\ Model MIRP Route Fixed with Speed Optimization_copy
+\ LP format - for model browsing. Use MPS format to capture full model detail.
+Minimize
+ 
+Subject To
+ InitialInventoryPort: s[1,0] = 297
+ InventoryBalance: q[1,1,Vessel_3] + q[1,1,Vessel_4] + q[1,1,Vessel_5]
+   + q[1,1,Vessel_6] + q[1,1,Vessel_7] + s[1,1] - s[1,0] = 73
+ InventoryBalance: q[1,2,Vessel_3] + q[1,2,Vessel_4] + q[1,2,Vessel_5]
+   + q[1,2,Vessel_6] + q[1,2,Vessel_7] - s[1,1] + s[1,2] = 73
+ InventoryBalance: q[1,3,Vessel_3] + q[1,3,Vessel_4] + q[1,3,Vessel_5]
+   + q[1,3,Vessel_6] + q[1,3,Vessel_7] - s[1,2] + s[1,3] = 73
+ InventoryBalance: q[1,4,Vessel_3] + q[1,4,Vessel_4] + q[1,4,Vessel_5]
+   + q[1,4,Vessel_6] + q[1,4,Vessel_7] - s[1,3] + s[1,4] = 73
+ InventoryBalance: q[1,5,Vessel_3] + q[1,5,Vessel_4] + q[1,5,Vessel_5]
+   + q[1,5,Vessel_6] + q[1,5,Vessel_7] - s[1,4] + s[1,5] = 73
+ InventoryBalance: q[1,6,Vessel_3] + q[1,6,Vessel_4] + q[1,6,Vessel_5]
+   + q[1,6,Vessel_6] + q[1,6,Vessel_7] - s[1,5] + s[1,6] = 73
+ InventoryBalance: q[1,7,Vessel_3] + q[1,7,Vessel_4] + q[1,7,Vessel_5]
+   + q[1,7,Vessel_6] + q[1,7,Vessel_7] - s[1,6] + s[1,7] = 73
+ InventoryBalance: q[1,8,Vessel_3] + q[1,8,Vessel_4] + q[1,8,Vessel_5]
+   + q[1,8,Vessel_6] + q[1,8,Vessel_7] - s[1,7] + s[1,8] = 73
+ InventoryBalance: q[1,9,Vessel_3] + q[1,9,Vessel_4] + q[1,9,Vessel_5]
+   + q[1,9,Vessel_6] + q[1,9,Vessel_7] - s[1,8] + s[1,9] = 73
+ InventoryBalance: q[1,10,Vessel_3] + q[1,10,Vessel_4] + q[1,10,Vessel_5]
+   + q[1,10,Vessel_6] + q[1,10,Vessel_7] - s[1,9] + s[1,10] = 73
+ InventoryBalance: q[1,11,Vessel_3] + q[1,11,Vessel_4] + q[1,11,Vessel_5]
+   + q[1,11,Vessel_6] + q[1,11,Vessel_7] - s[1,10] + s[1,11] = 73
+ InventoryBalance: q[1,12,Vessel_3] + q[1,12,Vessel_4] + q[1,12,Vessel_5]
+   + q[1,12,Vessel_6] + q[1,12,Vessel_7] - s[1,11] + s[1,12] = 73
+ InventoryBalance: q[1,13,Vessel_3] + q[1,13,Vessel_4] + q[1,13,Vessel_5]
+   + q[1,13,Vessel_6] + q[1,13,Vessel_7] - s[1,12] + s[1,13] = 73
+ InventoryBalance: q[1,14,Vessel_3] + q[1,14,Vessel_4] + q[1,14,Vessel_5]
+   + q[1,14,Vessel_6] + q[1,14,Vessel_7] - s[1,13] + s[1,14] = 73
+ InventoryBalance: q[1,15,Vessel_3] + q[1,15,Vessel_4] + q[1,15,Vessel_5]
+   + q[1,15,Vessel_6] + q[1,15,Vessel_7] - s[1,14] + s[1,15] = 73
+ InventoryBalance: q[1,16,Vessel_3] + q[1,16,Vessel_4] + q[1,16,Vessel_5]
+   + q[1,16,Vessel_6] + q[1,16,Vessel_7] - s[1,15] + s[1,16] = 73
+ InventoryBalance: q[1,17,Vessel_3] + q[1,17,Vessel_4] + q[1,17,Vessel_5]
+   + q[1,17,Vessel_6] + q[1,17,Vessel_7] - s[1,16] + s[1,17] = 73
+ InventoryBalance: q[1,18,Vessel_3] + q[1,18,Vessel_4] + q[1,18,Vessel_5]
+   + q[1,18,Vessel_6] + q[1,18,Vessel_7] - s[1,17] + s[1,18] = 73
+ InventoryBalance: q[1,19,Vessel_3] + q[1,19,Vessel_4] + q[1,19,Vessel_5]
+   + q[1,19,Vessel_6] + q[1,19,Vessel_7] - s[1,18] + s[1,19] = 73
+ InventoryBalance: q[1,20,Vessel_3] + q[1,20,Vessel_4] + q[1,20,Vessel_5]
+   + q[1,20,Vessel_6] + q[1,20,Vessel_7] - s[1,19] + s[1,20] = 73
+ InventoryBalance: q[1,21,Vessel_3] + q[1,21,Vessel_4] + q[1,21,Vessel_5]
+   + q[1,21,Vessel_6] + q[1,21,Vessel_7] - s[1,20] + s[1,21] = 73
+ InventoryBalance: q[1,22,Vessel_3] + q[1,22,Vessel_4] + q[1,22,Vessel_5]
+   + q[1,22,Vessel_6] + q[1,22,Vessel_7] - s[1,21] + s[1,22] = 73
+ InventoryBalance: q[1,23,Vessel_3] + q[1,23,Vessel_4] + q[1,23,Vessel_5]
+   + q[1,23,Vessel_6] + q[1,23,Vessel_7] - s[1,22] + s[1,23] = 73
+ InventoryBalance: q[1,24,Vessel_3] + q[1,24,Vessel_4] + q[1,24,Vessel_5]
+   + q[1,24,Vessel_6] + q[1,24,Vessel_7] - s[1,23] + s[1,24] = 73
+ InventoryBalance: q[1,25,Vessel_3] + q[1,25,Vessel_4] + q[1,25,Vessel_5]
+   + q[1,25,Vessel_6] + q[1,25,Vessel_7] - s[1,24] + s[1,25] = 73
+ InventoryBalance: q[1,26,Vessel_3] + q[1,26,Vessel_4] + q[1,26,Vessel_5]
+   + q[1,26,Vessel_6] + q[1,26,Vessel_7] - s[1,25] + s[1,26] = 73
+ InventoryBalance: q[1,27,Vessel_3] + q[1,27,Vessel_4] + q[1,27,Vessel_5]
+   + q[1,27,Vessel_6] + q[1,27,Vessel_7] - s[1,26] + s[1,27] = 73
+ InventoryBalance: q[1,28,Vessel_3] + q[1,28,Vessel_4] + q[1,28,Vessel_5]
+   + q[1,28,Vessel_6] + q[1,28,Vessel_7] - s[1,27] + s[1,28] = 73
+ InventoryBalance: q[1,29,Vessel_3] + q[1,29,Vessel_4] + q[1,29,Vessel_5]
+   + q[1,29,Vessel_6] + q[1,29,Vessel_7] - s[1,28] + s[1,29] = 73
+ InventoryBalance: q[1,30,Vessel_3] + q[1,30,Vessel_4] + q[1,30,Vessel_5]
+   + q[1,30,Vessel_6] + q[1,30,Vessel_7] - s[1,29] + s[1,30] = 73
+ InventoryBalance: q[1,31,Vessel_3] + q[1,31,Vessel_4] + q[1,31,Vessel_5]
+   + q[1,31,Vessel_6] + q[1,31,Vessel_7] - s[1,30] + s[1,31] = 73
+ InventoryBalance: q[1,32,Vessel_3] + q[1,32,Vessel_4] + q[1,32,Vessel_5]
+   + q[1,32,Vessel_6] + q[1,32,Vessel_7] - s[1,31] + s[1,32] = 73
+ InventoryBalance: q[1,33,Vessel_3] + q[1,33,Vessel_4] + q[1,33,Vessel_5]
+   + q[1,33,Vessel_6] + q[1,33,Vessel_7] - s[1,32] + s[1,33] = 73
+ InventoryBalance: q[1,34,Vessel_3] + q[1,34,Vessel_4] + q[1,34,Vessel_5]
+   + q[1,34,Vessel_6] + q[1,34,Vessel_7] - s[1,33] + s[1,34] = 73
+ InventoryBalance: q[1,35,Vessel_3] + q[1,35,Vessel_4] + q[1,35,Vessel_5]
+   + q[1,35,Vessel_6] + q[1,35,Vessel_7] - s[1,34] + s[1,35] = 73
+ InventoryBalance: q[1,36,Vessel_3] + q[1,36,Vessel_4] + q[1,36,Vessel_5]
+   + q[1,36,Vessel_6] + q[1,36,Vessel_7] - s[1,35] + s[1,36] = 73
+ InventoryBalance: q[1,37,Vessel_3] + q[1,37,Vessel_4] + q[1,37,Vessel_5]
+   + q[1,37,Vessel_6] + q[1,37,Vessel_7] - s[1,36] + s[1,37] = 73
+ InventoryBalance: q[1,38,Vessel_3] + q[1,38,Vessel_4] + q[1,38,Vessel_5]
+   + q[1,38,Vessel_6] + q[1,38,Vessel_7] - s[1,37] + s[1,38] = 73
+ InventoryBalance: q[1,39,Vessel_3] + q[1,39,Vessel_4] + q[1,39,Vessel_5]
+   + q[1,39,Vessel_6] + q[1,39,Vessel_7] - s[1,38] + s[1,39] = 73
+ InventoryBalance: q[1,40,Vessel_3] + q[1,40,Vessel_4] + q[1,40,Vessel_5]
+   + q[1,40,Vessel_6] + q[1,40,Vessel_7] - s[1,39] + s[1,40] = 73
+ InventoryBalance: q[1,41,Vessel_3] + q[1,41,Vessel_4] + q[1,41,Vessel_5]
+   + q[1,41,Vessel_6] + q[1,41,Vessel_7] - s[1,40] + s[1,41] = 73
+ InventoryBalance: q[1,42,Vessel_3] + q[1,42,Vessel_4] + q[1,42,Vessel_5]
+   + q[1,42,Vessel_6] + q[1,42,Vessel_7] - s[1,41] + s[1,42] = 73
+ InventoryBalance: q[1,43,Vessel_3] + q[1,43,Vessel_4] + q[1,43,Vessel_5]
+   + q[1,43,Vessel_6] + q[1,43,Vessel_7] - s[1,42] + s[1,43] = 73
+ InventoryBalance: q[1,44,Vessel_3] + q[1,44,Vessel_4] + q[1,44,Vessel_5]
+   + q[1,44,Vessel_6] + q[1,44,Vessel_7] - s[1,43] + s[1,44] = 73
+ InventoryBalance: q[1,45,Vessel_3] + q[1,45,Vessel_4] + q[1,45,Vessel_5]
+   + q[1,45,Vessel_6] + q[1,45,Vessel_7] - s[1,44] + s[1,45] = 73
+ InitialInventoryVessel: w[0,Vessel_7] = 300
+ VesselBalance: - q[1,1,Vessel_7] + q[2,1,Vessel_7] + q[3,1,Vessel_7]
+   + w[1,Vessel_7] - w[0,Vessel_7] = 0
+ VesselBalance: - q[1,2,Vessel_7] + q[2,2,Vessel_7] + q[3,2,Vessel_7]
+   - w[1,Vessel_7] + w[2,Vessel_7] = 0
+ VesselBalance: - q[1,3,Vessel_7] + q[2,3,Vessel_7] + q[3,3,Vessel_7]
+   - w[2,Vessel_7] + w[3,Vessel_7] = 0
+ VesselBalance: - q[1,4,Vessel_7] + q[2,4,Vessel_7] + q[3,4,Vessel_7]
+   - w[3,Vessel_7] + w[4,Vessel_7] = 0
+ VesselBalance: - q[1,5,Vessel_7] + q[2,5,Vessel_7] + q[3,5,Vessel_7]
+   - w[4,Vessel_7] + w[5,Vessel_7] = 0
+ VesselBalance: - q[1,6,Vessel_7] + q[2,6,Vessel_7] + q[3,6,Vessel_7]
+   - w[5,Vessel_7] + w[6,Vessel_7] = 0
+ VesselBalance: - q[1,7,Vessel_7] + q[2,7,Vessel_7] + q[3,7,Vessel_7]
+   - w[6,Vessel_7] + w[7,Vessel_7] = 0
+ VesselBalance: - q[1,8,Vessel_7] + q[2,8,Vessel_7] + q[3,8,Vessel_7]
+   - w[7,Vessel_7] + w[8,Vessel_7] = 0
+ VesselBalance: - q[1,9,Vessel_7] + q[2,9,Vessel_7] + q[3,9,Vessel_7]
+   - w[8,Vessel_7] + w[9,Vessel_7] = 0
+ VesselBalance: - q[1,10,Vessel_7] + q[2,10,Vessel_7] + q[3,10,Vessel_7]
+   - w[9,Vessel_7] + w[10,Vessel_7] = 0
+ VesselBalance: - q[1,11,Vessel_7] + q[2,11,Vessel_7] + q[3,11,Vessel_7]
+   - w[10,Vessel_7] + w[11,Vessel_7] = 0
+ VesselBalance: - q[1,12,Vessel_7] + q[2,12,Vessel_7] + q[3,12,Vessel_7]
+   - w[11,Vessel_7] + w[12,Vessel_7] = 0
+ VesselBalance: - q[1,13,Vessel_7] + q[2,13,Vessel_7] + q[3,13,Vessel_7]
+   - w[12,Vessel_7] + w[13,Vessel_7] = 0
+ VesselBalance: - q[1,14,Vessel_7] + q[2,14,Vessel_7] + q[3,14,Vessel_7]
+   - w[13,Vessel_7] + w[14,Vessel_7] = 0
+ VesselBalance: - q[1,15,Vessel_7] + q[2,15,Vessel_7] + q[3,15,Vessel_7]
+   - w[14,Vessel_7] + w[15,Vessel_7] = 0
+ VesselBalance: - q[1,16,Vessel_7] + q[2,16,Vessel_7] + q[3,16,Vessel_7]
+   - w[15,Vessel_7] + w[16,Vessel_7] = 0
+ VesselBalance: - q[1,17,Vessel_7] + q[2,17,Vessel_7] + q[3,17,Vessel_7]
+   - w[16,Vessel_7] + w[17,Vessel_7] = 0
+ VesselBalance: - q[1,18,Vessel_7] + q[2,18,Vessel_7] + q[3,18,Vessel_7]
+   - w[17,Vessel_7] + w[18,Vessel_7] = 0
+ VesselBalance: - q[1,19,Vessel_7] + q[2,19,Vessel_7] + q[3,19,Vessel_7]
+   - w[18,Vessel_7] + w[19,Vessel_7] = 0
+ VesselBalance: - q[1,20,Vessel_7] + q[2,20,Vessel_7] + q[3,20,Vessel_7]
+   - w[19,Vessel_7] + w[20,Vessel_7] = 0
+ VesselBalance: - q[1,21,Vessel_7] + q[2,21,Vessel_7] + q[3,21,Vessel_7]
+   - w[20,Vessel_7] + w[21,Vessel_7] = 0
+ VesselBalance: - q[1,22,Vessel_7] + q[2,22,Vessel_7] + q[3,22,Vessel_7]
+   - w[21,Vessel_7] + w[22,Vessel_7] = 0
+ VesselBalance: - q[1,23,Vessel_7] + q[2,23,Vessel_7] + q[3,23,Vessel_7]
+   - w[22,Vessel_7] + w[23,Vessel_7] = 0
+ VesselBalance: - q[1,24,Vessel_7] + q[2,24,Vessel_7] + q[3,24,Vessel_7]
+   - w[23,Vessel_7] + w[24,Vessel_7] = 0
+ VesselBalance: - q[1,25,Vessel_7] + q[2,25,Vessel_7] + q[3,25,Vessel_7]
+   - w[24,Vessel_7] + w[25,Vessel_7] = 0
+ VesselBalance: - q[1,26,Vessel_7] + q[2,26,Vessel_7] + q[3,26,Vessel_7]
+   - w[25,Vessel_7] + w[26,Vessel_7] = 0
+ VesselBalance: - q[1,27,Vessel_7] + q[2,27,Vessel_7] + q[3,27,Vessel_7]
+   - w[26,Vessel_7] + w[27,Vessel_7] = 0
+ VesselBalance: - q[1,28,Vessel_7] + q[2,28,Vessel_7] + q[3,28,Vessel_7]
+   - w[27,Vessel_7] + w[28,Vessel_7] = 0
+ VesselBalance: - q[1,29,Vessel_7] + q[2,29,Vessel_7] + q[3,29,Vessel_7]
+   - w[28,Vessel_7] + w[29,Vessel_7] = 0
+ VesselBalance: - q[1,30,Vessel_7] + q[2,30,Vessel_7] + q[3,30,Vessel_7]
+   - w[29,Vessel_7] + w[30,Vessel_7] = 0
+ VesselBalance: - q[1,31,Vessel_7] + q[2,31,Vessel_7] + q[3,31,Vessel_7]
+   - w[30,Vessel_7] + w[31,Vessel_7] = 0
+ VesselBalance: - q[1,32,Vessel_7] + q[2,32,Vessel_7] + q[3,32,Vessel_7]
+   - w[31,Vessel_7] + w[32,Vessel_7] = 0
+ VesselBalance: - q[1,33,Vessel_7] + q[2,33,Vessel_7] + q[3,33,Vessel_7]
+   - w[32,Vessel_7] + w[33,Vessel_7] = 0
+ Operation_limit_vessel_Vessel_3_port_1: o[1,1,Vessel_3,1]
+   + o[1,1,Vessel_3,2] + o[1,2,Vessel_3,1] + o[1,2,Vessel_3,2]
+   + o[1,3,Vessel_3,1] + o[1,3,Vessel_3,2] + o[1,4,Vessel_3,1]
+   + o[1,4,Vessel_3,2] + o[1,5,Vessel_3,1] + o[1,5,Vessel_3,2]
+   + o[1,6,Vessel_3,1] + o[1,6,Vessel_3,2] + o[1,7,Vessel_3,1]
+   + o[1,7,Vessel_3,2] + o[1,8,Vessel_3,1] + o[1,8,Vessel_3,2]
+   + o[1,9,Vessel_3,1] + o[1,9,Vessel_3,2] + o[1,10,Vessel_3,1]
+   + o[1,10,Vessel_3,2] + o[1,11,Vessel_3,1] + o[1,11,Vessel_3,2]
+   + o[1,12,Vessel_3,1] + o[1,12,Vessel_3,2] + o[1,13,Vessel_3,1]
+   + o[1,13,Vessel_3,2] + o[1,14,Vessel_3,1] + o[1,14,Vessel_3,2]
+   + o[1,15,Vessel_3,1] + o[1,15,Vessel_3,2] + o[1,16,Vessel_3,1]
+   + o[1,16,Vessel_3,2] + o[1,17,Vessel_3,1] + o[1,17,Vessel_3,2]
+   + o[1,18,Vessel_3,1] + o[1,18,Vessel_3,2] + o[1,19,Vessel_3,1]
+   + o[1,19,Vessel_3,2] + o[1,20,Vessel_3,1] + o[1,20,Vessel_3,2]
+   + o[1,21,Vessel_3,1] + o[1,21,Vessel_3,2] + o[1,22,Vessel_3,1]
+   + o[1,22,Vessel_3,2] + o[1,23,Vessel_3,1] + o[1,23,Vessel_3,2]
+   + o[1,24,Vessel_3,1] + o[1,24,Vessel_3,2] + o[1,25,Vessel_3,1]
+   + o[1,25,Vessel_3,2] + o[1,26,Vessel_3,1] + o[1,26,Vessel_3,2]
+   + o[1,27,Vessel_3,1] + o[1,27,Vessel_3,2] + o[1,28,Vessel_3,1]
+   + o[1,28,Vessel_3,2] + o[1,29,Vessel_3,1] + o[1,29,Vessel_3,2]
+   + o[1,30,Vessel_3,1] + o[1,30,Vessel_3,2] + o[1,31,Vessel_3,1]
+   + o[1,31,Vessel_3,2] + o[1,32,Vessel_3,1] + o[1,32,Vessel_3,2]
+   + o[1,33,Vessel_3,1] + o[1,33,Vessel_3,2] + o[1,34,Vessel_3,1]
+   + o[1,34,Vessel_3,2] + o[1,35,Vessel_3,1] + o[1,35,Vessel_3,2]
+   + o[1,36,Vessel_3,1] + o[1,36,Vessel_3,2] + o[1,37,Vessel_3,1]
+   + o[1,37,Vessel_3,2] + o[1,38,Vessel_3,1] + o[1,38,Vessel_3,2]
+   + o[1,39,Vessel_3,1] + o[1,39,Vessel_3,2] + o[1,40,Vessel_3,1]
+   + o[1,40,Vessel_3,2] + o[1,41,Vessel_3,1] + o[1,41,Vessel_3,2]
+   + o[1,42,Vessel_3,1] + o[1,42,Vessel_3,2] + o[1,43,Vessel_3,1]
+   + o[1,43,Vessel_3,2] + o[1,44,Vessel_3,1] + o[1,44,Vessel_3,2]
+   + o[1,45,Vessel_3,1] + o[1,45,Vessel_3,2] <= 2
+ Operation_limit_vessel_Vessel_4_port_1: o[1,6,Vessel_4,1]
+   + o[1,6,Vessel_4,2] + o[1,7,Vessel_4,1] + o[1,7,Vessel_4,2]
+   + o[1,8,Vessel_4,1] + o[1,8,Vessel_4,2] + o[1,9,Vessel_4,1]
+   + o[1,9,Vessel_4,2] + o[1,10,Vessel_4,1] + o[1,10,Vessel_4,2]
+   + o[1,11,Vessel_4,1] + o[1,11,Vessel_4,2] + o[1,12,Vessel_4,1]
+   + o[1,12,Vessel_4,2] + o[1,13,Vessel_4,1] + o[1,13,Vessel_4,2]
+   + o[1,14,Vessel_4,1] + o[1,14,Vessel_4,2] + o[1,15,Vessel_4,1]
+   + o[1,15,Vessel_4,2] + o[1,16,Vessel_4,1] + o[1,16,Vessel_4,2]
+   + o[1,17,Vessel_4,1] + o[1,17,Vessel_4,2] + o[1,18,Vessel_4,1]
+   + o[1,18,Vessel_4,2] + o[1,19,Vessel_4,1] + o[1,19,Vessel_4,2]
+   + o[1,20,Vessel_4,1] + o[1,20,Vessel_4,2] + o[1,21,Vessel_4,1]
+   + o[1,21,Vessel_4,2] + o[1,22,Vessel_4,1] + o[1,22,Vessel_4,2]
+   + o[1,23,Vessel_4,1] + o[1,23,Vessel_4,2] + o[1,24,Vessel_4,1]
+   + o[1,24,Vessel_4,2] + o[1,25,Vessel_4,1] + o[1,25,Vessel_4,2]
+   + o[1,26,Vessel_4,1] + o[1,26,Vessel_4,2] + o[1,27,Vessel_4,1]
+   + o[1,27,Vessel_4,2] + o[1,28,Vessel_4,1] + o[1,28,Vessel_4,2]
+   + o[1,29,Vessel_4,1] + o[1,29,Vessel_4,2] + o[1,30,Vessel_4,1]
+   + o[1,30,Vessel_4,2] + o[1,31,Vessel_4,1] + o[1,31,Vessel_4,2]
+   + o[1,32,Vessel_4,1] + o[1,32,Vessel_4,2] + o[1,33,Vessel_4,1]
+   + o[1,33,Vessel_4,2] + o[1,34,Vessel_4,1] + o[1,34,Vessel_4,2]
+   + o[1,35,Vessel_4,1] + o[1,35,Vessel_4,2] + o[1,36,Vessel_4,1]
+   + o[1,36,Vessel_4,2] + o[1,37,Vessel_4,1] + o[1,37,Vessel_4,2]
+   + o[1,38,Vessel_4,1] + o[1,38,Vessel_4,2] + o[1,39,Vessel_4,1]
+   + o[1,39,Vessel_4,2] + o[1,40,Vessel_4,1] + o[1,40,Vessel_4,2]
+   + o[1,41,Vessel_4,1] + o[1,41,Vessel_4,2] + o[1,42,Vessel_4,1]
+   + o[1,42,Vessel_4,2] + o[1,43,Vessel_4,1] + o[1,43,Vessel_4,2]
+   + o[1,44,Vessel_4,1] + o[1,44,Vessel_4,2] + o[1,45,Vessel_4,1]
+   + o[1,45,Vessel_4,2] <= 2
+ Operation_limit_vessel_Vessel_5_port_1: o[1,3,Vessel_5,1]
+   + o[1,3,Vessel_5,2] + o[1,4,Vessel_5,1] + o[1,4,Vessel_5,2]
+   + o[1,5,Vessel_5,1] + o[1,5,Vessel_5,2] + o[1,6,Vessel_5,1]
+   + o[1,6,Vessel_5,2] + o[1,7,Vessel_5,1] + o[1,7,Vessel_5,2]
+   + o[1,8,Vessel_5,1] + o[1,8,Vessel_5,2] + o[1,9,Vessel_5,1]
+   + o[1,9,Vessel_5,2] + o[1,10,Vessel_5,1] + o[1,10,Vessel_5,2]
+   + o[1,11,Vessel_5,1] + o[1,11,Vessel_5,2] + o[1,12,Vessel_5,1]
+   + o[1,12,Vessel_5,2] + o[1,13,Vessel_5,1] + o[1,13,Vessel_5,2]
+   + o[1,14,Vessel_5,1] + o[1,14,Vessel_5,2] + o[1,15,Vessel_5,1]
+   + o[1,15,Vessel_5,2] + o[1,16,Vessel_5,1] + o[1,16,Vessel_5,2]
+   + o[1,17,Vessel_5,1] + o[1,17,Vessel_5,2] + o[1,18,Vessel_5,1]
+   + o[1,18,Vessel_5,2] + o[1,19,Vessel_5,1] + o[1,19,Vessel_5,2]
+   + o[1,20,Vessel_5,1] + o[1,20,Vessel_5,2] + o[1,21,Vessel_5,1]
+   + o[1,21,Vessel_5,2] + o[1,22,Vessel_5,1] + o[1,22,Vessel_5,2]
+   + o[1,23,Vessel_5,1] + o[1,23,Vessel_5,2] + o[1,24,Vessel_5,1]
+   + o[1,24,Vessel_5,2] + o[1,25,Vessel_5,1] + o[1,25,Vessel_5,2]
+   + o[1,26,Vessel_5,1] + o[1,26,Vessel_5,2] + o[1,27,Vessel_5,1]
+   + o[1,27,Vessel_5,2] + o[1,28,Vessel_5,1] + o[1,28,Vessel_5,2]
+   + o[1,29,Vessel_5,1] + o[1,29,Vessel_5,2] + o[1,30,Vessel_5,1]
+   + o[1,30,Vessel_5,2] + o[1,31,Vessel_5,1] + o[1,31,Vessel_5,2]
+   + o[1,32,Vessel_5,1] + o[1,32,Vessel_5,2] + o[1,33,Vessel_5,1]
+   + o[1,33,Vessel_5,2] + o[1,34,Vessel_5,1] + o[1,34,Vessel_5,2]
+   + o[1,35,Vessel_5,1] + o[1,35,Vessel_5,2] + o[1,36,Vessel_5,1]
+   + o[1,36,Vessel_5,2] + o[1,37,Vessel_5,1] + o[1,37,Vessel_5,2]
+   + o[1,38,Vessel_5,1] + o[1,38,Vessel_5,2] + o[1,39,Vessel_5,1]
+   + o[1,39,Vessel_5,2] + o[1,40,Vessel_5,1] + o[1,40,Vessel_5,2]
+   + o[1,41,Vessel_5,1] + o[1,41,Vessel_5,2] + o[1,42,Vessel_5,1]
+   + o[1,42,Vessel_5,2] + o[1,43,Vessel_5,1] + o[1,43,Vessel_5,2]
+   + o[1,44,Vessel_5,1] + o[1,44,Vessel_5,2] + o[1,45,Vessel_5,1]
+   + o[1,45,Vessel_5,2] <= 2
+ Operation_limit_vessel_Vessel_6_port_1: o[1,2,Vessel_6,1]
+   + o[1,2,Vessel_6,2] + o[1,3,Vessel_6,1] + o[1,3,Vessel_6,2]
+   + o[1,4,Vessel_6,1] + o[1,4,Vessel_6,2] + o[1,5,Vessel_6,1]
+   + o[1,5,Vessel_6,2] + o[1,6,Vessel_6,1] + o[1,6,Vessel_6,2]
+   + o[1,7,Vessel_6,1] + o[1,7,Vessel_6,2] + o[1,8,Vessel_6,1]
+   + o[1,8,Vessel_6,2] + o[1,9,Vessel_6,1] + o[1,9,Vessel_6,2]
+   + o[1,10,Vessel_6,1] + o[1,10,Vessel_6,2] + o[1,11,Vessel_6,1]
+   + o[1,11,Vessel_6,2] + o[1,12,Vessel_6,1] + o[1,12,Vessel_6,2]
+   + o[1,13,Vessel_6,1] + o[1,13,Vessel_6,2] + o[1,14,Vessel_6,1]
+   + o[1,14,Vessel_6,2] + o[1,15,Vessel_6,1] + o[1,15,Vessel_6,2]
+   + o[1,16,Vessel_6,1] + o[1,16,Vessel_6,2] + o[1,17,Vessel_6,1]
+   + o[1,17,Vessel_6,2] + o[1,18,Vessel_6,1] + o[1,18,Vessel_6,2]
+   + o[1,19,Vessel_6,1] + o[1,19,Vessel_6,2] + o[1,20,Vessel_6,1]
+   + o[1,20,Vessel_6,2] + o[1,21,Vessel_6,1] + o[1,21,Vessel_6,2]
+   + o[1,22,Vessel_6,1] + o[1,22,Vessel_6,2] + o[1,23,Vessel_6,1]
+   + o[1,23,Vessel_6,2] + o[1,24,Vessel_6,1] + o[1,24,Vessel_6,2]
+   + o[1,25,Vessel_6,1] + o[1,25,Vessel_6,2] + o[1,26,Vessel_6,1]
+   + o[1,26,Vessel_6,2] + o[1,27,Vessel_6,1] + o[1,27,Vessel_6,2]
+   + o[1,28,Vessel_6,1] + o[1,28,Vessel_6,2] + o[1,29,Vessel_6,1]
+   + o[1,29,Vessel_6,2] + o[1,30,Vessel_6,1] + o[1,30,Vessel_6,2]
+   + o[1,31,Vessel_6,1] + o[1,31,Vessel_6,2] + o[1,32,Vessel_6,1]
+   + o[1,32,Vessel_6,2] + o[1,33,Vessel_6,1] + o[1,33,Vessel_6,2]
+   + o[1,34,Vessel_6,1] + o[1,34,Vessel_6,2] + o[1,35,Vessel_6,1]
+   + o[1,35,Vessel_6,2] + o[1,36,Vessel_6,1] + o[1,36,Vessel_6,2]
+   + o[1,37,Vessel_6,1] + o[1,37,Vessel_6,2] + o[1,38,Vessel_6,1]
+   + o[1,38,Vessel_6,2] + o[1,39,Vessel_6,1] + o[1,39,Vessel_6,2]
+   + o[1,40,Vessel_6,1] + o[1,40,Vessel_6,2] + o[1,41,Vessel_6,1]
+   + o[1,41,Vessel_6,2] + o[1,42,Vessel_6,1] + o[1,42,Vessel_6,2]
+   + o[1,43,Vessel_6,1] + o[1,43,Vessel_6,2] + o[1,44,Vessel_6,1]
+   + o[1,44,Vessel_6,2] + o[1,45,Vessel_6,1] + o[1,45,Vessel_6,2] <= 2
+ Operation_limit_vessel_Vessel_7_port_1: o[1,5,Vessel_7,1]
+   + o[1,5,Vessel_7,2] + o[1,6,Vessel_7,1] + o[1,6,Vessel_7,2]
+   + o[1,7,Vessel_7,1] + o[1,7,Vessel_7,2] + o[1,8,Vessel_7,1]
+   + o[1,8,Vessel_7,2] + o[1,9,Vessel_7,1] + o[1,9,Vessel_7,2]
+   + o[1,10,Vessel_7,1] + o[1,10,Vessel_7,2] + o[1,11,Vessel_7,1]
+   + o[1,11,Vessel_7,2] + o[1,12,Vessel_7,1] + o[1,12,Vessel_7,2]
+   + o[1,13,Vessel_7,1] + o[1,13,Vessel_7,2] + o[1,14,Vessel_7,1]
+   + o[1,14,Vessel_7,2] + o[1,15,Vessel_7,1] + o[1,15,Vessel_7,2]
+   + o[1,16,Vessel_7,1] + o[1,16,Vessel_7,2] + o[1,17,Vessel_7,1]
+   + o[1,17,Vessel_7,2] + o[1,18,Vessel_7,1] + o[1,18,Vessel_7,2]
+   + o[1,19,Vessel_7,1] + o[1,19,Vessel_7,2] + o[1,20,Vessel_7,1]
+   + o[1,20,Vessel_7,2] + o[1,21,Vessel_7,1] + o[1,21,Vessel_7,2]
+   + o[1,22,Vessel_7,1] + o[1,22,Vessel_7,2] + o[1,23,Vessel_7,1]
+   + o[1,23,Vessel_7,2] + o[1,24,Vessel_7,1] + o[1,24,Vessel_7,2]
+   + o[1,25,Vessel_7,1] + o[1,25,Vessel_7,2] + o[1,26,Vessel_7,1]
+   + o[1,26,Vessel_7,2] + o[1,27,Vessel_7,1] + o[1,27,Vessel_7,2]
+   + o[1,28,Vessel_7,1] + o[1,28,Vessel_7,2] + o[1,29,Vessel_7,1]
+   + o[1,29,Vessel_7,2] + o[1,30,Vessel_7,1] + o[1,30,Vessel_7,2]
+   + o[1,31,Vessel_7,1] + o[1,31,Vessel_7,2] + o[1,32,Vessel_7,1]
+   + o[1,32,Vessel_7,2] + o[1,33,Vessel_7,1] + o[1,33,Vessel_7,2]
+   + o[1,34,Vessel_7,1] + o[1,34,Vessel_7,2] + o[1,35,Vessel_7,1]
+   + o[1,35,Vessel_7,2] + o[1,36,Vessel_7,1] + o[1,36,Vessel_7,2]
+   + o[1,37,Vessel_7,1] + o[1,37,Vessel_7,2] + o[1,38,Vessel_7,1]
+   + o[1,38,Vessel_7,2] + o[1,39,Vessel_7,1] + o[1,39,Vessel_7,2]
+   + o[1,40,Vessel_7,1] + o[1,40,Vessel_7,2] + o[1,41,Vessel_7,1]
+   + o[1,41,Vessel_7,2] + o[1,42,Vessel_7,1] + o[1,42,Vessel_7,2]
+   + o[1,43,Vessel_7,1] + o[1,43,Vessel_7,2] + o[1,44,Vessel_7,1]
+   + o[1,44,Vessel_7,2] + o[1,45,Vessel_7,1] + o[1,45,Vessel_7,2] <= 2
+ Max_operating_quantity_vessel_Vessel_5_port_1_time_3:
+   - 300 o[1,3,Vessel_5,1] - 300 o[1,3,Vessel_5,2] + q[1,3,Vessel_5] <= 0
+ Max_operating_quantity_vessel_Vessel_6_port_1_time_45:
+   - 300 o[1,45,Vessel_6,1] - 300 o[1,45,Vessel_6,2] + q[1,45,Vessel_6]
+   <= 0
+ Max_operating_quantity_vessel_Vessel_7_port_2_time_5: q[2,5,Vessel_7]
+   <= 0
+ Max_operating_quantity_vessel_Vessel_7_port_2_time_6: q[2,6,Vessel_7]
+   <= 0
+ Max_operating_quantity_vessel_Vessel_7_port_2_time_7: q[2,7,Vessel_7]
+   <= 0
+ Max_operating_quantity_vessel_Vessel_7_port_2_time_8: q[2,8,Vessel_7]
+   <= 0
+ Max_operating_quantity_vessel_Vessel_7_port_2_time_9: q[2,9,Vessel_7]
+   <= 0
+ Max_operating_quantity_vessel_Vessel_7_port_2_time_10: q[2,10,Vessel_7]
+   <= 0
+ Max_operating_quantity_vessel_Vessel_7_port_2_time_11: q[2,11,Vessel_7]
+   <= 0
+ Max_operating_quantity_vessel_Vessel_7_port_2_time_12: q[2,12,Vessel_7]
+   <= 0
+ Max_operating_quantity_vessel_Vessel_7_port_2_time_13: q[2,13,Vessel_7]
+   <= 0
+ Max_operating_quantity_vessel_Vessel_7_port_2_time_14: q[2,14,Vessel_7]
+   <= 0
+ Max_operating_quantity_vessel_Vessel_7_port_2_time_15: q[2,15,Vessel_7]
+   <= 0
+ Max_operating_quantity_vessel_Vessel_7_port_2_time_16: q[2,16,Vessel_7]
+   <= 0
+ Max_operating_quantity_vessel_Vessel_7_port_2_time_17: q[2,17,Vessel_7]
+   <= 0
+ Max_operating_quantity_vessel_Vessel_7_port_2_time_18: q[2,18,Vessel_7]
+   <= 0
+ Max_operating_quantity_vessel_Vessel_7_port_2_time_19: q[2,19,Vessel_7]
+   <= 0
+ Max_operating_quantity_vessel_Vessel_7_port_2_time_20: q[2,20,Vessel_7]
+   <= 0
+ Max_operating_quantity_vessel_Vessel_7_port_2_time_21: q[2,21,Vessel_7]
+   <= 0
+ Max_operating_quantity_vessel_Vessel_7_port_2_time_22: q[2,22,Vessel_7]
+   <= 0
+ Max_operating_quantity_vessel_Vessel_7_port_2_time_23: q[2,23,Vessel_7]
+   <= 0
+ Max_operating_quantity_vessel_Vessel_7_port_2_time_24: q[2,24,Vessel_7]
+   <= 0
+ Max_operating_quantity_vessel_Vessel_7_port_2_time_25: q[2,25,Vessel_7]
+   <= 0
+ Max_operating_quantity_vessel_Vessel_7_port_2_time_26: q[2,26,Vessel_7]
+   <= 0
+ Max_operating_quantity_vessel_Vessel_7_port_2_time_27: q[2,27,Vessel_7]
+   <= 0
+ Max_operating_quantity_vessel_Vessel_7_port_2_time_28: q[2,28,Vessel_7]
+   <= 0
+ Max_operating_quantity_vessel_Vessel_7_port_2_time_29: q[2,29,Vessel_7]
+   <= 0
+ Max_operating_quantity_vessel_Vessel_7_port_2_time_30: q[2,30,Vessel_7]
+   <= 0
+ Max_operating_quantity_vessel_Vessel_7_port_2_time_31: q[2,31,Vessel_7]
+   <= 0
+ Max_operating_quantity_vessel_Vessel_7_port_2_time_32: q[2,32,Vessel_7]
+   <= 0
+ Max_operating_quantity_vessel_Vessel_7_port_2_time_33: q[2,33,Vessel_7]
+   <= 0
+ Sequence_Vessel_3_this_1_1_next_2_1_time_44: o[1,1,Vessel_3,1]
+   + o[1,2,Vessel_3,1] + o[1,3,Vessel_3,1] + o[1,4,Vessel_3,1]
+   + o[1,5,Vessel_3,1] + o[1,6,Vessel_3,1] + o[1,7,Vessel_3,1]
+   + o[1,8,Vessel_3,1] + o[1,9,Vessel_3,1] + o[1,10,Vessel_3,1]
+   + o[1,11,Vessel_3,1] + o[1,12,Vessel_3,1] + o[1,13,Vessel_3,1]
+   + o[1,14,Vessel_3,1] + o[1,15,Vessel_3,1] + o[1,16,Vessel_3,1]
+   + o[1,17,Vessel_3,1] + o[1,18,Vessel_3,1] + o[1,19,Vessel_3,1]
+   + o[1,20,Vessel_3,1] + o[1,21,Vessel_3,1] + o[1,22,Vessel_3,1]
+   + o[1,23,Vessel_3,1] + o[1,24,Vessel_3,1] + o[1,25,Vessel_3,1]
+   + o[1,26,Vessel_3,1] + o[1,27,Vessel_3,1] + o[1,28,Vessel_3,1]
+   + o[1,29,Vessel_3,1] + o[1,30,Vessel_3,1] + o[1,31,Vessel_3,1]
+   + o[1,32,Vessel_3,1] + o[1,33,Vessel_3,1] + o[1,34,Vessel_3,1]
+   + o[1,35,Vessel_3,1] + o[1,36,Vessel_3,1] + o[1,37,Vessel_3,1]
+   + o[1,38,Vessel_3,1] + o[1,39,Vessel_3,1] + o[1,40,Vessel_3,1]
+   + o[1,41,Vessel_3,1] + o[1,42,Vessel_3,1] + o[1,43,Vessel_3,1]
+   - o[2,1,Vessel_3,1] - o[2,2,Vessel_3,1] - o[2,3,Vessel_3,1]
+   - o[2,4,Vessel_3,1] - o[2,5,Vessel_3,1] - o[2,6,Vessel_3,1]
+   - o[2,7,Vessel_3,1] - o[2,8,Vessel_3,1] - o[2,9,Vessel_3,1]
+   - o[2,10,Vessel_3,1] - o[2,11,Vessel_3,1] - o[2,12,Vessel_3,1]
+   - o[2,13,Vessel_3,1] - o[2,14,Vessel_3,1] - o[2,15,Vessel_3,1]
+   - o[2,16,Vessel_3,1] - o[2,17,Vessel_3,1] - o[2,18,Vessel_3,1]
+   - o[2,19,Vessel_3,1] - o[2,20,Vessel_3,1] - o[2,21,Vessel_3,1]
+   - o[2,22,Vessel_3,1] - o[2,23,Vessel_3,1] - o[2,24,Vessel_3,1]
+   - o[2,25,Vessel_3,1] - o[2,26,Vessel_3,1] - o[2,27,Vessel_3,1]
+   - o[2,28,Vessel_3,1] - o[2,29,Vessel_3,1] - o[2,30,Vessel_3,1]
+   - o[2,31,Vessel_3,1] - o[2,32,Vessel_3,1] - o[2,33,Vessel_3,1]
+   - o[2,34,Vessel_3,1] - o[2,35,Vessel_3,1] - o[2,36,Vessel_3,1]
+   - o[2,37,Vessel_3,1] - o[2,38,Vessel_3,1] - o[2,39,Vessel_3,1]
+   - o[2,40,Vessel_3,1] - o[2,41,Vessel_3,1] - o[2,42,Vessel_3,1]
+   - o[2,43,Vessel_3,1] - o[2,44,Vessel_3,1] >= 0
+ Sequence_Vessel_3_this_2_1_next_1_2_time_44: - o[1,1,Vessel_3,2]
+   - o[1,2,Vessel_3,2] - o[1,3,Vessel_3,2] - o[1,4,Vessel_3,2]
+   - o[1,5,Vessel_3,2] - o[1,6,Vessel_3,2] - o[1,7,Vessel_3,2]
+   - o[1,8,Vessel_3,2] - o[1,9,Vessel_3,2] - o[1,10,Vessel_3,2]
+   - o[1,11,Vessel_3,2] - o[1,12,Vessel_3,2] - o[1,13,Vessel_3,2]
+   - o[1,14,Vessel_3,2] - o[1,15,Vessel_3,2] - o[1,16,Vessel_3,2]
+   - o[1,17,Vessel_3,2] - o[1,18,Vessel_3,2] - o[1,19,Vessel_3,2]
+   - o[1,20,Vessel_3,2] - o[1,21,Vessel_3,2] - o[1,22,Vessel_3,2]
+   - o[1,23,Vessel_3,2] - o[1,24,Vessel_3,2] - o[1,25,Vessel_3,2]
+   - o[1,26,Vessel_3,2] - o[1,27,Vessel_3,2] - o[1,28,Vessel_3,2]
+   - o[1,29,Vessel_3,2] - o[1,30,Vessel_3,2] - o[1,31,Vessel_3,2]
+   - o[1,32,Vessel_3,2] - o[1,33,Vessel_3,2] - o[1,34,Vessel_3,2]
+   - o[1,35,Vessel_3,2] - o[1,36,Vessel_3,2] - o[1,37,Vessel_3,2]
+   - o[1,38,Vessel_3,2] - o[1,39,Vessel_3,2] - o[1,40,Vessel_3,2]
+   - o[1,41,Vessel_3,2] - o[1,42,Vessel_3,2] - o[1,43,Vessel_3,2]
+   - o[1,44,Vessel_3,2] + o[2,1,Vessel_3,1] + o[2,2,Vessel_3,1]
+   + o[2,3,Vessel_3,1] + o[2,4,Vessel_3,1] + o[2,5,Vessel_3,1]
+   + o[2,6,Vessel_3,1] + o[2,7,Vessel_3,1] + o[2,8,Vessel_3,1]
+   + o[2,9,Vessel_3,1] + o[2,10,Vessel_3,1] + o[2,11,Vessel_3,1]
+   + o[2,12,Vessel_3,1] + o[2,13,Vessel_3,1] + o[2,14,Vessel_3,1]
+   + o[2,15,Vessel_3,1] + o[2,16,Vessel_3,1] + o[2,17,Vessel_3,1]
+   + o[2,18,Vessel_3,1] + o[2,19,Vessel_3,1] + o[2,20,Vessel_3,1]
+   + o[2,21,Vessel_3,1] + o[2,22,Vessel_3,1] + o[2,23,Vessel_3,1]
+   + o[2,24,Vessel_3,1] + o[2,25,Vessel_3,1] + o[2,26,Vessel_3,1]
+   + o[2,27,Vessel_3,1] + o[2,28,Vessel_3,1] + o[2,29,Vessel_3,1]
+   + o[2,30,Vessel_3,1] + o[2,31,Vessel_3,1] + o[2,32,Vessel_3,1]
+   + o[2,33,Vessel_3,1] + o[2,34,Vessel_3,1] + o[2,35,Vessel_3,1]
+   + o[2,36,Vessel_3,1] + o[2,37,Vessel_3,1] + o[2,38,Vessel_3,1]
+   + o[2,39,Vessel_3,1] + o[2,40,Vessel_3,1] + o[2,41,Vessel_3,1]
+   + o[2,42,Vessel_3,1] + o[2,43,Vessel_3,1] >= 0
+ Sequence_Vessel_7_this_1_1_next_3_2_time_33: o[1,5,Vessel_7,1]
+   + o[1,6,Vessel_7,1] + o[1,7,Vessel_7,1] + o[1,8,Vessel_7,1]
+   + o[1,9,Vessel_7,1] + o[1,10,Vessel_7,1] + o[1,11,Vessel_7,1]
+   + o[1,12,Vessel_7,1] + o[1,13,Vessel_7,1] + o[1,14,Vessel_7,1]
+   + o[1,15,Vessel_7,1] + o[1,16,Vessel_7,1] + o[1,17,Vessel_7,1]
+   + o[1,18,Vessel_7,1] + o[1,19,Vessel_7,1] + o[1,20,Vessel_7,1]
+   + o[1,21,Vessel_7,1] + o[1,22,Vessel_7,1] + o[1,23,Vessel_7,1]
+   + o[1,24,Vessel_7,1] + o[1,25,Vessel_7,1] + o[1,26,Vessel_7,1]
+   + o[1,27,Vessel_7,1] + o[1,28,Vessel_7,1] + o[1,29,Vessel_7,1]
+   + o[1,30,Vessel_7,1] + o[1,31,Vessel_7,1] + o[1,32,Vessel_7,1]
+   - o[3,5,Vessel_7,2] - o[3,6,Vessel_7,2] - o[3,7,Vessel_7,2]
+   - o[3,8,Vessel_7,2] - o[3,9,Vessel_7,2] - o[3,10,Vessel_7,2]
+   - o[3,11,Vessel_7,2] - o[3,12,Vessel_7,2] - o[3,13,Vessel_7,2]
+   - o[3,14,Vessel_7,2] - o[3,15,Vessel_7,2] - o[3,16,Vessel_7,2]
+   - o[3,17,Vessel_7,2] - o[3,18,Vessel_7,2] - o[3,19,Vessel_7,2]
+   - o[3,20,Vessel_7,2] - o[3,21,Vessel_7,2] - o[3,22,Vessel_7,2]
+   - o[3,23,Vessel_7,2] - o[3,24,Vessel_7,2] - o[3,25,Vessel_7,2]
+   - o[3,26,Vessel_7,2] - o[3,27,Vessel_7,2] - o[3,28,Vessel_7,2]
+   - o[3,29,Vessel_7,2] - o[3,30,Vessel_7,2] - o[3,31,Vessel_7,2]
+   - o[3,32,Vessel_7,2] - o[3,33,Vessel_7,2] >= 0
+ q_1_1_Vessel_3_visit_2_ub: - 300 o[1,1,Vessel_3,2] + q[1,1,Vessel_3] <= 0
+ q_1_2_Vessel_3_visit_2_ub: - 300 o[1,2,Vessel_3,2] + q[1,2,Vessel_3] <= 0
+ q_1_3_Vessel_3_visit_2_ub: - 300 o[1,3,Vessel_3,2] + q[1,3,Vessel_3] <= 0
+ q_1_4_Vessel_3_visit_2_ub: - 300 o[1,4,Vessel_3,2] + q[1,4,Vessel_3] <= 0
+ q_1_5_Vessel_3_visit_2_ub: - 300 o[1,5,Vessel_3,2] + q[1,5,Vessel_3] <= 0
+ q_1_6_Vessel_3_visit_2_ub: - 300 o[1,6,Vessel_3,2] + q[1,6,Vessel_3] <= 0
+ q_1_7_Vessel_3_visit_2_ub: - 300 o[1,7,Vessel_3,2] + q[1,7,Vessel_3] <= 0
+ q_1_8_Vessel_3_visit_2_ub: - 300 o[1,8,Vessel_3,2] + q[1,8,Vessel_3] <= 0
+ q_1_9_Vessel_3_visit_2_ub: - 300 o[1,9,Vessel_3,2] + q[1,9,Vessel_3] <= 0
+ q_1_10_Vessel_3_visit_2_ub: - 300 o[1,10,Vessel_3,2] + q[1,10,Vessel_3]
+   <= 0
+ q_1_11_Vessel_3_visit_2_ub: - 300 o[1,11,Vessel_3,2] + q[1,11,Vessel_3]
+   <= 0
+ q_1_12_Vessel_3_visit_2_ub: - 300 o[1,12,Vessel_3,2] + q[1,12,Vessel_3]
+   <= 0
+ q_1_13_Vessel_3_visit_2_ub: - 300 o[1,13,Vessel_3,2] + q[1,13,Vessel_3]
+   <= 0
+ q_1_14_Vessel_3_visit_2_ub: - 300 o[1,14,Vessel_3,2] + q[1,14,Vessel_3]
+   <= 0
+ q_1_15_Vessel_3_visit_2_ub: - 300 o[1,15,Vessel_3,2] + q[1,15,Vessel_3]
+   <= 0
+ q_1_16_Vessel_3_visit_2_ub: - 300 o[1,16,Vessel_3,2] + q[1,16,Vessel_3]
+   <= 0
+ q_1_17_Vessel_3_visit_2_ub: - 300 o[1,17,Vessel_3,2] + q[1,17,Vessel_3]
+   <= 0
+ q_1_18_Vessel_3_visit_2_ub: - 300 o[1,18,Vessel_3,2] + q[1,18,Vessel_3]
+   <= 0
+ q_1_19_Vessel_3_visit_2_ub: - 300 o[1,19,Vessel_3,2] + q[1,19,Vessel_3]
+   <= 0
+ q_1_20_Vessel_3_visit_2_ub: - 300 o[1,20,Vessel_3,2] + q[1,20,Vessel_3]
+   <= 0
+ q_1_21_Vessel_3_visit_2_ub: - 300 o[1,21,Vessel_3,2] + q[1,21,Vessel_3]
+   <= 0
+ q_1_22_Vessel_3_visit_2_ub: - 300 o[1,22,Vessel_3,2] + q[1,22,Vessel_3]
+   <= 0
+ q_1_23_Vessel_3_visit_2_ub: - 300 o[1,23,Vessel_3,2] + q[1,23,Vessel_3]
+   <= 0
+ q_1_24_Vessel_3_visit_2_ub: - 300 o[1,24,Vessel_3,2] + q[1,24,Vessel_3]
+   <= 0
+ q_1_25_Vessel_3_visit_2_ub: - 300 o[1,25,Vessel_3,2] + q[1,25,Vessel_3]
+   <= 0
+ q_1_26_Vessel_3_visit_2_ub: - 300 o[1,26,Vessel_3,2] + q[1,26,Vessel_3]
+   <= 0
+ q_1_27_Vessel_3_visit_2_ub: - 300 o[1,27,Vessel_3,2] + q[1,27,Vessel_3]
+   <= 0
+ q_1_28_Vessel_3_visit_2_ub: - 300 o[1,28,Vessel_3,2] + q[1,28,Vessel_3]
+   <= 0
+ q_1_29_Vessel_3_visit_2_ub: - 300 o[1,29,Vessel_3,2] + q[1,29,Vessel_3]
+   <= 0
+ q_1_30_Vessel_3_visit_2_ub: - 300 o[1,30,Vessel_3,2] + q[1,30,Vessel_3]
+   <= 0
+ q_1_31_Vessel_3_visit_2_ub: - 300 o[1,31,Vessel_3,2] + q[1,31,Vessel_3]
+   <= 0
+ q_1_32_Vessel_3_visit_2_ub: - 300 o[1,32,Vessel_3,2] + q[1,32,Vessel_3]
+   <= 0
+ q_1_33_Vessel_3_visit_2_ub: - 300 o[1,33,Vessel_3,2] + q[1,33,Vessel_3]
+   <= 0
+ q_1_34_Vessel_3_visit_2_ub: - 300 o[1,34,Vessel_3,2] + q[1,34,Vessel_3]
+   <= 0
+ q_1_35_Vessel_3_visit_2_ub: - 300 o[1,35,Vessel_3,2] + q[1,35,Vessel_3]
+   <= 0
+ q_1_36_Vessel_3_visit_2_ub: - 300 o[1,36,Vessel_3,2] + q[1,36,Vessel_3]
+   <= 0
+ q_1_37_Vessel_3_visit_2_ub: - 300 o[1,37,Vessel_3,2] + q[1,37,Vessel_3]
+   <= 0
+ q_1_38_Vessel_3_visit_2_ub: - 300 o[1,38,Vessel_3,2] + q[1,38,Vessel_3]
+   <= 0
+ q_1_39_Vessel_3_visit_2_ub: - 300 o[1,39,Vessel_3,2] + q[1,39,Vessel_3]
+   <= 0
+ q_1_40_Vessel_3_visit_2_ub: - 300 o[1,40,Vessel_3,2] + q[1,40,Vessel_3]
+   <= 0
+ q_1_41_Vessel_3_visit_2_ub: - 300 o[1,41,Vessel_3,2] + q[1,41,Vessel_3]
+   <= 0
+ q_1_42_Vessel_3_visit_2_ub: - 300 o[1,42,Vessel_3,2] + q[1,42,Vessel_3]
+   <= 0
+ q_1_43_Vessel_3_visit_2_ub: - 300 o[1,43,Vessel_3,2] + q[1,43,Vessel_3]
+   <= 0
+ q_1_44_Vessel_3_visit_2_ub: - 300 o[1,44,Vessel_3,2] + q[1,44,Vessel_3]
+   <= 0
+ q_1_45_Vessel_3_visit_2_ub: - 300 o[1,45,Vessel_3,1] + q[1,45,Vessel_3]
+   <= 0
+ q_1_1_Vessel_4_visit_2: q[1,1,Vessel_4] = 0
+ q_1_2_Vessel_4_visit_2: q[1,2,Vessel_4] = 0
+ q_1_3_Vessel_4_visit_2: q[1,3,Vessel_4] = 0
+ q_1_4_Vessel_4_visit_2: q[1,4,Vessel_4] = 0
+ q_1_5_Vessel_4_visit_2: q[1,5,Vessel_4] = 0
+ q_1_6_Vessel_4_visit_2_ub: - 300 o[1,6,Vessel_4,2] + q[1,6,Vessel_4] <= 0
+ q_1_7_Vessel_4_visit_2_ub: - 300 o[1,7,Vessel_4,2] + q[1,7,Vessel_4] <= 0
+ q_1_8_Vessel_4_visit_2_ub: - 300 o[1,8,Vessel_4,2] + q[1,8,Vessel_4] <= 0
+ q_1_9_Vessel_4_visit_2_ub: - 300 o[1,9,Vessel_4,2] + q[1,9,Vessel_4] <= 0
+ q_1_10_Vessel_4_visit_2_ub: - 300 o[1,10,Vessel_4,2] + q[1,10,Vessel_4]
+   <= 0
+ q_1_11_Vessel_4_visit_2_ub: - 300 o[1,11,Vessel_4,2] + q[1,11,Vessel_4]
+   <= 0
+ q_1_12_Vessel_4_visit_2_ub: - 300 o[1,12,Vessel_4,2] + q[1,12,Vessel_4]
+   <= 0
+ q_1_13_Vessel_4_visit_2_ub: - 300 o[1,13,Vessel_4,2] + q[1,13,Vessel_4]
+   <= 0
+ q_1_14_Vessel_4_visit_2_ub: - 300 o[1,14,Vessel_4,2] + q[1,14,Vessel_4]
+   <= 0
+ q_1_15_Vessel_4_visit_2_ub: - 300 o[1,15,Vessel_4,2] + q[1,15,Vessel_4]
+   <= 0
+ q_1_16_Vessel_4_visit_2_ub: - 300 o[1,16,Vessel_4,2] + q[1,16,Vessel_4]
+   <= 0
+ q_1_17_Vessel_4_visit_2_ub: - 300 o[1,17,Vessel_4,2] + q[1,17,Vessel_4]
+   <= 0
+ q_1_18_Vessel_4_visit_2_ub: - 300 o[1,18,Vessel_4,2] + q[1,18,Vessel_4]
+   <= 0
+ q_1_19_Vessel_4_visit_2_ub: - 300 o[1,19,Vessel_4,2] + q[1,19,Vessel_4]
+   <= 0
+ q_1_20_Vessel_4_visit_2_ub: - 300 o[1,20,Vessel_4,2] + q[1,20,Vessel_4]
+   <= 0
+ q_1_21_Vessel_4_visit_2_ub: - 300 o[1,21,Vessel_4,2] + q[1,21,Vessel_4]
+   <= 0
+ q_1_22_Vessel_4_visit_2_ub: - 300 o[1,22,Vessel_4,2] + q[1,22,Vessel_4]
+   <= 0
+ q_1_23_Vessel_4_visit_2_ub: - 300 o[1,23,Vessel_4,2] + q[1,23,Vessel_4]
+   <= 0
+ q_1_24_Vessel_4_visit_2_ub: - 300 o[1,24,Vessel_4,2] + q[1,24,Vessel_4]
+   <= 0
+ q_1_25_Vessel_4_visit_2_ub: - 300 o[1,25,Vessel_4,2] + q[1,25,Vessel_4]
+   <= 0
+ q_1_26_Vessel_4_visit_2_ub: - 300 o[1,26,Vessel_4,2] + q[1,26,Vessel_4]
+   <= 0
+ q_1_27_Vessel_4_visit_2_ub: - 300 o[1,27,Vessel_4,2] + q[1,27,Vessel_4]
+   <= 0
+ q_1_28_Vessel_4_visit_2_ub: - 300 o[1,28,Vessel_4,2] + q[1,28,Vessel_4]
+   <= 0
+ q_1_29_Vessel_4_visit_2_ub: - 300 o[1,29,Vessel_4,2] + q[1,29,Vessel_4]
+   <= 0
+ q_1_30_Vessel_4_visit_2_ub: - 300 o[1,30,Vessel_4,2] + q[1,30,Vessel_4]
+   <= 0
+ q_1_31_Vessel_4_visit_2_ub: - 300 o[1,31,Vessel_4,2] + q[1,31,Vessel_4]
+   <= 0
+ q_1_32_Vessel_4_visit_2_ub: - 300 o[1,32,Vessel_4,2] + q[1,32,Vessel_4]
+   <= 0
+ q_1_33_Vessel_4_visit_2_ub: - 300 o[1,33,Vessel_4,2] + q[1,33,Vessel_4]
+   <= 0
+ q_1_34_Vessel_4_visit_2_ub: - 300 o[1,34,Vessel_4,2] + q[1,34,Vessel_4]
+   <= 0
+ q_1_35_Vessel_4_visit_2_ub: - 300 o[1,35,Vessel_4,2] + q[1,35,Vessel_4]
+   <= 0
+ q_1_36_Vessel_4_visit_2_ub: - 300 o[1,36,Vessel_4,2] + q[1,36,Vessel_4]
+   <= 0
+ q_1_37_Vessel_4_visit_2_ub: - 300 o[1,37,Vessel_4,2] + q[1,37,Vessel_4]
+   <= 0
+ q_1_38_Vessel_4_visit_2_ub: - 300 o[1,38,Vessel_4,2] + q[1,38,Vessel_4]
+   <= 0
+ q_1_39_Vessel_4_visit_2_ub: - 300 o[1,39,Vessel_4,2] + q[1,39,Vessel_4]
+   <= 0
+ q_1_40_Vessel_4_visit_2_ub: - 300 o[1,40,Vessel_4,2] + q[1,40,Vessel_4]
+   <= 0
+ q_1_41_Vessel_4_visit_2_ub: - 300 o[1,41,Vessel_4,2] + q[1,41,Vessel_4]
+   <= 0
+ q_1_42_Vessel_4_visit_2_ub: - 300 o[1,42,Vessel_4,2] + q[1,42,Vessel_4]
+   <= 0
+ q_1_43_Vessel_4_visit_2_ub: - 300 o[1,43,Vessel_4,2] + q[1,43,Vessel_4]
+   <= 0
+ q_1_44_Vessel_4_visit_2_ub: - 300 o[1,44,Vessel_4,2] + q[1,44,Vessel_4]
+   <= 0
+ q_1_45_Vessel_4_visit_2_ub: - 300 o[1,45,Vessel_4,1] + q[1,45,Vessel_4]
+   <= 0
+ q_1_1_Vessel_5_visit_2: q[1,1,Vessel_5] = 0
+ q_1_2_Vessel_5_visit_2: q[1,2,Vessel_5] = 0
+ q_1_4_Vessel_5_visit_2_ub: - 300 o[1,4,Vessel_5,1] + q[1,4,Vessel_5] <= 0
+ q_1_5_Vessel_5_visit_2_ub: - 300 o[1,5,Vessel_5,2] + q[1,5,Vessel_5] <= 0
+ q_1_6_Vessel_5_visit_2_ub: - 300 o[1,6,Vessel_5,1] + q[1,6,Vessel_5] <= 0
+ q_1_7_Vessel_5_visit_2_ub: - 300 o[1,7,Vessel_5,2] + q[1,7,Vessel_5] <= 0
+ q_1_8_Vessel_5_visit_2_ub: - 300 o[1,8,Vessel_5,2] + q[1,8,Vessel_5] <= 0
+ q_1_9_Vessel_5_visit_2_ub: - 300 o[1,9,Vessel_5,1] + q[1,9,Vessel_5] <= 0
+ q_1_10_Vessel_5_visit_2_ub: - 300 o[1,10,Vessel_5,2] + q[1,10,Vessel_5]
+   <= 0
+ q_1_11_Vessel_5_visit_2_ub: - 300 o[1,11,Vessel_5,2] + q[1,11,Vessel_5]
+   <= 0
+ q_1_12_Vessel_5_visit_2_ub: - 300 o[1,12,Vessel_5,2] + q[1,12,Vessel_5]
+   <= 0
+ q_1_13_Vessel_5_visit_2_ub: - 300 o[1,13,Vessel_5,1] + q[1,13,Vessel_5]
+   <= 0
+ q_1_14_Vessel_5_visit_2_ub: - 300 o[1,14,Vessel_5,1] + q[1,14,Vessel_5]
+   <= 0
+ q_1_15_Vessel_5_visit_2_ub: - 300 o[1,15,Vessel_5,1] + q[1,15,Vessel_5]
+   <= 0
+ q_1_16_Vessel_5_visit_2_ub: - 300 o[1,16,Vessel_5,2] + q[1,16,Vessel_5]
+   <= 0
+ q_1_17_Vessel_5_visit_2_ub: - 300 o[1,17,Vessel_5,1] + q[1,17,Vessel_5]
+   <= 0
+ q_1_18_Vessel_5_visit_2_ub: - 300 o[1,18,Vessel_5,1] + q[1,18,Vessel_5]
+   <= 0
+ q_1_19_Vessel_5_visit_2_ub: - 300 o[1,19,Vessel_5,2] + q[1,19,Vessel_5]
+   <= 0
+ q_1_20_Vessel_5_visit_2_ub: - 300 o[1,20,Vessel_5,1] + q[1,20,Vessel_5]
+   <= 0
+ q_1_21_Vessel_5_visit_2_ub: - 300 o[1,21,Vessel_5,1] + q[1,21,Vessel_5]
+   <= 0
+ q_1_22_Vessel_5_visit_2_ub: - 300 o[1,22,Vessel_5,1] + q[1,22,Vessel_5]
+   <= 0
+ q_1_23_Vessel_5_visit_2_ub: - 300 o[1,23,Vessel_5,2] + q[1,23,Vessel_5]
+   <= 0
+ q_1_24_Vessel_5_visit_2_ub: - 300 o[1,24,Vessel_5,1] + q[1,24,Vessel_5]
+   <= 0
+ q_1_25_Vessel_5_visit_2_ub: - 300 o[1,25,Vessel_5,2] + q[1,25,Vessel_5]
+   <= 0
+ q_1_26_Vessel_5_visit_2_ub: - 300 o[1,26,Vessel_5,1] + q[1,26,Vessel_5]
+   <= 0
+ q_1_27_Vessel_5_visit_2_ub: - 300 o[1,27,Vessel_5,1] + q[1,27,Vessel_5]
+   <= 0
+ q_1_28_Vessel_5_visit_2_ub: - 300 o[1,28,Vessel_5,2] + q[1,28,Vessel_5]
+   <= 0
+ q_1_29_Vessel_5_visit_2_ub: - 300 o[1,29,Vessel_5,2] + q[1,29,Vessel_5]
+   <= 0
+ q_1_30_Vessel_5_visit_2_ub: - 300 o[1,30,Vessel_5,2] + q[1,30,Vessel_5]
+   <= 0
+ q_1_31_Vessel_5_visit_2_ub: - 300 o[1,31,Vessel_5,1] + q[1,31,Vessel_5]
+   <= 0
+ q_1_32_Vessel_5_visit_2_ub: - 300 o[1,32,Vessel_5,2] + q[1,32,Vessel_5]
+   <= 0
+ q_1_33_Vessel_5_visit_2_ub: - 300 o[1,33,Vessel_5,1] + q[1,33,Vessel_5]
+   <= 0
+ q_1_34_Vessel_5_visit_2_ub: - 300 o[1,34,Vessel_5,1] + q[1,34,Vessel_5]
+   <= 0
+ q_1_35_Vessel_5_visit_2_ub: - 300 o[1,35,Vessel_5,1] + q[1,35,Vessel_5]
+   <= 0
+ q_1_36_Vessel_5_visit_2_ub: - 300 o[1,36,Vessel_5,2] + q[1,36,Vessel_5]
+   <= 0
+ q_1_37_Vessel_5_visit_2_ub: - 300 o[1,37,Vessel_5,1] + q[1,37,Vessel_5]
+   <= 0
+ q_1_38_Vessel_5_visit_2_ub: - 300 o[1,38,Vessel_5,1] + q[1,38,Vessel_5]
+   <= 0
+ q_1_39_Vessel_5_visit_2_ub: - 300 o[1,39,Vessel_5,1] + q[1,39,Vessel_5]
+   <= 0
+ q_1_40_Vessel_5_visit_2_ub: - 300 o[1,40,Vessel_5,1] + q[1,40,Vessel_5]
+   <= 0
+ q_1_41_Vessel_5_visit_2_ub: - 300 o[1,41,Vessel_5,2] + q[1,41,Vessel_5]
+   <= 0
+ q_1_42_Vessel_5_visit_2_ub: - 300 o[1,42,Vessel_5,1] + q[1,42,Vessel_5]
+   <= 0
+ q_1_43_Vessel_5_visit_2_ub: - 300 o[1,43,Vessel_5,1] + q[1,43,Vessel_5]
+   <= 0
+ q_1_44_Vessel_5_visit_2_ub: - 300 o[1,44,Vessel_5,2] + q[1,44,Vessel_5]
+   <= 0
+ q_1_45_Vessel_5_visit_2_ub: - 300 o[1,45,Vessel_5,2] + q[1,45,Vessel_5]
+   <= 0
+ q_1_1_Vessel_6_visit_2: q[1,1,Vessel_6] = 0
+ q_1_2_Vessel_6_visit_2_ub: - 300 o[1,2,Vessel_6,1] + q[1,2,Vessel_6] <= 0
+ q_1_3_Vessel_6_visit_2_ub: - 300 o[1,3,Vessel_6,1] + q[1,3,Vessel_6] <= 0
+ q_1_4_Vessel_6_visit_2_ub: - 300 o[1,4,Vessel_6,1] + q[1,4,Vessel_6] <= 0
+ q_1_5_Vessel_6_visit_2_ub: - 300 o[1,5,Vessel_6,1] + q[1,5,Vessel_6] <= 0
+ q_1_6_Vessel_6_visit_2_ub: - 300 o[1,6,Vessel_6,1] + q[1,6,Vessel_6] <= 0
+ q_1_7_Vessel_6_visit_2_ub: - 300 o[1,7,Vessel_6,1] + q[1,7,Vessel_6] <= 0
+ q_1_8_Vessel_6_visit_2_ub: - 300 o[1,8,Vessel_6,1] + q[1,8,Vessel_6] <= 0
+ q_1_9_Vessel_6_visit_2_ub: - 300 o[1,9,Vessel_6,2] + q[1,9,Vessel_6] <= 0
+ q_1_10_Vessel_6_visit_2_ub: - 300 o[1,10,Vessel_6,1] + q[1,10,Vessel_6]
+   <= 0
+ q_1_11_Vessel_6_visit_2_ub: - 300 o[1,11,Vessel_6,1] + q[1,11,Vessel_6]
+   <= 0
+ q_1_12_Vessel_6_visit_2_ub: - 300 o[1,12,Vessel_6,1] + q[1,12,Vessel_6]
+   <= 0
+ q_1_13_Vessel_6_visit_2_ub: - 300 o[1,13,Vessel_6,1] + q[1,13,Vessel_6]
+   <= 0
+ q_1_14_Vessel_6_visit_2_ub: - 300 o[1,14,Vessel_6,1] + q[1,14,Vessel_6]
+   <= 0
+ q_1_15_Vessel_6_visit_2_ub: - 300 o[1,15,Vessel_6,1] + q[1,15,Vessel_6]
+   <= 0
+ q_1_16_Vessel_6_visit_2_ub: - 300 o[1,16,Vessel_6,1] + q[1,16,Vessel_6]
+   <= 0
+ q_1_17_Vessel_6_visit_2_ub: - 300 o[1,17,Vessel_6,1] + q[1,17,Vessel_6]
+   <= 0
+ q_1_18_Vessel_6_visit_2_ub: - 300 o[1,18,Vessel_6,1] + q[1,18,Vessel_6]
+   <= 0
+ q_1_19_Vessel_6_visit_2_ub: - 300 o[1,19,Vessel_6,1] + q[1,19,Vessel_6]
+   <= 0
+ q_1_20_Vessel_6_visit_2_ub: - 300 o[1,20,Vessel_6,1] + q[1,20,Vessel_6]
+   <= 0
+ q_1_21_Vessel_6_visit_2_ub: - 300 o[1,21,Vessel_6,1] + q[1,21,Vessel_6]
+   <= 0
+ q_1_22_Vessel_6_visit_2_ub: - 300 o[1,22,Vessel_6,1] + q[1,22,Vessel_6]
+   <= 0
+ q_1_23_Vessel_6_visit_2_ub: - 300 o[1,23,Vessel_6,1] + q[1,23,Vessel_6]
+   <= 0
+ q_1_24_Vessel_6_visit_2_ub: - 300 o[1,24,Vessel_6,1] + q[1,24,Vessel_6]
+   <= 0
+ q_1_25_Vessel_6_visit_2_ub: - 300 o[1,25,Vessel_6,1] + q[1,25,Vessel_6]
+   <= 0
+ q_1_26_Vessel_6_visit_2_ub: - 300 o[1,26,Vessel_6,1] + q[1,26,Vessel_6]
+   <= 0
+ q_1_27_Vessel_6_visit_2_ub: - 300 o[1,27,Vessel_6,1] + q[1,27,Vessel_6]
+   <= 0
+ q_1_28_Vessel_6_visit_2_ub: - 300 o[1,28,Vessel_6,1] + q[1,28,Vessel_6]
+   <= 0
+ q_1_29_Vessel_6_visit_2_ub: - 300 o[1,29,Vessel_6,1] + q[1,29,Vessel_6]
+   <= 0
+ q_1_30_Vessel_6_visit_2_ub: - 300 o[1,30,Vessel_6,1] + q[1,30,Vessel_6]
+   <= 0
+ q_1_31_Vessel_6_visit_2_ub: - 300 o[1,31,Vessel_6,1] + q[1,31,Vessel_6]
+   <= 0
+ q_1_32_Vessel_6_visit_2_ub: - 300 o[1,32,Vessel_6,1] + q[1,32,Vessel_6]
+   <= 0
+ q_1_33_Vessel_6_visit_2_ub: - 300 o[1,33,Vessel_6,1] + q[1,33,Vessel_6]
+   <= 0
+ q_1_34_Vessel_6_visit_2_ub: - 300 o[1,34,Vessel_6,1] + q[1,34,Vessel_6]
+   <= 0
+ q_1_35_Vessel_6_visit_2_ub: - 300 o[1,35,Vessel_6,1] + q[1,35,Vessel_6]
+   <= 0
+ q_1_36_Vessel_6_visit_2_ub: - 300 o[1,36,Vessel_6,1] + q[1,36,Vessel_6]
+   <= 0
+ q_1_37_Vessel_6_visit_2_ub: - 300 o[1,37,Vessel_6,1] + q[1,37,Vessel_6]
+   <= 0
+ q_1_38_Vessel_6_visit_2_ub: - 300 o[1,38,Vessel_6,1] + q[1,38,Vessel_6]
+   <= 0
+ q_1_39_Vessel_6_visit_2_ub: - 300 o[1,39,Vessel_6,1] + q[1,39,Vessel_6]
+   <= 0
+ q_1_40_Vessel_6_visit_2_ub: - 300 o[1,40,Vessel_6,1] + q[1,40,Vessel_6]
+   <= 0
+ q_1_41_Vessel_6_visit_2_ub: - 300 o[1,41,Vessel_6,1] + q[1,41,Vessel_6]
+   <= 0
+ q_1_42_Vessel_6_visit_2_ub: - 300 o[1,42,Vessel_6,1] + q[1,42,Vessel_6]
+   <= 0
+ q_1_43_Vessel_6_visit_2_ub: - 300 o[1,43,Vessel_6,1] + q[1,43,Vessel_6]
+   <= 0
+ q_1_44_Vessel_6_visit_2_ub: - 300 o[1,44,Vessel_6,1] + q[1,44,Vessel_6]
+   <= 0
+ q_2_1_Vessel_7_visit_2: q[2,1,Vessel_7] = 0
+ q_3_1_Vessel_7_visit_2: q[3,1,Vessel_7] = 0
+ q_2_2_Vessel_7_visit_2: q[2,2,Vessel_7] = 0
+ q_3_2_Vessel_7_visit_2: q[3,2,Vessel_7] = 0
+ q_2_3_Vessel_7_visit_2: q[2,3,Vessel_7] = 0
+ q_3_3_Vessel_7_visit_2: q[3,3,Vessel_7] = 0
+ q_2_4_Vessel_7_visit_2: q[2,4,Vessel_7] = 0
+ q_3_4_Vessel_7_visit_2: q[3,4,Vessel_7] = 0
+ q_3_5_Vessel_7_visit_2_ub: - 300 o[3,5,Vessel_7,2] + q[3,5,Vessel_7] <= 0
+ q_3_6_Vessel_7_visit_2_ub: - 300 o[3,6,Vessel_7,2] + q[3,6,Vessel_7] <= 0
+ q_3_7_Vessel_7_visit_2_ub: - 300 o[3,7,Vessel_7,2] + q[3,7,Vessel_7] <= 0
+ q_3_8_Vessel_7_visit_2_ub: - 300 o[3,8,Vessel_7,2] + q[3,8,Vessel_7] <= 0
+ q_3_9_Vessel_7_visit_2_ub: - 300 o[3,9,Vessel_7,2] + q[3,9,Vessel_7] <= 0
+ q_3_10_Vessel_7_visit_2_ub: - 300 o[3,10,Vessel_7,2] + q[3,10,Vessel_7]
+   <= 0
+ q_3_11_Vessel_7_visit_2_ub: - 300 o[3,11,Vessel_7,2] + q[3,11,Vessel_7]
+   <= 0
+ q_3_12_Vessel_7_visit_2_ub: - 300 o[3,12,Vessel_7,2] + q[3,12,Vessel_7]
+   <= 0
+ q_3_13_Vessel_7_visit_2_ub: - 300 o[3,13,Vessel_7,2] + q[3,13,Vessel_7]
+   <= 0
+ q_3_14_Vessel_7_visit_2_ub: - 300 o[3,14,Vessel_7,2] + q[3,14,Vessel_7]
+   <= 0
+ q_3_15_Vessel_7_visit_2_ub: - 300 o[3,15,Vessel_7,2] + q[3,15,Vessel_7]
+   <= 0
+ q_3_16_Vessel_7_visit_2_ub: - 300 o[3,16,Vessel_7,2] + q[3,16,Vessel_7]
+   <= 0
+ q_3_17_Vessel_7_visit_2_ub: - 300 o[3,17,Vessel_7,2] + q[3,17,Vessel_7]
+   <= 0
+ q_3_18_Vessel_7_visit_2_ub: - 300 o[3,18,Vessel_7,2] + q[3,18,Vessel_7]
+   <= 0
+ q_3_19_Vessel_7_visit_2_ub: - 300 o[3,19,Vessel_7,2] + q[3,19,Vessel_7]
+   <= 0
+ q_3_20_Vessel_7_visit_2_ub: - 300 o[3,20,Vessel_7,2] + q[3,20,Vessel_7]
+   <= 0
+ q_3_21_Vessel_7_visit_2_ub: - 300 o[3,21,Vessel_7,2] + q[3,21,Vessel_7]
+   <= 0
+ q_3_22_Vessel_7_visit_2_ub: - 300 o[3,22,Vessel_7,2] + q[3,22,Vessel_7]
+   <= 0
+ q_3_23_Vessel_7_visit_2_ub: - 300 o[3,23,Vessel_7,2] + q[3,23,Vessel_7]
+   <= 0
+ q_3_24_Vessel_7_visit_2_ub: - 300 o[3,24,Vessel_7,2] + q[3,24,Vessel_7]
+   <= 0
+ q_3_25_Vessel_7_visit_2_ub: - 300 o[3,25,Vessel_7,2] + q[3,25,Vessel_7]
+   <= 0
+ q_3_26_Vessel_7_visit_2_ub: - 300 o[3,26,Vessel_7,2] + q[3,26,Vessel_7]
+   <= 0
+ q_3_27_Vessel_7_visit_2_ub: - 300 o[3,27,Vessel_7,2] + q[3,27,Vessel_7]
+   <= 0
+ q_3_28_Vessel_7_visit_2_ub: - 300 o[3,28,Vessel_7,2] + q[3,28,Vessel_7]
+   <= 0
+ q_3_29_Vessel_7_visit_2_ub: - 300 o[3,29,Vessel_7,2] + q[3,29,Vessel_7]
+   <= 0
+ q_3_30_Vessel_7_visit_2_ub: - 300 o[3,30,Vessel_7,2] + q[3,30,Vessel_7]
+   <= 0
+ q_3_31_Vessel_7_visit_2_ub: - 300 o[3,31,Vessel_7,2] + q[3,31,Vessel_7]
+   <= 0
+ q_3_32_Vessel_7_visit_2_ub: - 300 o[3,32,Vessel_7,2] + q[3,32,Vessel_7]
+   <= 0
+ q_3_33_Vessel_7_visit_2_ub: - 300 o[3,33,Vessel_7,2] + q[3,33,Vessel_7]
+   <= 0
+ q_1_34_Vessel_7_visit_2_ub: - 300 o[1,34,Vessel_7,1] + q[1,34,Vessel_7]
+   <= 0
+ q_1_35_Vessel_7_visit_2_ub: - 300 o[1,35,Vessel_7,1] + q[1,35,Vessel_7]
+   <= 0
+ q_1_36_Vessel_7_visit_2_ub: - 300 o[1,36,Vessel_7,1] + q[1,36,Vessel_7]
+   <= 0
+ q_1_37_Vessel_7_visit_2_ub: - 300 o[1,37,Vessel_7,1] + q[1,37,Vessel_7]
+   <= 0
+ q_1_38_Vessel_7_visit_2_ub: - 300 o[1,38,Vessel_7,1] + q[1,38,Vessel_7]
+   <= 0
+ q_1_39_Vessel_7_visit_2_ub: - 300 o[1,39,Vessel_7,1] + q[1,39,Vessel_7]
+   <= 0
+ q_1_40_Vessel_7_visit_2_ub: - 300 o[1,40,Vessel_7,1] + q[1,40,Vessel_7]
+   <= 0
+ q_1_41_Vessel_7_visit_2_ub: - 300 o[1,41,Vessel_7,1] + q[1,41,Vessel_7]
+   <= 0
+ q_1_42_Vessel_7_visit_2_ub: - 300 o[1,42,Vessel_7,1] + q[1,42,Vessel_7]
+   <= 0
+ q_1_43_Vessel_7_visit_2_ub: - 300 o[1,43,Vessel_7,1] + q[1,43,Vessel_7]
+   <= 0
+ q_1_44_Vessel_7_visit_2_ub: - 300 o[1,44,Vessel_7,1] + q[1,44,Vessel_7]
+   <= 0
+ q_1_45_Vessel_7_visit_2_ub: - 300 o[1,45,Vessel_7,1] + q[1,45,Vessel_7]
+   <= 0
+Bounds
+ q[1,1,Vessel_3] free
+ q[1,1,Vessel_4] free
+ q[1,1,Vessel_5] free
+ q[1,1,Vessel_6] free
+ q[1,1,Vessel_7] free
+ q[2,1,Vessel_7] free
+ q[3,1,Vessel_7] free
+ q[1,2,Vessel_3] free
+ q[1,2,Vessel_4] free
+ q[1,2,Vessel_5] free
+ q[1,2,Vessel_6] free
+ q[1,2,Vessel_7] free
+ q[2,2,Vessel_7] free
+ q[3,2,Vessel_7] free
+ q[1,3,Vessel_3] free
+ q[1,3,Vessel_4] free
+ q[1,3,Vessel_5] free
+ q[1,3,Vessel_6] free
+ q[1,3,Vessel_7] free
+ q[2,3,Vessel_7] free
+ q[3,3,Vessel_7] free
+ q[1,4,Vessel_3] free
+ q[1,4,Vessel_4] free
+ q[1,4,Vessel_5] free
+ q[1,4,Vessel_6] free
+ q[1,4,Vessel_7] free
+ q[2,4,Vessel_7] free
+ q[3,4,Vessel_7] free
+ q[1,5,Vessel_3] free
+ q[1,5,Vessel_4] free
+ q[1,5,Vessel_5] free
+ q[1,5,Vessel_6] free
+ q[1,5,Vessel_7] free
+ q[2,5,Vessel_7] free
+ q[3,5,Vessel_7] free
+ q[1,6,Vessel_3] free
+ q[1,6,Vessel_4] free
+ q[1,6,Vessel_5] free
+ q[1,6,Vessel_6] free
+ q[1,6,Vessel_7] free
+ q[2,6,Vessel_7] free
+ q[3,6,Vessel_7] free
+ q[1,7,Vessel_3] free
+ q[1,7,Vessel_4] free
+ q[1,7,Vessel_5] free
+ q[1,7,Vessel_6] free
+ q[1,7,Vessel_7] free
+ q[2,7,Vessel_7] free
+ q[3,7,Vessel_7] free
+ q[1,8,Vessel_3] free
+ q[1,8,Vessel_4] free
+ q[1,8,Vessel_5] free
+ q[1,8,Vessel_6] free
+ q[1,8,Vessel_7] free
+ q[2,8,Vessel_7] free
+ q[3,8,Vessel_7] free
+ q[1,9,Vessel_3] free
+ q[1,9,Vessel_4] free
+ q[1,9,Vessel_5] free
+ q[1,9,Vessel_6] free
+ q[1,9,Vessel_7] free
+ q[2,9,Vessel_7] free
+ q[3,9,Vessel_7] free
+ q[1,10,Vessel_3] free
+ q[1,10,Vessel_4] free
+ q[1,10,Vessel_5] free
+ q[1,10,Vessel_6] free
+ q[1,10,Vessel_7] free
+ q[2,10,Vessel_7] free
+ q[3,10,Vessel_7] free
+ q[1,11,Vessel_3] free
+ q[1,11,Vessel_4] free
+ q[1,11,Vessel_5] free
+ q[1,11,Vessel_6] free
+ q[1,11,Vessel_7] free
+ q[2,11,Vessel_7] free
+ q[3,11,Vessel_7] free
+ q[1,12,Vessel_3] free
+ q[1,12,Vessel_4] free
+ q[1,12,Vessel_5] free
+ q[1,12,Vessel_6] free
+ q[1,12,Vessel_7] free
+ q[2,12,Vessel_7] free
+ q[3,12,Vessel_7] free
+ q[1,13,Vessel_3] free
+ q[1,13,Vessel_4] free
+ q[1,13,Vessel_5] free
+ q[1,13,Vessel_6] free
+ q[1,13,Vessel_7] free
+ q[2,13,Vessel_7] free
+ q[3,13,Vessel_7] free
+ q[1,14,Vessel_3] free
+ q[1,14,Vessel_4] free
+ q[1,14,Vessel_5] free
+ q[1,14,Vessel_6] free
+ q[1,14,Vessel_7] free
+ q[2,14,Vessel_7] free
+ q[3,14,Vessel_7] free
+ q[1,15,Vessel_3] free
+ q[1,15,Vessel_4] free
+ q[1,15,Vessel_5] free
+ q[1,15,Vessel_6] free
+ q[1,15,Vessel_7] free
+ q[2,15,Vessel_7] free
+ q[3,15,Vessel_7] free
+ q[1,16,Vessel_3] free
+ q[1,16,Vessel_4] free
+ q[1,16,Vessel_5] free
+ q[1,16,Vessel_6] free
+ q[1,16,Vessel_7] free
+ q[2,16,Vessel_7] free
+ q[3,16,Vessel_7] free
+ q[1,17,Vessel_3] free
+ q[1,17,Vessel_4] free
+ q[1,17,Vessel_5] free
+ q[1,17,Vessel_6] free
+ q[1,17,Vessel_7] free
+ q[2,17,Vessel_7] free
+ q[3,17,Vessel_7] free
+ q[1,18,Vessel_3] free
+ q[1,18,Vessel_4] free
+ q[1,18,Vessel_5] free
+ q[1,18,Vessel_6] free
+ q[1,18,Vessel_7] free
+ q[2,18,Vessel_7] free
+ q[3,18,Vessel_7] free
+ q[1,19,Vessel_3] free
+ q[1,19,Vessel_4] free
+ q[1,19,Vessel_5] free
+ q[1,19,Vessel_6] free
+ q[1,19,Vessel_7] free
+ q[2,19,Vessel_7] free
+ q[3,19,Vessel_7] free
+ q[1,20,Vessel_3] free
+ q[1,20,Vessel_4] free
+ q[1,20,Vessel_5] free
+ q[1,20,Vessel_6] free
+ q[1,20,Vessel_7] free
+ q[2,20,Vessel_7] free
+ q[3,20,Vessel_7] free
+ q[1,21,Vessel_3] free
+ q[1,21,Vessel_4] free
+ q[1,21,Vessel_5] free
+ q[1,21,Vessel_6] free
+ q[1,21,Vessel_7] free
+ q[2,21,Vessel_7] free
+ q[3,21,Vessel_7] free
+ q[1,22,Vessel_3] free
+ q[1,22,Vessel_4] free
+ q[1,22,Vessel_5] free
+ q[1,22,Vessel_6] free
+ q[1,22,Vessel_7] free
+ q[2,22,Vessel_7] free
+ q[3,22,Vessel_7] free
+ q[1,23,Vessel_3] free
+ q[1,23,Vessel_4] free
+ q[1,23,Vessel_5] free
+ q[1,23,Vessel_6] free
+ q[1,23,Vessel_7] free
+ q[2,23,Vessel_7] free
+ q[3,23,Vessel_7] free
+ q[1,24,Vessel_3] free
+ q[1,24,Vessel_4] free
+ q[1,24,Vessel_5] free
+ q[1,24,Vessel_6] free
+ q[1,24,Vessel_7] free
+ q[2,24,Vessel_7] free
+ q[3,24,Vessel_7] free
+ q[1,25,Vessel_3] free
+ q[1,25,Vessel_4] free
+ q[1,25,Vessel_5] free
+ q[1,25,Vessel_6] free
+ q[1,25,Vessel_7] free
+ q[2,25,Vessel_7] free
+ q[3,25,Vessel_7] free
+ q[1,26,Vessel_3] free
+ q[1,26,Vessel_4] free
+ q[1,26,Vessel_5] free
+ q[1,26,Vessel_6] free
+ q[1,26,Vessel_7] free
+ q[2,26,Vessel_7] free
+ q[3,26,Vessel_7] free
+ q[1,27,Vessel_3] free
+ q[1,27,Vessel_4] free
+ q[1,27,Vessel_5] free
+ q[1,27,Vessel_6] free
+ q[1,27,Vessel_7] free
+ q[2,27,Vessel_7] free
+ q[3,27,Vessel_7] free
+ q[1,28,Vessel_3] free
+ q[1,28,Vessel_4] free
+ q[1,28,Vessel_5] free
+ q[1,28,Vessel_6] free
+ q[1,28,Vessel_7] free
+ q[2,28,Vessel_7] free
+ q[3,28,Vessel_7] free
+ q[1,29,Vessel_3] free
+ q[1,29,Vessel_4] free
+ q[1,29,Vessel_5] free
+ q[1,29,Vessel_6] free
+ q[1,29,Vessel_7] free
+ q[2,29,Vessel_7] free
+ q[3,29,Vessel_7] free
+ q[1,30,Vessel_3] free
+ q[1,30,Vessel_4] free
+ q[1,30,Vessel_5] free
+ q[1,30,Vessel_6] free
+ q[1,30,Vessel_7] free
+ q[2,30,Vessel_7] free
+ q[3,30,Vessel_7] free
+ q[1,31,Vessel_3] free
+ q[1,31,Vessel_4] free
+ q[1,31,Vessel_5] free
+ q[1,31,Vessel_6] free
+ q[1,31,Vessel_7] free
+ q[2,31,Vessel_7] free
+ q[3,31,Vessel_7] free
+ q[1,32,Vessel_3] free
+ q[1,32,Vessel_4] free
+ q[1,32,Vessel_5] free
+ q[1,32,Vessel_6] free
+ q[1,32,Vessel_7] free
+ q[2,32,Vessel_7] free
+ q[3,32,Vessel_7] free
+ q[1,33,Vessel_3] free
+ q[1,33,Vessel_4] free
+ q[1,33,Vessel_5] free
+ q[1,33,Vessel_6] free
+ q[1,33,Vessel_7] free
+ q[2,33,Vessel_7] free
+ q[3,33,Vessel_7] free
+ q[1,34,Vessel_3] free
+ q[1,34,Vessel_4] free
+ q[1,34,Vessel_5] free
+ q[1,34,Vessel_6] free
+ q[1,34,Vessel_7] free
+ q[1,35,Vessel_3] free
+ q[1,35,Vessel_4] free
+ q[1,35,Vessel_5] free
+ q[1,35,Vessel_6] free
+ q[1,35,Vessel_7] free
+ q[1,36,Vessel_3] free
+ q[1,36,Vessel_4] free
+ q[1,36,Vessel_5] free
+ q[1,36,Vessel_6] free
+ q[1,36,Vessel_7] free
+ q[1,37,Vessel_3] free
+ q[1,37,Vessel_4] free
+ q[1,37,Vessel_5] free
+ q[1,37,Vessel_6] free
+ q[1,37,Vessel_7] free
+ q[1,38,Vessel_3] free
+ q[1,38,Vessel_4] free
+ q[1,38,Vessel_5] free
+ q[1,38,Vessel_6] free
+ q[1,38,Vessel_7] free
+ q[1,39,Vessel_3] free
+ q[1,39,Vessel_4] free
+ q[1,39,Vessel_5] free
+ q[1,39,Vessel_6] free
+ q[1,39,Vessel_7] free
+ q[1,40,Vessel_3] free
+ q[1,40,Vessel_4] free
+ q[1,40,Vessel_5] free
+ q[1,40,Vessel_6] free
+ q[1,40,Vessel_7] free
+ q[1,41,Vessel_3] free
+ q[1,41,Vessel_4] free
+ q[1,41,Vessel_5] free
+ q[1,41,Vessel_6] free
+ q[1,41,Vessel_7] free
+ q[1,42,Vessel_3] free
+ q[1,42,Vessel_4] free
+ q[1,42,Vessel_5] free
+ q[1,42,Vessel_6] free
+ q[1,42,Vessel_7] free
+ q[1,43,Vessel_3] free
+ q[1,43,Vessel_4] free
+ q[1,43,Vessel_5] free
+ q[1,43,Vessel_6] free
+ q[1,43,Vessel_7] free
+ q[1,44,Vessel_3] free
+ q[1,44,Vessel_4] free
+ q[1,44,Vessel_5] free
+ q[1,44,Vessel_6] free
+ q[1,44,Vessel_7] free
+ q[1,45,Vessel_3] free
+ q[1,45,Vessel_4] free
+ q[1,45,Vessel_5] free
+ q[1,45,Vessel_6] free
+ q[1,45,Vessel_7] free
+ s[1,1] free
+ s[1,2] free
+ s[1,3] free
+ s[1,4] free
+ s[1,5] free
+ s[1,6] free
+ s[1,7] free
+ s[1,8] free
+ s[1,9] free
+ s[1,10] free
+ s[1,11] free
+ s[1,12] free
+ s[1,13] free
+ s[1,14] free
+ s[1,15] free
+ s[1,16] free
+ s[1,17] free
+ s[1,18] free
+ s[1,19] free
+ s[1,20] free
+ s[1,21] free
+ s[1,22] free
+ s[1,23] free
+ s[1,24] free
+ s[1,25] free
+ s[1,26] free
+ s[1,27] free
+ s[1,28] free
+ s[1,29] free
+ s[1,30] free
+ s[1,31] free
+ s[1,32] free
+ s[1,33] free
+ s[1,34] free
+ s[1,35] free
+ s[1,36] free
+ s[1,37] free
+ s[1,38] free
+ s[1,39] free
+ s[1,40] free
+ s[1,41] free
+ s[1,42] free
+ s[1,43] free
+ s[1,44] free
+ -infinity <= s[1,45] <= 594
+ s[1,0] free
+ w[1,Vessel_7] free
+ w[2,Vessel_7] free
+ w[3,Vessel_7] free
+ w[4,Vessel_7] free
+ w[5,Vessel_7] free
+ w[6,Vessel_7] free
+ w[7,Vessel_7] free
+ w[8,Vessel_7] free
+ w[9,Vessel_7] free
+ w[10,Vessel_7] free
+ w[11,Vessel_7] free
+ w[12,Vessel_7] free
+ w[13,Vessel_7] free
+ w[14,Vessel_7] free
+ w[15,Vessel_7] free
+ w[16,Vessel_7] free
+ w[17,Vessel_7] free
+ w[18,Vessel_7] free
+ w[19,Vessel_7] free
+ w[20,Vessel_7] free
+ w[21,Vessel_7] free
+ w[22,Vessel_7] free
+ w[23,Vessel_7] free
+ w[24,Vessel_7] free
+ w[25,Vessel_7] free
+ w[26,Vessel_7] free
+ w[27,Vessel_7] free
+ w[28,Vessel_7] free
+ w[29,Vessel_7] free
+ w[30,Vessel_7] free
+ w[31,Vessel_7] free
+ w[32,Vessel_7] free
+ -infinity <= w[33,Vessel_7] <= 300
+ w[0,Vessel_7] free
+Binaries
+ o[1,1,Vessel_3,1] o[1,1,Vessel_3,2] o[1,2,Vessel_3,1] o[1,2,Vessel_3,2]
+ o[1,3,Vessel_3,1] o[1,3,Vessel_3,2] o[1,4,Vessel_3,1] o[1,4,Vessel_3,2]
+ o[1,5,Vessel_3,1] o[1,5,Vessel_3,2] o[1,6,Vessel_3,1] o[1,6,Vessel_3,2]
+ o[1,7,Vessel_3,1] o[1,7,Vessel_3,2] o[1,8,Vessel_3,1] o[1,8,Vessel_3,2]
+ o[1,9,Vessel_3,1] o[1,9,Vessel_3,2] o[1,10,Vessel_3,1] o[1,10,Vessel_3,2]
+ o[1,11,Vessel_3,1] o[1,11,Vessel_3,2] o[1,12,Vessel_3,1]
+ o[1,12,Vessel_3,2] o[1,13,Vessel_3,1] o[1,13,Vessel_3,2]
+ o[1,14,Vessel_3,1] o[1,14,Vessel_3,2] o[1,15,Vessel_3,1]
+ o[1,15,Vessel_3,2] o[1,16,Vessel_3,1] o[1,16,Vessel_3,2]
+ o[1,17,Vessel_3,1] o[1,17,Vessel_3,2] o[1,18,Vessel_3,1]
+ o[1,18,Vessel_3,2] o[1,19,Vessel_3,1] o[1,19,Vessel_3,2]
+ o[1,20,Vessel_3,1] o[1,20,Vessel_3,2] o[1,21,Vessel_3,1]
+ o[1,21,Vessel_3,2] o[1,22,Vessel_3,1] o[1,22,Vessel_3,2]
+ o[1,23,Vessel_3,1] o[1,23,Vessel_3,2] o[1,24,Vessel_3,1]
+ o[1,24,Vessel_3,2] o[1,25,Vessel_3,1] o[1,25,Vessel_3,2]
+ o[1,26,Vessel_3,1] o[1,26,Vessel_3,2] o[1,27,Vessel_3,1]
+ o[1,27,Vessel_3,2] o[1,28,Vessel_3,1] o[1,28,Vessel_3,2]
+ o[1,29,Vessel_3,1] o[1,29,Vessel_3,2] o[1,30,Vessel_3,1]
+ o[1,30,Vessel_3,2] o[1,31,Vessel_3,1] o[1,31,Vessel_3,2]
+ o[1,32,Vessel_3,1] o[1,32,Vessel_3,2] o[1,33,Vessel_3,1]
+ o[1,33,Vessel_3,2] o[1,34,Vessel_3,1] o[1,34,Vessel_3,2]
+ o[1,35,Vessel_3,1] o[1,35,Vessel_3,2] o[1,36,Vessel_3,1]
+ o[1,36,Vessel_3,2] o[1,37,Vessel_3,1] o[1,37,Vessel_3,2]
+ o[1,38,Vessel_3,1] o[1,38,Vessel_3,2] o[1,39,Vessel_3,1]
+ o[1,39,Vessel_3,2] o[1,40,Vessel_3,1] o[1,40,Vessel_3,2]
+ o[1,41,Vessel_3,1] o[1,41,Vessel_3,2] o[1,42,Vessel_3,1]
+ o[1,42,Vessel_3,2] o[1,43,Vessel_3,1] o[1,43,Vessel_3,2]
+ o[1,44,Vessel_3,1] o[1,44,Vessel_3,2] o[1,45,Vessel_3,1]
+ o[1,45,Vessel_3,2] o[2,1,Vessel_3,1] o[2,2,Vessel_3,1] o[2,3,Vessel_3,1]
+ o[2,4,Vessel_3,1] o[2,5,Vessel_3,1] o[2,6,Vessel_3,1] o[2,7,Vessel_3,1]
+ o[2,8,Vessel_3,1] o[2,9,Vessel_3,1] o[2,10,Vessel_3,1] o[2,11,Vessel_3,1]
+ o[2,12,Vessel_3,1] o[2,13,Vessel_3,1] o[2,14,Vessel_3,1]
+ o[2,15,Vessel_3,1] o[2,16,Vessel_3,1] o[2,17,Vessel_3,1]
+ o[2,18,Vessel_3,1] o[2,19,Vessel_3,1] o[2,20,Vessel_3,1]
+ o[2,21,Vessel_3,1] o[2,22,Vessel_3,1] o[2,23,Vessel_3,1]
+ o[2,24,Vessel_3,1] o[2,25,Vessel_3,1] o[2,26,Vessel_3,1]
+ o[2,27,Vessel_3,1] o[2,28,Vessel_3,1] o[2,29,Vessel_3,1]
+ o[2,30,Vessel_3,1] o[2,31,Vessel_3,1] o[2,32,Vessel_3,1]
+ o[2,33,Vessel_3,1] o[2,34,Vessel_3,1] o[2,35,Vessel_3,1]
+ o[2,36,Vessel_3,1] o[2,37,Vessel_3,1] o[2,38,Vessel_3,1]
+ o[2,39,Vessel_3,1] o[2,40,Vessel_3,1] o[2,41,Vessel_3,1]
+ o[2,42,Vessel_3,1] o[2,43,Vessel_3,1] o[2,44,Vessel_3,1] o[1,6,Vessel_4,1]
+ o[1,6,Vessel_4,2] o[1,7,Vessel_4,1] o[1,7,Vessel_4,2] o[1,8,Vessel_4,1]
+ o[1,8,Vessel_4,2] o[1,9,Vessel_4,1] o[1,9,Vessel_4,2] o[1,10,Vessel_4,1]
+ o[1,10,Vessel_4,2] o[1,11,Vessel_4,1] o[1,11,Vessel_4,2]
+ o[1,12,Vessel_4,1] o[1,12,Vessel_4,2] o[1,13,Vessel_4,1]
+ o[1,13,Vessel_4,2] o[1,14,Vessel_4,1] o[1,14,Vessel_4,2]
+ o[1,15,Vessel_4,1] o[1,15,Vessel_4,2] o[1,16,Vessel_4,1]
+ o[1,16,Vessel_4,2] o[1,17,Vessel_4,1] o[1,17,Vessel_4,2]
+ o[1,18,Vessel_4,1] o[1,18,Vessel_4,2] o[1,19,Vessel_4,1]
+ o[1,19,Vessel_4,2] o[1,20,Vessel_4,1] o[1,20,Vessel_4,2]
+ o[1,21,Vessel_4,1] o[1,21,Vessel_4,2] o[1,22,Vessel_4,1]
+ o[1,22,Vessel_4,2] o[1,23,Vessel_4,1] o[1,23,Vessel_4,2]
+ o[1,24,Vessel_4,1] o[1,24,Vessel_4,2] o[1,25,Vessel_4,1]
+ o[1,25,Vessel_4,2] o[1,26,Vessel_4,1] o[1,26,Vessel_4,2]
+ o[1,27,Vessel_4,1] o[1,27,Vessel_4,2] o[1,28,Vessel_4,1]
+ o[1,28,Vessel_4,2] o[1,29,Vessel_4,1] o[1,29,Vessel_4,2]
+ o[1,30,Vessel_4,1] o[1,30,Vessel_4,2] o[1,31,Vessel_4,1]
+ o[1,31,Vessel_4,2] o[1,32,Vessel_4,1] o[1,32,Vessel_4,2]
+ o[1,33,Vessel_4,1] o[1,33,Vessel_4,2] o[1,34,Vessel_4,1]
+ o[1,34,Vessel_4,2] o[1,35,Vessel_4,1] o[1,35,Vessel_4,2]
+ o[1,36,Vessel_4,1] o[1,36,Vessel_4,2] o[1,37,Vessel_4,1]
+ o[1,37,Vessel_4,2] o[1,38,Vessel_4,1] o[1,38,Vessel_4,2]
+ o[1,39,Vessel_4,1] o[1,39,Vessel_4,2] o[1,40,Vessel_4,1]
+ o[1,40,Vessel_4,2] o[1,41,Vessel_4,1] o[1,41,Vessel_4,2]
+ o[1,42,Vessel_4,1] o[1,42,Vessel_4,2] o[1,43,Vessel_4,1]
+ o[1,43,Vessel_4,2] o[1,44,Vessel_4,1] o[1,44,Vessel_4,2]
+ o[1,45,Vessel_4,1] o[1,45,Vessel_4,2] o[1,3,Vessel_5,1] o[1,3,Vessel_5,2]
+ o[1,4,Vessel_5,1] o[1,4,Vessel_5,2] o[1,5,Vessel_5,1] o[1,5,Vessel_5,2]
+ o[1,6,Vessel_5,1] o[1,6,Vessel_5,2] o[1,7,Vessel_5,1] o[1,7,Vessel_5,2]
+ o[1,8,Vessel_5,1] o[1,8,Vessel_5,2] o[1,9,Vessel_5,1] o[1,9,Vessel_5,2]
+ o[1,10,Vessel_5,1] o[1,10,Vessel_5,2] o[1,11,Vessel_5,1]
+ o[1,11,Vessel_5,2] o[1,12,Vessel_5,1] o[1,12,Vessel_5,2]
+ o[1,13,Vessel_5,1] o[1,13,Vessel_5,2] o[1,14,Vessel_5,1]
+ o[1,14,Vessel_5,2] o[1,15,Vessel_5,1] o[1,15,Vessel_5,2]
+ o[1,16,Vessel_5,1] o[1,16,Vessel_5,2] o[1,17,Vessel_5,1]
+ o[1,17,Vessel_5,2] o[1,18,Vessel_5,1] o[1,18,Vessel_5,2]
+ o[1,19,Vessel_5,1] o[1,19,Vessel_5,2] o[1,20,Vessel_5,1]
+ o[1,20,Vessel_5,2] o[1,21,Vessel_5,1] o[1,21,Vessel_5,2]
+ o[1,22,Vessel_5,1] o[1,22,Vessel_5,2] o[1,23,Vessel_5,1]
+ o[1,23,Vessel_5,2] o[1,24,Vessel_5,1] o[1,24,Vessel_5,2]
+ o[1,25,Vessel_5,1] o[1,25,Vessel_5,2] o[1,26,Vessel_5,1]
+ o[1,26,Vessel_5,2] o[1,27,Vessel_5,1] o[1,27,Vessel_5,2]
+ o[1,28,Vessel_5,1] o[1,28,Vessel_5,2] o[1,29,Vessel_5,1]
+ o[1,29,Vessel_5,2] o[1,30,Vessel_5,1] o[1,30,Vessel_5,2]
+ o[1,31,Vessel_5,1] o[1,31,Vessel_5,2] o[1,32,Vessel_5,1]
+ o[1,32,Vessel_5,2] o[1,33,Vessel_5,1] o[1,33,Vessel_5,2]
+ o[1,34,Vessel_5,1] o[1,34,Vessel_5,2] o[1,35,Vessel_5,1]
+ o[1,35,Vessel_5,2] o[1,36,Vessel_5,1] o[1,36,Vessel_5,2]
+ o[1,37,Vessel_5,1] o[1,37,Vessel_5,2] o[1,38,Vessel_5,1]
+ o[1,38,Vessel_5,2] o[1,39,Vessel_5,1] o[1,39,Vessel_5,2]
+ o[1,40,Vessel_5,1] o[1,40,Vessel_5,2] o[1,41,Vessel_5,1]
+ o[1,41,Vessel_5,2] o[1,42,Vessel_5,1] o[1,42,Vessel_5,2]
+ o[1,43,Vessel_5,1] o[1,43,Vessel_5,2] o[1,44,Vessel_5,1]
+ o[1,44,Vessel_5,2] o[1,45,Vessel_5,1] o[1,45,Vessel_5,2] o[1,2,Vessel_6,1]
+ o[1,2,Vessel_6,2] o[1,3,Vessel_6,1] o[1,3,Vessel_6,2] o[1,4,Vessel_6,1]
+ o[1,4,Vessel_6,2] o[1,5,Vessel_6,1] o[1,5,Vessel_6,2] o[1,6,Vessel_6,1]
+ o[1,6,Vessel_6,2] o[1,7,Vessel_6,1] o[1,7,Vessel_6,2] o[1,8,Vessel_6,1]
+ o[1,8,Vessel_6,2] o[1,9,Vessel_6,1] o[1,9,Vessel_6,2] o[1,10,Vessel_6,1]
+ o[1,10,Vessel_6,2] o[1,11,Vessel_6,1] o[1,11,Vessel_6,2]
+ o[1,12,Vessel_6,1] o[1,12,Vessel_6,2] o[1,13,Vessel_6,1]
+ o[1,13,Vessel_6,2] o[1,14,Vessel_6,1] o[1,14,Vessel_6,2]
+ o[1,15,Vessel_6,1] o[1,15,Vessel_6,2] o[1,16,Vessel_6,1]
+ o[1,16,Vessel_6,2] o[1,17,Vessel_6,1] o[1,17,Vessel_6,2]
+ o[1,18,Vessel_6,1] o[1,18,Vessel_6,2] o[1,19,Vessel_6,1]
+ o[1,19,Vessel_6,2] o[1,20,Vessel_6,1] o[1,20,Vessel_6,2]
+ o[1,21,Vessel_6,1] o[1,21,Vessel_6,2] o[1,22,Vessel_6,1]
+ o[1,22,Vessel_6,2] o[1,23,Vessel_6,1] o[1,23,Vessel_6,2]
+ o[1,24,Vessel_6,1] o[1,24,Vessel_6,2] o[1,25,Vessel_6,1]
+ o[1,25,Vessel_6,2] o[1,26,Vessel_6,1] o[1,26,Vessel_6,2]
+ o[1,27,Vessel_6,1] o[1,27,Vessel_6,2] o[1,28,Vessel_6,1]
+ o[1,28,Vessel_6,2] o[1,29,Vessel_6,1] o[1,29,Vessel_6,2]
+ o[1,30,Vessel_6,1] o[1,30,Vessel_6,2] o[1,31,Vessel_6,1]
+ o[1,31,Vessel_6,2] o[1,32,Vessel_6,1] o[1,32,Vessel_6,2]
+ o[1,33,Vessel_6,1] o[1,33,Vessel_6,2] o[1,34,Vessel_6,1]
+ o[1,34,Vessel_6,2] o[1,35,Vessel_6,1] o[1,35,Vessel_6,2]
+ o[1,36,Vessel_6,1] o[1,36,Vessel_6,2] o[1,37,Vessel_6,1]
+ o[1,37,Vessel_6,2] o[1,38,Vessel_6,1] o[1,38,Vessel_6,2]
+ o[1,39,Vessel_6,1] o[1,39,Vessel_6,2] o[1,40,Vessel_6,1]
+ o[1,40,Vessel_6,2] o[1,41,Vessel_6,1] o[1,41,Vessel_6,2]
+ o[1,42,Vessel_6,1] o[1,42,Vessel_6,2] o[1,43,Vessel_6,1]
+ o[1,43,Vessel_6,2] o[1,44,Vessel_6,1] o[1,44,Vessel_6,2]
+ o[1,45,Vessel_6,1] o[1,45,Vessel_6,2] o[1,5,Vessel_7,1] o[1,5,Vessel_7,2]
+ o[1,6,Vessel_7,1] o[1,6,Vessel_7,2] o[1,7,Vessel_7,1] o[1,7,Vessel_7,2]
+ o[1,8,Vessel_7,1] o[1,8,Vessel_7,2] o[1,9,Vessel_7,1] o[1,9,Vessel_7,2]
+ o[1,10,Vessel_7,1] o[1,10,Vessel_7,2] o[1,11,Vessel_7,1]
+ o[1,11,Vessel_7,2] o[1,12,Vessel_7,1] o[1,12,Vessel_7,2]
+ o[1,13,Vessel_7,1] o[1,13,Vessel_7,2] o[1,14,Vessel_7,1]
+ o[1,14,Vessel_7,2] o[1,15,Vessel_7,1] o[1,15,Vessel_7,2]
+ o[1,16,Vessel_7,1] o[1,16,Vessel_7,2] o[1,17,Vessel_7,1]
+ o[1,17,Vessel_7,2] o[1,18,Vessel_7,1] o[1,18,Vessel_7,2]
+ o[1,19,Vessel_7,1] o[1,19,Vessel_7,2] o[1,20,Vessel_7,1]
+ o[1,20,Vessel_7,2] o[1,21,Vessel_7,1] o[1,21,Vessel_7,2]
+ o[1,22,Vessel_7,1] o[1,22,Vessel_7,2] o[1,23,Vessel_7,1]
+ o[1,23,Vessel_7,2] o[1,24,Vessel_7,1] o[1,24,Vessel_7,2]
+ o[1,25,Vessel_7,1] o[1,25,Vessel_7,2] o[1,26,Vessel_7,1]
+ o[1,26,Vessel_7,2] o[1,27,Vessel_7,1] o[1,27,Vessel_7,2]
+ o[1,28,Vessel_7,1] o[1,28,Vessel_7,2] o[1,29,Vessel_7,1]
+ o[1,29,Vessel_7,2] o[1,30,Vessel_7,1] o[1,30,Vessel_7,2]
+ o[1,31,Vessel_7,1] o[1,31,Vessel_7,2] o[1,32,Vessel_7,1]
+ o[1,32,Vessel_7,2] o[1,33,Vessel_7,1] o[1,33,Vessel_7,2]
+ o[1,34,Vessel_7,1] o[1,34,Vessel_7,2] o[1,35,Vessel_7,1]
+ o[1,35,Vessel_7,2] o[1,36,Vessel_7,1] o[1,36,Vessel_7,2]
+ o[1,37,Vessel_7,1] o[1,37,Vessel_7,2] o[1,38,Vessel_7,1]
+ o[1,38,Vessel_7,2] o[1,39,Vessel_7,1] o[1,39,Vessel_7,2]
+ o[1,40,Vessel_7,1] o[1,40,Vessel_7,2] o[1,41,Vessel_7,1]
+ o[1,41,Vessel_7,2] o[1,42,Vessel_7,1] o[1,42,Vessel_7,2]
+ o[1,43,Vessel_7,1] o[1,43,Vessel_7,2] o[1,44,Vessel_7,1]
+ o[1,44,Vessel_7,2] o[1,45,Vessel_7,1] o[1,45,Vessel_7,2] o[3,5,Vessel_7,2]
+ o[3,6,Vessel_7,2] o[3,7,Vessel_7,2] o[3,8,Vessel_7,2] o[3,9,Vessel_7,2]
+ o[3,10,Vessel_7,2] o[3,11,Vessel_7,2] o[3,12,Vessel_7,2]
+ o[3,13,Vessel_7,2] o[3,14,Vessel_7,2] o[3,15,Vessel_7,2]
+ o[3,16,Vessel_7,2] o[3,17,Vessel_7,2] o[3,18,Vessel_7,2]
+ o[3,19,Vessel_7,2] o[3,20,Vessel_7,2] o[3,21,Vessel_7,2]
+ o[3,22,Vessel_7,2] o[3,23,Vessel_7,2] o[3,24,Vessel_7,2]
+ o[3,25,Vessel_7,2] o[3,26,Vessel_7,2] o[3,27,Vessel_7,2]
+ o[3,28,Vessel_7,2] o[3,29,Vessel_7,2] o[3,30,Vessel_7,2]
+ o[3,31,Vessel_7,2] o[3,32,Vessel_7,2] o[3,33,Vessel_7,2]
+End
