@@ -3,6 +3,7 @@ from MIRPSO_M import build_problem
 from proximity_search import perform_proximity_search
 from MIRPSO_M import find_initial_solution
 import json
+import gurobipy as gp
 
 
 def save_solution(solution, filename='initial_solution.json'):
@@ -39,20 +40,20 @@ def main():
     waiting_arcs = problem_data['waiting_arcs']
     OPERATING_COST = problem_data['OPERATING_COST']
     
-    
-
     model, costs = build_model(vessels, vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, non_operational, sourceNode, sinkNode, waiting_arcs, OPERATING_COST)
 
-    initial_solution, inital_solution_obj = find_initial_solution(model)
-    # initial_solution = load_solution()
-    # save_solution(initial_solution)
-  
-    ps_data = {'model': model, 'initial_solution':initial_solution, 'costs': costs, 'regularNodes': regularNodes, 'vessels': vessels, 'operating_cost':OPERATING_COST, 'vessel_arcs': vessel_arcs}
+    x_initial_solution, model = find_initial_solution(model)
+    
+    # Remove the solution limit
+    model.setParam(gp.GRB.Param.SolutionLimit, 2000000)
+    
+    ps_data = {'model': model, 'initial_solution':x_initial_solution, 'costs': costs, 'regularNodes': regularNodes, 'vessels': vessels, 'operating_cost':OPERATING_COST, 'vessel_arcs': vessel_arcs}
 
+    
     # Perform the proximity search using the initial solution
     improved_solution, obj_value = perform_proximity_search(ps_data)
 
-    print("Final solution:", improved_solution)
+    # print("Final solution:", improved_solution)
     print("Objective value:", obj_value)
 
 if __name__ == "__main__":
