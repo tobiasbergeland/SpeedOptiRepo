@@ -1038,11 +1038,11 @@ def find_initial_solution(model):
     # Check if a feasible solution was found
     if model.SolCount > 0:
         # Retrieve the solution
-        solution = {v.VarName: v.X for v in model.getVars()}
+        x_solution = {v.VarName: v.X for v in model.getVars() if v.VarName.startswith('x')}
         # Optionally, you can also capture the objective value of the initial solution
-        initial_solution_obj = model.ObjVal
+        # initial_solution_obj = model.ObjVal
         
-        return solution, initial_solution_obj
+        return x_solution, model
     else:
         print("No feasible solution found within the time limit.")
         return None, None
