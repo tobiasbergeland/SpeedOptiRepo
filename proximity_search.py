@@ -7,7 +7,7 @@ def get_current_x_solution(model):
 
 def add_cutoff_constraint(model, current_best_obj, cutoff_value):
     cutoff_constr = model.addConstr(model.getObjective() <= current_best_obj - cutoff_value,
-                                    f'cutoff: Current_best_obj: {current_best_obj} - cutoff_value: {cutoff_value}  = {current_best_obj - cutoff_value}')
+                                    f'cutoff: Current_best_obj: {current_best_obj} <= {current_best_obj - int(cutoff_value)}')
     model.update()
     return cutoff_constr
 
@@ -63,7 +63,7 @@ def perform_proximity_search(ps_data):  # Add other parameters as needed
     y = model.addVars(x_variables.keys(), vtype=GRB.BINARY, name="y")
     
     # Start loop here:
-    for i in range(1,3):
+    for i in range(1,10):
         print(f'Proximity Search Iteration {i}')
         
         # Set the objective (back) to the original objective function
@@ -79,7 +79,7 @@ def perform_proximity_search(ps_data):  # Add other parameters as needed
 
         # Check if a new solution is found with the lowest amount of changes to the structure as possible
         if model.Status == GRB.OPTIMAL:
-            print("New objective value:", model.objVal)
+            print("Hamming Distance from previous solution:", model.objVal)
             
             new_solution = {v.VarName: v.X for v in model.getVars()}
             
