@@ -8,21 +8,6 @@ import math
 import re
 import json
 
-
-# INSTANCE = 'LR1_1_DR1_3_VC1_V7a'
-# # INSTANCE = 'LR1_1_DR1_4_VC3_V8a'
-# # INSTANCE = 'LR1_1_DR1_4_VC3_V9a'
-# # INSTANCE = 'LR1_1_DR1_4_VC3_V11a'
-# # INSTANCE = 'LR1_1_DR1_4_VC3_V12a'
-# # INSTANCE = 'LR1_2_DR1_3_VC2_V6a'
-# # INSTANCE = 'LR1_2_DR1_3_VC3_V8a'
-# # INSTANCE = 'LR1_1_DR1_4_VC3_V12b'
-# # INSTANCE = 'LR2_11_DR2_22_VC3_V6a'
-# # INSTANCE = 'LR2_11_DR2_33_VC4_V11a'
-
-# INSTANCE_PATH = INSTANCE+'/'+INSTANCE+'.txt'
-# VESSELINFO_PATH = INSTANCE+'/vessel_data.txt'
-
 class Port:
     def __init__(self, capacity, inventory, rate, price, berth_limit, port_fee, max_amount, min_amount, number, isLoadingPort):
         self.capacity = capacity
@@ -76,6 +61,12 @@ class Vessel:
         self.number = number
         self.arcs = set()
         self.all_arcs_v = set()
+        # Position is which port it is located at. If it is in transit, position is None
+        self.position = None
+        self.path = []
+        # If a vessel is in transit towards a port, this attribute will store the destination port.
+        # It will change to None when the vessel arrives at the port. The position attribute will also be updated to the value of the destination 
+        self.in_transit_towards = (None, None)
         
     def __repr__(self):
         return f'Vessel {self.number}'
@@ -128,16 +119,6 @@ def adjust_vessel_classes(metadata):
     metadata['numTermVesselsInClass'] = [sum(vessels_in_classes)]
     return metadata
 
-# # Read file content
-# with open(INSTANCE_PATH, 'r') as file:
-#     content = file.read()
-
-# # Extract and adjust metadata
-# metadata = extract_metadata(content)
-# metadata = adjust_vessel_classes(metadata)
-
-# ORIGINAL_NUM_TIME_PERIODS = metadata['numPeriods']
-
 def get_vesels_data(VESSELINFO_PATH):
     ### Read the vessel data
     with open(VESSELINFO_PATH, 'r') as file:
@@ -164,8 +145,6 @@ def get_vesels_data(VESSELINFO_PATH):
             "First Time Available": first_time_available
         }
     return vessel_data
-
-# vessel_data = get_vesels_data()
 
 ### Read the port data
 def parse_region_table(content):
@@ -198,8 +177,6 @@ def extract_region_and_port_info(content):
     regions_info = parse_region_table(content)
     ports_info = {f"Region {i}": parse_port_table_for_region(content, i) for i in range(len(regions_info['NumPorts']))}
     return regions_info, ports_info
-
-# regions_info, ports_info = extract_region_and_port_info()
 
 def create_ports_from_info_with_loading(ports_info):
     all_ports = {}
@@ -241,31 +218,12 @@ def create_ports_from_info_with_loading(ports_info):
 
     return all_ports, loading_regions, discharging_regions
 
-# all_ports, loading_regions, discharging_regions = create_ports_from_info_with_loading(ports_info)
-
 def get_ports(all_ports):
     # Create a list of all ports
     ports = []
     for region, region_ports in all_ports.items():
         ports.extend(region_ports)
     return ports
-
-# ports = get_ports()
-    
-# ### INITAL PARAMETERS (SOME MANUAL ADJUSTMENTS)
-# # Time periods
-# NUM_TIME_PERIODS = 45
-# metadata['numPeriods'] = NUM_TIME_PERIODS
-# TIME_PERIOD_RANGE = list(range(1, NUM_TIME_PERIODS+1))
-# ORIGINAL_NUM_VESSELS = metadata['numTermVesselsInClass'][0]
-# MAX_SPEED = 15
-# MIN_SPEED = 8
-# OPERATING_SPEED = 14
-# OPERATING_COST = 200
-# WAITING_COST = 50
-# FUEL_PRICE = 500
-# ORIGINAL_NUM_PORTS = len(ports)
-# EBS = 0.01
 
 def parse_vessel_table(INSTANCE_PATH):
     with open(INSTANCE_PATH, 'r') as file:
@@ -294,10 +252,6 @@ def parse_vessel_table(INSTANCE_PATH):
 
     return vessels, class_0_capacity
 
-# Extracting the vessel dictionary and the capacity for Class 0 vessels
-# vessels_info, VESSEL_CAP = parse_vessel_table()
-
-# Create a dictionary with key = vessel class and value = vessel object
 def get_vessels(metadata, vessel_data, VESSEL_CAP):    
     vessels = {}
     tot = 1
@@ -323,8 +277,6 @@ def get_vessels(metadata, vessel_data, VESSEL_CAP):
     vessels = vessels[0]
     return vessels
 
-# vessels = get_vessels()
-
 def create_regular_nodes(NUM_TIME_PERIODS, ports):
     # Create the regular nodes
     regularNodes = []
@@ -334,23 +286,17 @@ def create_regular_nodes(NUM_TIME_PERIODS, ports):
             regularNodes.append(node)
     return regularNodes
 
-# regularNodes = create_regular_nodes()
-
 def create_special_ports(vessels, ports):
     # Create fictional source and sink port
     sourcePort = Port(capacity=None, inventory=None, rate=None, price=None, berth_limit=len(vessels), port_fee=0, max_amount=None, min_amount=None, number=0, isLoadingPort=True)
     sinkPort = Port(capacity=None, inventory=None, rate=None, price=None, berth_limit=len(vessels), port_fee=0, max_amount=None, min_amount=None, number=len(ports)+1, isLoadingPort=False)
     return sourcePort, sinkPort
 
-# sourcePort, sinkPort = create_special_ports()
-
 def create_special_nodes(sourcePort, sinkPort, NUM_TIME_PERIODS):
     # Create source and sink node
     sourceNode = Node(port=sourcePort, time=0)
     sinkNode = Node(port=sinkPort, time=NUM_TIME_PERIODS+1)
     return sourceNode, sinkNode
-
-# sourceNode, sinkNode = create_special_nodes()
 
 def create_node_list_and_dict(sourceNode, regularNodes, sinkNode):
     NODES = [sourceNode] + regularNodes + [sinkNode]
@@ -359,8 +305,6 @@ def create_node_list_and_dict(sourceNode, regularNodes, sinkNode):
     for node in NODES:
         NODE_DICT[node.tuple] = node
     return NODES, NODE_DICT
-
-# NODES, NODE_DICT = create_node_list_and_dict()
 
 ### CREATE ARCS
 def parse_full_distance_matrix(INSTANCE_PATH):
@@ -383,19 +327,11 @@ def parse_full_distance_matrix(INSTANCE_PATH):
     
     return distances
 
-# # Extracting the full distance matrix from the file content
-# full_distance_matrix = parse_full_distance_matrix()
-# FULL_DISTANCE_MATRIX = full_distance_matrix
-
-# Convert full_distance_matrix from km to nautical miles
-# 1 nautical mile = 1.852 km
 def km_to_nautical_miles(km):
     return km / 1.852
 
 def convert_matrix_to_nautical_miles(matrix):
     return [[km_to_nautical_miles(distance) for distance in row] for row in matrix]
-
-# full_distance_matrix_nm = convert_matrix_to_nautical_miles(FULL_DISTANCE_MATRIX)
 
 def fuel_consumption_speed_nm(speed, nautical_miles):
     """
@@ -422,7 +358,6 @@ def calc_cost(fuel_consumption, FUEL_PRICE):
     """
     return fuel_consumption * FUEL_PRICE
 
-# Function to calculate discrete max speed based on distance and global max speed
 def calculate_minimum_timesteps_and_speed(distance_nm, MAX_SPEED, MIN_SPEED):
     """
     Determine the minimum timesteps and speed based on distance and max speed.
@@ -440,8 +375,6 @@ def calculate_minimum_timesteps_and_speed(distance_nm, MAX_SPEED, MIN_SPEED):
     speed = distance_nm / (minimum_timesteps * 24)
     return minimum_timesteps, max(speed, MIN_SPEED)
     
-# Based on rounded_hours and speed calculate the next speeds
-# Creates a list with all the information needed to create the arc.
 def create_arc_info(speed, minimum_timesteps, departure, origin_port, destination_port, lowest_speed, distance_to_port, vessel, is_waiting_arc, NUM_TIME_PERIODS):
     # Create a list of tuples with the speed and the time period
     '''arc_info: (speed in knots, timesteps for sailing, time period of departure, time period of arrival, origin port, destination port, fuel_consumption)'''
@@ -494,10 +427,6 @@ def reindex_regions(loading_regions, discharging_regions):
         
     return loading_regions_reidx, discharging_regions_reidx
 
-# loading_regions_reidx, discharging_regions_reidx = reindex_regions()
-
-# start_info = {}
-
 def generate_source_arc_info(sourceNode, vessels, vessel_data, loading_regions_reidx, discharging_regions_reidx, start_info, NODE_DICT):
     source_arcs_info = []
         
@@ -522,8 +451,6 @@ def generate_source_arc_info(sourceNode, vessels, vessel_data, loading_regions_r
         source_arcs_info_for_vessel.append(arc_info)
         source_arcs_info.append(source_arcs_info_for_vessel)
     return source_arcs_info
-
-# start_times = {vessel: vessel_data['Vessel_'+str(vessel.number-1)]['First Time Available']+1 for vessel in vessels}
 
 def create_arcs_for_node(node, vessels, all_port_numbers, source_times, full_distance_matrix_nm, MAX_SPEED, MIN_SPEED, ports, NUM_TIME_PERIODS):
     node_arcs = []
@@ -581,9 +508,6 @@ def add_arcs_to_nodes(all_info, NODE_DICT, NUM_TIME_PERIODS, WAITING_COST, FUEL_
 
     return arc_dict, vessel_arcs, waiting_arcs
 
-# # Generate the information for the source arcs
-# source_arcs_info = generate_source_arc_info(sourceNode)
-
 def populate_all_info(source_arcs_info, vessels, ports, start_times, full_distance_matrix_nm, NODE_DICT, MAX_SPEED, MIN_SPEED, NUM_TIME_PERIODS):     
     # Initialize the all_info list with the source arcs info
     all_info = source_arcs_info.copy()
@@ -594,10 +518,6 @@ def populate_all_info(source_arcs_info, vessels, ports, start_times, full_distan
         arcs_for_current_vessel = [create_arcs_for_node(node, [vessel], [port.number for port in ports], start_times, full_distance_matrix_nm, MAX_SPEED, MIN_SPEED, ports, NUM_TIME_PERIODS) for node in NODE_DICT.values()]
         all_info.extend(arcs_for_current_vessel)
     return all_info
-
-# all_info = populate_all_info()
-    
-# arc_dict, vessel_arcs, waiting_arcs = add_arcs_to_nodes(all_info)
 
 def add_arc_to_dict(origin, destination, vessel, arc_dict, vessel_arcs):
     """Helper function to add arc to dictionaries and nodes."""
@@ -619,8 +539,6 @@ def create_sink_arcs(vessels, sinkNode, start_times, arc_dict, vessel_arcs, sour
                 arc_dict, vessel_arcs = add_arc_to_dict(node, sinkNode, vessel, arc_dict, vessel_arcs)
     
     return arc_dict, vessel_arcs
-
-# arc_dict, vessel_arcs = create_sink_arcs(vessels, sinkNode, start_times, arc_dict, vessel_arcs)
 
 def visualize_network_for_vessel(vessel, vessel_arcs, drop_sink_arcs, NODES, sinkNode):
     # Create a directed graph
@@ -676,8 +594,6 @@ def visualize_network_for_vessel(vessel, vessel_arcs, drop_sink_arcs, NODES, sin
     plt.title("Nodes and Arcs Graph\nVessel " + str(vessel.number))
     plt.show()
     
-# filtered_arcs = vessel_arcs.copy()
-
 def find_earliest_visits_for_port(filtered_arcs, start_node):
     # Dictionary to store the earliest visit time for each port
     earliest_visits = {}
@@ -701,8 +617,6 @@ def set_earliest_visit_for_vessel(vessels, filtered_arcs, start_info):
     for vessel in vessels:
         earliest_visits[vessel] = find_earliest_visits_for_port(filtered_arcs[vessel], start_info[vessel])
     return earliest_visits
-
-# earliest_visits = set_earliest_visit_for_vessel()
 
 def filter_arcs_for_vessel_on_earliest_visit(filtered_arcs, earliest_visits, vessels, sourceNode, start_info):
     ev_filtered = filtered_arcs.copy()
@@ -731,10 +645,6 @@ def filter_arcs_for_vessel_on_earliest_visit(filtered_arcs, earliest_visits, ves
         ev_filtered[v] = new_filtered_arcs
     return ev_filtered
 
-# vessel_arcs = filter_arcs_for_vessel_on_earliest_visit(filtered_arcs, earliest_visits)
-
-# for vessel in vessels:
-#     visualize_network_for_vessel(vessel, vessel_arcs, drop_sink_arcs=True)
 
 def create_o_dict(vessels, vessel_arcs, sourceNode):
     o_dict = {}
@@ -750,8 +660,6 @@ def create_o_dict(vessels, vessel_arcs, sourceNode):
                     o_dict[v].append(o_node)
     return o_dict
 
-# o_dict = create_o_dict()
-
 def non_operational_nodes(vessels, NODES, o_dict, sourceNode, sinkNode):
     # For each node that are in NODES, but not in o_dict, add node to a dictionary with key = vessel and value = node
     non_operational = {}
@@ -761,8 +669,6 @@ def non_operational_nodes(vessels, NODES, o_dict, sourceNode, sinkNode):
                 non_operational.setdefault(v, []).append(node)
     return non_operational
 
-# non_operational = non_operational_nodes()
-
 def find_sink_arcs(vessels, vessel_arcs, sinkNode):
     # Find all sink arcs for each vessel
     sink_arcs = {}
@@ -770,10 +676,7 @@ def find_sink_arcs(vessels, vessel_arcs, sinkNode):
         sink_arcs[v] = [arc for arc in vessel_arcs[v] if arc.destination_node == sinkNode]
     return sink_arcs
 
-
-
-
-def build_problem(INSTANCE):
+def build_problem(INSTANCE):    
     INSTANCE_PATH = INSTANCE+'/'+INSTANCE+'.txt'
     VESSELINFO_PATH = INSTANCE+'/vessel_data.txt'
     
@@ -836,12 +739,78 @@ def build_problem(INSTANCE):
         'sourceNode': sourceNode,
         'sinkNode': sinkNode,
         'waiting_arcs': waiting_arcs,
-        'OPERATING_COST': OPERATING_COST
+        'OPERATING_COST': OPERATING_COST,
+        'OPERATING_SPEED': OPERATING_SPEED,
+        'NODES' : NODES
     }
     
     return problem_data
+
+
+# def get_operating_speed_and_waiting_arcs(vessel_arcs, OPERATING_SPEED, NODES, ports):
+#     reduced_vessel_arcs = {}
+#     # Want to only keep one arc for each origin_node and destination_port pair
+#     for node in NODES:
+#         outgoing_arcs = [arc for arc in node.outgoing_arcs]
+#         # If the node is the source or sink node, keep all arcs
+#         if node.port.number in [0, len(ports) + 1]:
+#             # Keep all arcs
+#             for vessel in vessel_arcs.keys():
+#                 for arc in outgoing_arcs:
+#                     if arc in vessel_arcs[vessel]:
+#                         reduced_vessel_arcs.setdefault(vessel, []).append(arc)
+                        
+#         else:
+#             # Keep only the arc that have the speed closest to the operating speed for each origin_node and destination_port pair
+            
+#             operating_speed_arc = min(outgoing_arcs, key=lambda arc: abs(arc.speed - OPERATING_SPEED))
+#             # Keep also the waiting arcs
+#             waiting_arc = [arc for arc in node.outgoing_arcs if arc.is_waiting_arc]
+#             for vessel in vessel_arcs.keys():
+#                 if operating_speed_arc in vessel_arcs[vessel]:
+#                     reduced_vessel_arcs[vessel] = [operating_speed_arc]
+#                     if waiting_arc in vessel_arcs[vessel]:
+#                         reduced_vessel_arcs[vessel].append(waiting_arc[0])
+#     return reduced_vessel_arcs
+
+def get_operating_speed_and_waiting_arcs(vessel_arcs, OPERATING_SPEED, NODES, ports):
+    reduced_vessel_arcs = {}
+    for vessel, arcs in vessel_arcs.items():
+        for node in NODES:
+            # Filter arcs that originate from the node and belong to the current vessel
+            outgoing_arcs = [arc for arc in node.outgoing_arcs if arc in arcs]
+            
+            if not outgoing_arcs:
+                continue
+
+            if node.port.number in [0, len(ports) + 1]:
+                # Source or sink node: keep all arcs for this vessel
+                reduced_vessel_arcs.setdefault(vessel, []).extend(outgoing_arcs)
+            else:
+                # Group arcs by their destination port
+                arcs_by_destination = {}
+                for arc in outgoing_arcs:
+                    dest_port = arc.destination_node.port.number
+                    arcs_by_destination.setdefault(dest_port, []).append(arc)
+                
+                for dest_port, arcs_to_dest in arcs_by_destination.items():
+                    # Separate waiting arcs and operational arcs
+                    waiting_arcs = [arc for arc in arcs_to_dest if arc.is_waiting_arc]
+                    operational_arcs = [arc for arc in arcs_to_dest if not arc.is_waiting_arc and arc.speed <= OPERATING_SPEED]
+                    
+                    if operational_arcs:
+                        # Find the operational arc with the speed closest to (but not exceeding) the OPERATING_SPEED
+                        closest_speed_arc = min(operational_arcs, key=lambda arc: abs(arc.speed - OPERATING_SPEED))
+                        reduced_vessel_arcs.setdefault(vessel, []).append(closest_speed_arc)
+                    
+                    reduced_vessel_arcs[vessel].extend(waiting_arcs)
+    
+    return reduced_vessel_arcs
+
+
     
 
+    
 ### GUROBI MODEL
 def build_model(vessels, vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, non_operational, sourceNode, sinkNode, waiting_arcs, OPERATING_COST):
     m = gp.Model('Maritime Inventory Routing Problem Speed Optimization')
@@ -1017,6 +986,222 @@ def build_model(vessels, vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, no
     
     return m, costs
 
+### GUROBI MODEL
+def build_simplified_RL_model(vessels, vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, non_operational, sourceNode, sinkNode, waiting_arcs, OPERATING_COST, OPERATING_SPEED, NODES):
+    m = gp.Model('Maritime Inventory Routing Problem Speed Optimization')
+    port_dict = {port.number: port for port in ports}
+    print(port_dict)
+    
+    # Keep only the arcs that are using the operating speed
+    vessel_arcs = get_operating_speed_and_waiting_arcs(vessel_arcs, OPERATING_SPEED, NODES, ports)
+    
+    
+    '''Creating the variables'''
+    '''Binary first'''
+    # x is the binary variable that indicates whether a vessel travels on arc a, where an arc is a route frome one node to another node.
+    # ONLY ADD THE ARCS THAT ARE USING OPERATING SPEED AND ARE NOT WAITING ARCS
+    active_x_keys = []
+    for vessel in vessels:
+        for arc in vessel_arcs[vessel]:
+            # if arc.speed == OPERATING_SPEED and arc.is_waiting_arc==False:
+            if arc.is_waiting_arc==False:
+                active_x_keys.append((arc.tuple, vessel))
+                
+    # x = m.addVars(((arc.tuple, vessel) for vessel in vessels for arc in vessel_arcs[vessel] if arc.speed == OPERATING_SPEED and arc.waiting_arc==False) , vtype=gp.GRB.BINARY, name="x")
+    x = m.addVars(((arc.tuple, vessel) for vessel in vessels for arc in vessel_arcs[vessel] if arc.is_waiting_arc==False) , vtype=gp.GRB.BINARY, name="x")
+    
+    active_o_keys = []
+    for vessel in vessels:
+        for arc in vessel_arcs[vessel]:
+            # if arc.speed == OPERATING_SPEED and arc.is_waiting_arc==False:
+            # if arc.is_waiting_arc==False and arc.origin_node.port.number != 0 and arc.destination_node.port.number != len(ports) + 1:
+            if arc.is_waiting_arc==False and arc.origin_node.port.number != 0:
+                o_key = (arc.origin_node.port.number, arc.origin_node.time, vessel)
+                if o_key not in active_o_keys:
+                    active_o_keys.append(o_key)
+
+    # o is the binary variable that indicates whether vessel v is operating (loading/unloading) at node n
+    o = m.addVars((o_key for o_key in active_o_keys), vtype=gp.GRB.BINARY, name="o")
+
+    '''Continuous varibles'''
+    # q is the amount of product loaded or unloaded at port i by vessel v at time t
+    q_bounds = {o_key: min(o_key[2].max_inventory, port_dict[o_key[0]].capacity) for o_key in active_o_keys}
+    q = m.addVars(q_bounds.keys(), lb=0, ub=q_bounds, vtype=gp.GRB.CONTINUOUS, name="q")
+
+    # s is the amount of product at port i at the end of period t
+    s_bounds = {(node.port.number, node.time): node.port.capacity for node in regularNodes}
+    s = m.addVars(s_bounds.keys(), lb=0, ub=s_bounds, vtype=gp.GRB.CONTINUOUS, name="s")
+
+    # Create s vars for each port in time period 0
+    s_bounds_source = {(port.number, 0): port.capacity for port in ports}
+    s_source = m.addVars(s_bounds_source.keys(), lb=0, ub=s_bounds, vtype=gp.GRB.CONTINUOUS, name="s")
+    s.update(s_source)
+
+    # w is the amount of product on board of vessel v at the end of time period t
+    w_bounds = {(t, vessel): vessel.max_inventory for vessel in vessels for t in TIME_PERIOD_RANGE}
+    w = m.addVars(w_bounds.keys(), lb=0, ub=w_bounds, vtype=gp.GRB.CONTINUOUS, name="w")
+
+    w_bounds_source = {(0, vessel): vessel.max_inventory for vessel in vessels}
+    w_source = m.addVars(w_bounds_source.keys(), lb=0, ub=w_bounds, vtype=gp.GRB.CONTINUOUS, name="w")
+    w.update(w_source)
+    
+    # Create a dict where the arc.tuple is the key and arc.cost is the value
+    costs = {(arc.tuple, vessel): arc.cost for vessel in vessels for arc in vessel_arcs[vessel]}
+    m.update()
+    
+
+    original_obj = gp.quicksum(costs[key]*x[key] for key in active_x_keys) + gp.quicksum(o[o_key] * OPERATING_COST for o_key in active_o_keys)
+    #Minimize the costs
+    m.setObjective(original_obj, GRB.MINIMIZE)
+    m.update()
+
+    # Can fix some variables, to reduce the complexity of the model
+    for v in vessels:
+        for node in non_operational[v]:   
+            port_number = node.port.number
+            time = node.time
+            o[port_number, time, v] = 0
+            q[port_number, time, v] = 0
+    m.update()
+
+    # Constraint (2)
+    '''Must leave the source node'''
+    for v in vessels:
+        outgoing_from_source = [arc for arc in vessel_arcs[v] if arc.origin_node == sourceNode]
+        m.addConstr(gp.quicksum((x[arc.tuple, v]) for arc in outgoing_from_source if (arc.tuple, v) in active_x_keys) == 1, name = 'SourceFlow')
+    m.update()
+
+    # Constraint (3)
+    '''Must enter the sink node'''
+    for v in vessels:
+        incoming_to_sink = [arc for arc in vessel_arcs[v] if arc.destination_node == sinkNode]
+        m.addConstr(gp.quicksum((x[arc.tuple, v]) for arc in incoming_to_sink if (arc.tuple, v) in active_x_keys) == 1, name = 'SinkFlow')
+    m.update()
+
+    # Constraint (4)
+    '''For each node we enter, we must leave'''
+    for v in vessels:
+        for node in regularNodes:
+            outgoing_from_node = [arc for arc in vessel_arcs[v] if arc.origin_node == node]
+            incoming_to_node = [arc for arc in vessel_arcs[v] if arc.destination_node == node]
+            m.addConstr(gp.quicksum((x[in_arc.tuple, v]) for in_arc in incoming_to_node if (in_arc.tuple, v) in active_x_keys) - gp.quicksum((x[out_arc.tuple, v]) for out_arc in outgoing_from_node if (out_arc.tuple, v) in active_x_keys) == 0, name = "FlowBalance")
+    m.update()
+
+    # Constraint (5)
+    '''Set correct initial inventory at each port'''
+    for port in ports:
+        m.addConstr(s_source[port.number, 0] == port.inventory, name = 'InitialInventoryPort')
+    m.update()
+
+    # Constraint (6)
+    '''Inventory balance at ports'''
+    # Inventory balance for ports at the end of each time period t
+    for port in ports:
+        for t in TIME_PERIOD_RANGE:
+            m.addConstr(s[port.number, t] == (s[port.number, t-1] + (port.isLoadingPort * port.rate) - gp.quicksum(port.isLoadingPort * q[port.number, t, v] for v in vessels if (port.number, t, v) in active_o_keys)) , name = 'PortBalance')
+    m.update()
+
+    # Constraint (7)
+    '''Set correct initial inventory at each vessel'''
+    for v in vessels:
+        m.addConstr(w_source[0, v] == v.inventory, name = 'InitialInventoryVessel')
+    m.update()
+
+    # Constraint (8)
+    '''Inventory balance at vessel'''
+    # for each vessel, the inventory at the end of the time period is equal to the inventory at the beginning of the time period + the amount of product loaded/unloaded at the ports
+    for t in TIME_PERIOD_RANGE:
+        for v in vessels:
+            m.addConstr(w[t, v] == gp.quicksum(port.isLoadingPort * q[port.number, t, v] for port in ports if (port.number, t, v) in active_o_keys) + w[t-1,v], name = 'VesselBalance')
+    m.update()
+
+    # Constraint (9)
+    '''Berth limit'''
+    for node in regularNodes:
+        m.addConstr((gp.quicksum((o[node.port.number, node.time, v]) for v in vessels if (port.number, t, v) in active_o_keys) <= node.port.berth_limit), name = 'Birth_limit_in_time_t')
+    m.update()
+
+    #Constraint (10)
+    '''Must be physically present to operate'''
+    for v in vessels:
+        for node in regularNodes:
+            incoming_to_node = [arc for arc in vessel_arcs[v] if arc.destination_node == node]
+            m.addConstr(o[node.port.number, node.time, v] <= gp.quicksum((x[in_arc.tuple, v]) for in_arc in incoming_to_node if (in_arc.tuple, v) in active_x_keys and (node.port.number, node.time, v) in active_o_keys), name = 'Cannot operate unless vessel is at node')
+    m.update()
+
+    # Constraint (11)
+    '''After an operation, we must either continue operating or move to another port'''
+    all_waiting_arcs = {}
+    for v in vessels:
+        for arc in waiting_arcs[v]:
+            origin_node = arc.origin_node
+            destination_node = arc.destination_node
+            all_waiting_arcs[((origin_node.port.number, origin_node.time),(destination_node.port.number, destination_node.time) , v)] = arc
+                    
+    for node in regularNodes:
+        for v in vessels:
+            if (node.port.number, node.time + 1, v) in o.keys():  # check if o for the next period exists
+                
+                waiting_arc_key = ((node.port.number, node.time), (node.port.number, node.time + 1), v)
+                if waiting_arc_key in all_waiting_arcs.keys():
+                    waiting_arc = all_waiting_arcs[waiting_arc_key]
+                else:
+                    continue
+                
+                actual_key = (waiting_arc.tuple, v)
+                
+                if actual_key in x.keys():  # check if the waiting arc exists
+                    m.addConstr(o[node.port.number, node.time, v] <= 
+                                o[node.port.number, node.time + 1, v] + 
+                                (1 - x[actual_key]),
+                                name=f"Operate_or_Move_{node.port.number}_{node.time}_{v}")
+    m.update()
+
+    # #Constraint (12)
+    '''Cannot load/unload more than the maximum operating quantity'''
+    for v in vessels:
+        for node in regularNodes:
+            m.addConstr(q[node.port.number, node.time, v] <= o[node.port.number, node.time, v]*v.max_operating_quantity, name = 'Max_operating_quantity')
+    m.update()
+
+    # Contraint (13)
+    '''Must operate in every port we visit.'''
+    # O_itv <= o_i(t+1)v + sum of x_ijv for all j except waiting arc
+    for v in vessels:
+        for node in regularNodes:
+            outgoing_from_node = [arc for arc in vessel_arcs[v] if arc.origin_node == node]
+            # Remove the waiting arc from the list
+            for a in outgoing_from_node:
+                if a.is_waiting_arc:
+                    outgoing_from_node.remove(a)
+            m.addConstr(o[node.port.number, node.time, v] >= gp.quicksum((x[out_arc.tuple, v]) for out_arc in outgoing_from_node), name = 'Must_operate_in_every_port')
+    m.update()
+
+    # Constraint (14) modification
+    # Ensure that q is at least 1/4 of the vessel's capacity if o is 1
+    for v in vessels:
+        for node in regularNodes:
+            m.addConstr(q[node.port.number, node.time, v] >= 1/4 * v.max_inventory * o[node.port.number, node.time, v], 
+                        name=f'q_{node.port.number}_{node.time}_{v}')
+    m.update()
+    
+    env_data = {
+        'vessels': vessels,
+        'vessel_arcs': vessel_arcs,
+        'regularNodes': regularNodes,
+        'ports': ports,
+        'TIME_PERIOD_RANGE': TIME_PERIOD_RANGE,
+        'non_operational': non_operational,
+        'sourceNode': sourceNode,
+        'sinkNode': sinkNode,
+        'waiting_arcs': waiting_arcs,
+        'OPERATING_COST': OPERATING_COST,
+        'OPERATING_SPEED': OPERATING_SPEED,
+        'ports_dict' : port_dict
+    }
+    
+    return m, env_data
+
 def find_initial_solution(model):
     # Set the time limit for finding an initial solution
     H = 3600  # 1 hour in seconds
@@ -1048,14 +1233,19 @@ def find_initial_solution(model):
         return None, None
     
 
+def solve_model(model):
+    H = 3600  # 1 hour in seconds
+    model.setParam(gp.GRB.Param.TimeLimit, 0.25*H)  # 3 hours limit
 
-
-# # Check the status of the optimization
-# if m.status == gp.GRB.OPTIMAL:
-#     print("Optimal solution found!")
+    # Run the optimization
+    model.optimize()
     
-# if m.status == gp.GRB.INFEASIBLE:
-#     m.computeIIS()
-#     # Write the IIS to a .ilp file
-#     m.write("MIRPSO.ilp")
-#     print("Model is infeasible")
+    # Check the status of the optimization
+    if model.status == gp.GRB.OPTIMAL:
+        print("Optimal solution found!")
+        
+    if model.status == gp.GRB.INFEASIBLE:
+        model.computeIIS()
+        # Write the IIS to a .ilp file
+        model.write("MIRPSO.ilp")
+        print("Model is infeasible")
