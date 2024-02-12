@@ -265,15 +265,30 @@ class MIRPSOEnv():
 
     
 class BasicRLAgent:
-    def __init__(self, action_space):
+    def __init__(self, action_space, learning_rate = 0.1, discount_factor = 0.95):
         self.action_space = action_space
+        self.q_table = {}
+        self.learning_rate = learning_rate
+        self.discount_factor = discount_factor
         
     def select_action(self, state, legal_actions):
         # Placeholder for random selection among legal actions for a given state
         return np.random.choice(legal_actions)
 
-    def update_policy(self, state, action, reward, next_state):
+    def update_policy(self, state, action, reward, next_state, legal_actions):
         # Implement how your agent updates its policy based on feedback
+        state_action = (state, action)
+
+        #initialize Q value to 0 if the state-action pair has not been seen before
+        if state_action not in self.q_table:
+            self.q_table[state_action] = 0
+        
+        #Estimate the optimal future value
+        next_state_action = [(next_state, a) for a in legal_actions]
+        future_rewards = [self.q_table.get(s_a, 0) for s_a in next_state_action]
+        max_future_reward = max(future_rewards) if future_rewards else 0
+
+        self.q_table[state_action] = self.q_table[state_action] + self.learning_rate * (reward + self.discount_factor * max_future_reward - self.q_table[state_action])
         pass
     
 
