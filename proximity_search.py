@@ -54,11 +54,14 @@ def convert_key_to_varname(key):
 def perform_proximity_search(ps_data):  # Add other parameters as needed
     model = ps_data['model']
     original_objective_function = model.getObjective()
-    cutoff_value = 100000
+    #cutoff_value = 100000
     current_solution = get_current_x_solution(model)
     
     current_best_obj = model.getObjective().getValue()
     x_variables = {v.VarName: v for v in model.getVars() if v.VarName.startswith('x')}
+
+    initial_percentage_decrease = 0.01
+    cutoff_value = (initial_percentage_decrease * current_best_obj)
     
     y = model.addVars(x_variables.keys(), vtype=GRB.BINARY, name="y")
     
@@ -69,28 +72,39 @@ def perform_proximity_search(ps_data):  # Add other parameters as needed
         # Set the objective (back) to the original objective function
         model.setObjective(original_objective_function, GRB.MINIMIZE)
         model.update()
+
+        cutoff_value = (initial_percentage_decrease * current_best_obj)
         
         add_cutoff_constraint(model, current_best_obj, cutoff_value)
         
         update_objective_to_minimize_hamming_distance(model, y, x_variables, current_solution)
 
+        #Stop optimization after finidng 1 solution
+        model.setParam(GRB.SolutionLimit, 1)
         # Solve the modified problem
         model.optimize()
 
         # Check if a new solution is found with the lowest amount of changes to the structure as possible
-        if model.Status == GRB.OPTIMAL:
+        if model.Status == GRB.SolutionLimit:
             print("Hamming Distance from previous solution:", model.objVal)
             
             new_solution = {v.VarName: v.X for v in model.getVars()}
             
             new_obj_value = evaluate_solution_with_original_objective(model, ps_data)
 
+            current_solution = new_solution
+            current_best_obj = new_obj_value
+
             # Update current solution if improvement is found
-            if new_obj_value < current_best_obj:
-                print("Found a better solution.")
-                print(f'Previous objective value was {current_best_obj}. New objective value: {new_obj_value}')
-                current_solution = new_solution
-                current_best_obj = new_obj_value
+            #if new_obj_value < current_best_obj:
+            #    print("Found a better solution.")
+            #    print(f'Previous objective value was {current_best_obj}. New objective value: {new_obj_value}')
+            #    current_solution = new_solution
+            #    current_best_obj = new_obj_value
+
+                #cutoff_value = (initial_percentage_decrease * current_best_obj)
+                #return current_solution, current_best_obj
+            #    break
                 
     solution = {v.VarName: v for v in model.getVars()}
 
