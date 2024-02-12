@@ -102,6 +102,6 @@ def main_no_proximity_search():
     # solve_model(simp_model)
 
 if __name__ == "__main__":
-    # main()
+    main()
     main_no_proximity_search()
 
