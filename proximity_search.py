@@ -80,25 +80,25 @@ def perform_proximity_search(ps_data):  # Add other parameters as needed
         update_objective_to_minimize_hamming_distance(model, y, x_variables, current_solution)
 
         #Stop optimization after finidng 1 solution
-        model.setParam(GRB.SolutionLimit, 1)
+        # model.setParam(GRB.SolutionLimit, 1)
+        model.setParam(gp.GRB.Param.SolutionLimit, 1)
         # Solve the modified problem
         model.optimize()
 
         # Check if a new solution is found with the lowest amount of changes to the structure as possible
-        if model.Status == GRB.SolutionLimit:
+        if model.Status ==  GRB.SOLUTION_LIMIT:
             print("Hamming Distance from previous solution:", model.objVal)
             
             new_solution = {v.VarName: v.X for v in model.getVars()}
             
             new_obj_value = evaluate_solution_with_original_objective(model, ps_data)
+            print("Found a better solution.")
+            print(f'Previous objective value was {current_best_obj}. New objective value: {new_obj_value}')
 
             current_solution = new_solution
             current_best_obj = new_obj_value
 
             # Update current solution if improvement is found
-            #if new_obj_value < current_best_obj:
-            #    print("Found a better solution.")
-            #    print(f'Previous objective value was {current_best_obj}. New objective value: {new_obj_value}')
             #    current_solution = new_solution
             #    current_best_obj = new_obj_value
 
