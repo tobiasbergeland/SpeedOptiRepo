@@ -21,7 +21,7 @@ def load_solution(filename='initial_solution.json'):
 def main():
     INSTANCE = 'LR1_1_DR1_3_VC1_V7a'
     # INSTANCE = 'LR1_1_DR1_4_VC3_V8a'
-    # INSTANCE = 'LR1_1_DR1_4_VC3_V9a'
+    # INSTANCE = 'LR1_1_DR1_4_VC3_V9¨a'
     # INSTANCE = 'LR1_1_DR1_4_VC3_V11a'
     # INSTANCE = 'LR1_1_DR1_4_VC3_V12a'
     # INSTANCE = 'LR1_2_DR1_3_VC2_V6a'
@@ -91,11 +91,11 @@ def main_no_proximity_search():
     NODES = problem_data['NODES']
     
     
-    # model, costs = build_model(vessels, vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, non_operational, sourceNode, sinkNode, waiting_arcs, OPERATING_COST)
-    simp_model, env_data = build_simplified_RL_model(vessels, vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, non_operational, sourceNode, sinkNode, waiting_arcs, OPERATING_COST, OPERATING_SPEED, NODES)
+    model, costs = build_model(vessels, vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, non_operational, sourceNode, sinkNode, waiting_arcs, OPERATING_COST)
+    # simp_model, env_data = build_simplified_RL_model(vessels, vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, non_operational, sourceNode, sinkNode, waiting_arcs, OPERATING_COST, OPERATING_SPEED, NODES)
     
-    for v in vessels:
-        visualize_network_for_vessel(v, env_data['vessel_arcs'], False, NODES, sinkNode)
+    # for v in vessels:
+    #     visualize_network_for_vessel(v, env_data['vessel_arcs'], False, NODES, sinkNode)
     
 
     # solve_model(model)
@@ -103,5 +103,5 @@ def main_no_proximity_search():
 
 if __name__ == "__main__":
     main()
-    main_no_proximity_search()
+    # main_no_proximity_search()
 

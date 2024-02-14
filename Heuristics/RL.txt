@@ -1,0 +1,9 @@
+1. Problem Definition
+- Goal of agent?
+    * Quickly obtain a feasible solution to a simplified MIRPSO problem.
+- Environment
+    * States: Location of vessels, status on ports and vessels
+    * Actions: In one state, choose to operate(with a given quantity) and then traverse an arc, or just to traverse an arc.
+    * Rewards: Rewards for every i-th time period the problem stays feasible
+- Constraints: Problem constrs in the model. 
+- 

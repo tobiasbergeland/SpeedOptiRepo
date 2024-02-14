@@ -63,10 +63,11 @@ class Vessel:
         self.all_arcs_v = set()
         # Position is which port it is located at. If it is in transit, position is None
         self.position = None
-        self.path = []
+        self.action_path = []
         # If a vessel is in transit towards a port, this attribute will store the destination port.
         # It will change to None when the vessel arrives at the port. The position attribute will also be updated to the value of the destination 
         self.in_transit_towards = (None, None)
+        self.isFinished = False
         
     def __repr__(self):
         return f'Vessel {self.number}'
@@ -1198,6 +1199,7 @@ def build_simplified_RL_model(vessels, vessel_arcs, regularNodes, ports, TIME_PE
         'OPERATING_COST': OPERATING_COST,
         'OPERATING_SPEED': OPERATING_SPEED,
         'ports_dict' : port_dict
+        
     }
     
     return m, env_data
