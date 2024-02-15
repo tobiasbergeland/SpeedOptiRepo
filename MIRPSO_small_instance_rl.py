@@ -354,6 +354,7 @@ class MIRPSOEnv():
         return state
     
 
+
     def find_available_vessels(self, vessels):
         available_vessels = []
         for v in vessels:
@@ -414,6 +415,7 @@ class DQNAgent:
         self.main_model = DQN(state_size, action_size)
         self.target_model = DQN(state_size, action_size)
         self.optimizer = optim.Adam(self.main_model.parameters())
+
 
     def remember(self, state, action, reward, next_state, done):
         self.memory.push((state, action, reward, next_state, done))
