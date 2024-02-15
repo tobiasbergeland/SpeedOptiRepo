@@ -2,6 +2,7 @@ import networkx as nx
 import numpy as np
 import math
 import random
+import copy
 
 # sys.path.append('/Users/tobiaskolstobergeland/Documents/IndØk/10.Semester/ProsjektOppgave/Repo/SpeedOptiRepo/MIRPSO_M.py')
 from MIRPSO_M import build_problem, build_simplified_RL_model, visualize_network_for_vessel
@@ -137,41 +138,26 @@ class MIRPSOEnv():
     
     def find_legal_actions_for_vessel(self, state, vessel):
         # Initialize the operation type and vessel ID
-        operation_type = 0  # Assume no operation by default
+        # operation_type = 0  # Assume no operation by default
         vessel_id = vessel.number
 
         # Determine the operation type based on the vessel's position and the state's time
-        if state['time'] == 0 or vessel.position is None:
-            pass  # operation_type remains 0
+        if state['time'] == 0:
+            operation_type = 0
         elif vessel.position.isLoadingPort == 1:
             operation_type = 1  # Loading at a production port
         else:
             operation_type = 2  # Offloading at a consumption port
 
         # Get legal quantities and arcs for the vessel
-        legal_quantities = self.get_legal_quantities(vessel, state)
+        legal_quantity = self.get_legal_quantities(operation_type=operation_type, vessel=vessel)
         legal_arcs = self.get_legal_arcs(state=state, vessel=vessel)
 
         # Generate legal actions, considering special conditions
-        legal_actions = set()
-        for quantity in legal_quantities:
-            for arc in legal_arcs:
-                # Skip actions that involve operating and waiting at the same port with non-zero quantity
-                if arc.origin_node.port == arc.destination_node.port and quantity != 0:
-                    continue
-
-                # Handling for vessels at consumption ports or with specific inventory conditions
-                if vessel.position and vessel.position.isLoadingPort == -1 and vessel.inventory == quantity:
-                    if arc.destination_node.port.isLoadingPort == 1 or arc.destination_node.port == self.SINK_NODE.port:
-                        legal_actions.add((vessel_id, operation_type, quantity, arc))
-                else:
-                    legal_actions.add((vessel_id, operation_type, quantity, arc))
-
-        # Include a default action for finished vessels or those without a position
-        if vessel.isFinished or vessel.position is None:
-            last_arc = vessel.action_path[-1][3] if vessel.action_path else None
-            if last_arc:  # Ensure there is a last action to refer to
-                legal_actions.add((vessel_id, 0, 0, last_arc))
+        legal_actions = []
+        
+        for arc in legal_arcs:
+            legal_actions.append((vessel_id, operation_type, legal_quantity, arc))
 
         # Warn if no legal actions are found (optional, could also raise an exception or handle differently)
         if not legal_actions:
@@ -181,10 +167,6 @@ class MIRPSOEnv():
 
     
     def get_legal_arcs(self, state, vessel):
-        if vessel.position is None or vessel.isFinished:
-            legal_arcs = set()
-            legal_arcs.add(vessel.action_path[-1][3])
-            return legal_arcs
     
         vessel_arcs_v = self.VESSEL_ARCS[vessel]
         # Find the node the vessel is currently at
@@ -198,53 +180,42 @@ class MIRPSOEnv():
         # Find the arcs that are legal for the vessel to traverse
         legal_arcs = set()
         for arc in vessel_arcs_v:
-            if arc.origin_node == current_node:
+            if arc.origin_node == current_node and arc.destination_node.port != arc.origin_node.port:
                 legal_arcs.add(arc)
                 
-        # # If vessel is at a consumption port and is empty, it has to either travel to a loading port or to the sink
-        # if current_port.isLoadingPort == -1 and vessel.inventory == 0:
-        #     # Remove all arcs from legal_arcs that do not lead to a loading port or the sink
-        #     legal_arcs = {arc for arc in legal_arcs if arc.destination_node.port.isLoadingPort == 1 or arc.destination_node.port == self.SINK_NODE.port}
+        # If vessel is at a consumption port and is empty, it has to either travel to a loading port or to the sink
+        if current_port.isLoadingPort == -1 and vessel.inventory == 0:
+            # Remove all arcs from legal_arcs that do not lead to a loading port or the sink
+            legal_arcs = {arc for arc in legal_arcs if arc.destination_node.port.isLoadingPort == 1 or arc.destination_node.port == self.SINK_NODE.port}
+        
+        if current_port.isLoadingPort == 1 and vessel.inventory == vessel.max_inventory:
+            # Remove all arcs from legal_arcs that do not lead to a consumption port or the sink
+            legal_arcs = {arc for arc in legal_arcs if arc.destination_node.port.isLoadingPort == -1 or arc.destination_node.port == self.SINK_NODE.port}
                 
         return legal_arcs
                 
-    def get_legal_quantities(self, vessel, state):
-        time = state['time']
-        sinkPort = self.SINK_NODE.port
+    def get_legal_quantities(self, operation_type, vessel):
         
-        if time == 0 or vessel.position is None or vessel.position == sinkPort:
+        if operation_type == 0:
             # Return a set containing only 0
             return {0}
-        else:
         
+        else:
             port = vessel.position
-            legal_quantities = set()
-            
             # Calculate available capacity or inventory based on port type.
             if port.isLoadingPort == 1:
                 # For loading ports, calculate the maximum quantity that can be loaded onto the vessel.
-                limit_quantity = max(0, port.inventory - port.min_amount)
+                limit_quantity = port.inventory - port.min_amount
                 available_capacity = vessel.max_inventory - vessel.inventory
             else:
                 # For discharging ports, calculate the maximum quantity that can be unloaded from the vessel.
-                limit_quantity = max(0, port.capacity - port.inventory)
+                limit_quantity = port.capacity - port.inventory
                 available_capacity = vessel.inventory
             
             # Determine legal quantities based on available capacity and port limits.
-            full_quantity = min(available_capacity, limit_quantity)
-            half_quantity = math.ceil(full_quantity / 2)
-            
-            # Add quantities to the legal actions set, ensuring they do not exceed port or vessel constraints.
-            # Only add quantities greater than 0.
-            if half_quantity > 0:
-                legal_quantities.add(half_quantity)
-            else:
-                print('Issue')
-            if full_quantity > half_quantity:
-                legal_quantities.add(full_quantity)
-            else:
-                print('Issue')
-            return legal_quantities
+            quantity = min(available_capacity, limit_quantity)
+           
+            return quantity
     
     def simulate_time_step(self, state):
         # Action pipeline is a list of actions not yet executed
@@ -299,28 +270,38 @@ class MIRPSOEnv():
         if state['time'] == len(self.TIME_PERIOD_RANGE):
             return True
         
-    def check_state(self, state):
+    def check_state(self, state, experience_path, replay, agent):
         '''Evaluates the state and returns status and reward.'''
-        reward = 1  # Default reward for feasible states
         if self.is_infeasible(state):
-            # Implement logic for penalties
+            experience_path = self.update_rewards_in_experience_path(state, experience_path, -1000, agent)
+            for exp in experience_path:
+                replay.push(exp)
             state['done'] = True
-            reward = -1000  # Example large negative reward for infeasibility
-            return state, reward
+            return state
+        
         if self.is_terminal(state):
+            self.update_rewards_in_experience_path(state, experience_path, 1000, agent)
+            for exp in experience_path:
+                replay.push(exp)
             state['done'] = True
-            reward = 100000
-            # Additional logic for terminal rewards could go here
-            return state, reward
-        if reward == 0 and state['time'] >= 44:
-            print('Here')
-        # You could add more nuanced rewards/penalties based on operational efficiency here
-        return state, reward
+            return state
+        return state
     
-    def execute_action(self, state, vessel, action):
+    def update_rewards_in_experience_path(self, state, experience_path, reward, agent):
+        for exp in experience_path:
+            time = state['time']
+            time_marked = exp[0]['time']
+            time_diff = time - time_marked
+            new_state = exp[3]
+            exp[2] = reward + agent.gamma**time_diff*(agent.target_model(torch.FloatTensor(self.encode_state(new_state))).detach().numpy())
+        return experience_path
+            
+            
+    
+    def execute_action(self, vessel, action):
         # Action is on the form (vessel_id, operation_type, quantity, arc)
         # Execute the action and update the state
-        vessel_id, operation_type, quantity, arc = action
+        _, operation_type, quantity, arc = action
         
         port = arc.origin_node.port
         # Update the vessel's inventory
@@ -362,46 +343,125 @@ class MIRPSOEnv():
         return state
                 
     def step(self, state, actions):
-        for vessel in actions.keys():
-                self.execute_action(state, vessel, actions[vessel])
+        for vessel, action in actions.items():
+                self.execute_action(vessel=vessel, actions=action)
                 
         # Consumption happens
         state = self.consumption(state)
         
         # Check if state is infeasible or terminal
-        next_state, reward = self.check_state(state)
-        return next_state, reward
-    
-class BasicRLAgent:
-  
-    def __init__(self):
-        pass
-        
-    def select_action(self, state, legal_actions):
-        # Placeholder for random selection among legal actions for a given state
-        # Transform the legal_actions set into a list
-        legal_actions = list(legal_actions)
-        
-        return random.choice(legal_actions)
-
-    def update_policy(self, state, action, reward, next_state, legal_actions):
-        # Implement how your agent updates its policy based on feedback
-        state_action = (state, action)
-
-        #initialize Q value to 0 if the state-action pair has not been seen before
-        if state_action not in self.q_table:
-            self.q_table[state_action] = 0
-        
-        #Estimate the optimal future value
-        next_state_action = [(next_state, a) for a in legal_actions]
-        future_rewards = [self.q_table.get(s_a, 0) for s_a in next_state_action]
-        max_future_reward = max(future_rewards) if future_rewards else 0
-
-        self.q_table[state_action] = self.q_table[state_action] + self.learning_rate * (reward + self.discount_factor * max_future_reward - self.q_table[state_action])
-        pass
+        state = self.check_state(state)
+        return state
     
 
 
+    def find_available_vessels(self, vessels):
+        available_vessels = []
+        for v in vessels:
+            if v.position is not None:
+                available_vessels.append(v)
+        return available_vessels
+    
+    
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import numpy as np
+import random
+from collections import deque
+class DQN(nn.Module):
+    def __init__(self, state_size, action_size):
+        super(DQN, self).__init__()
+        self.fc1 = nn.Linear(state_size, 24)  # First fully connected layer
+        self.relu = nn.ReLU()                 # ReLU activation
+        self.fc2 = nn.Linear(24, 24)          # Second fully connected layer
+        self.fc3 = nn.Linear(24, action_size) # Output layer
+
+    def forward(self, state):
+        x = self.relu(self.fc1(state))
+        x = self.relu(self.fc2(x))
+        return self.fc3(x)
+    
+class ReplayMemory:
+    def __init__(self, capacity):
+        self.capacity = capacity
+        self.memory = deque(maxlen=capacity)
+    
+    def push(self, event):
+        self.memory.append(event)
+    
+    def sample(self, batch_size):
+        return random.sample(self.memory, batch_size)
+    
+    def __len__(self):
+        return len(self.memory)
+    
+    
+class DQNAgent:
+    def __init__(self, ports, vessels):
+        # ports plus source and sink, vessel inventory, (vessel position, vessel in transit), time period, vessel_number
+        state_size = len(ports) + 3 * len(vessels) + 2
+        
+        # Ports plus sink port
+        action_size = len(ports) + 1
+        
+        self.state_size = state_size
+        self.action_size = action_size
+        self.memory = ReplayMemory(10000)
+        self.gamma = 0.95    # discount rate
+        self.epsilon = 1.0   # exploration rate
+        self.epsilon_min = 0.01
+        self.epsilon_decay = 0.995
+        self.main_model = DQN(state_size, action_size)
+        self.target_model = DQN(state_size, action_size)
+        self.optimizer = optim.Adam(self.main_model.parameters())
+
+
+    def remember(self, state, action, reward, next_state, done):
+        self.memory.push((state, action, reward, next_state, done))
+
+    def act(self, state):
+        if np.random.rand() <= self.epsilon:
+            return random.randrange(self.action_size)
+        state = torch.FloatTensor(state).unsqueeze(0)
+        act_values = self.model(state)
+        return np.argmax(act_values.detach().numpy())
+
+    def replay(self, batch_size):
+        minibatch = self.memory.sample(batch_size)
+        for state, action, reward, next_state, done in minibatch:
+            target = reward
+            if not done:
+                target = reward + self.gamma * np.amax(self.model(torch.FloatTensor(next_state)).detach().numpy())
+            target_f = self.model(torch.FloatTensor(state))
+            target_f[0][action] = target
+            self.optimizer.zero_grad()
+            loss = nn.MSELoss()(self.model(torch.FloatTensor(state)), target_f)
+            loss.backward()
+            self.optimizer.step()
+        if self.epsilon > self.epsilon_min:
+            self.epsilon *= self.epsilon_decay
+            
+    def select_action(self, legal_actions, state, env):
+        
+        if np.random.rand() < self.epsilon:
+            # Choose one of the legal actions at random
+            return random.choice(legal_actions)
+        
+        encoded_state = env.encode_state(state)
+        state_tensor = torch.tensor(encoded_state, dtype=torch.float32).unsqueeze(0)
+        q_values = self.main_model(state_tensor).detach().numpy()
+        
+        # Sort the q-values, but keep track of the original indices
+        q_values = [(q_value, index) for index, q_value in enumerate(q_values)]
+        q_values.sort(reverse=True)
+        # Choose the action with the highest q-value that is legal
+        for q_value, index in q_values:
+            for action in legal_actions:
+                arc = action[3]
+                if arc.destination_node.port.number == index + 1:
+                    return action        
+        
 def main():
     # np.random.seed(0)
     INSTANCE = 'LR1_1_DR1_3_VC1_V7a'
@@ -438,12 +498,15 @@ def main():
     #     visualize_network_for_vessel(v, vessel_arcs, False, NODES, sinkNode)
     
     env = MIRPSOEnv(ports, vessels, vessel_arcs, NODES, TIME_PERIOD_RANGE, sourceNode, sinkNode)
+    agent = DQNAgent(ports = ports, vessels=vessels)
+    replay = ReplayMemory(10000)
     print(env.encode_state(env.state))
-    agent = BasicRLAgent()
 
     num_episodes = 1000  # for example
     feasible_counter = 0
     for episode in range(num_episodes):
+        experience_path = []
+        
         state = env.reset()
         done = False
         total_reward = 0
@@ -451,59 +514,70 @@ def main():
         # Perform initial actions to get the environment started
         legal_actions = {}
         for vessel in vessels:
-            legal_actions[vessel] = env.find_legal_actions_for_vessel(state, vessel)
+            legal_actions[vessel] = env.find_legal_actions_for_vessel(state=state, vessel=vessel)
         
         actions = {}
         for vessel in vessels:
-            action = agent.select_action(state, legal_actions[vessel])
+            action = agent.select_action(legal_actions=legal_actions[vessel], state=state, env=env)
             actions[vessel] = action
         
+        exp_dict ={}
         for vessel in vessels:
-            env.execute_action(state, vessel, actions[vessel])
+            old_state = state
+            env.execute_action(vessel=vessel, action=actions[vessel])
+            # Make a deep, not a shallow copy of the state
+            state_copy = copy.deepcopy(state)
+            fake_state = env.consumption(state=state_copy)
+            fake_state['time'] += 1
+            exp_dict[vessel] = (old_state, actions[vessel], None, fake_state)
+            experience_path.append(exp_dict[vessel])
             
+        env.consumption(state=state)
+        
         # All vessels have made their initial action.
         # Now we can start the main loop
                 
         while not done:
             # Increase time and make production ports produce.
-            state = env.increment_time_and_produce(state)
+            state = env.increment_time_and_produce(state=state)
             
             # Check if state is infeasible or terminal        
-            state, reward = env.check_state(state)
-            if reward == 1000:
-                print(f"Episode {episode}: Total Reward = {total_reward}")
+            state = env.check_state(state=state, experience_path=experience_path, replay=replay, agent=agent)
+            if state['done']:
+                break
             
             # Production ports have produced, and vessels have moved one time step closer to their destination.    
             # Find the vessels that are available to perform an action
-            updated_vessels = env.update_vessel_status(state)
-            # available_vessels = env.find_available_vessels(state)
-                    
-            legal_actions={}
-            for vessel in updated_vessels:
-                legal_actions[vessel] = env.find_legal_actions_for_vessel(state, vessel)
-                
-            actions = {}
-            for vessel in vessels:
-                action = agent.select_action(state, legal_actions[vessel])
-                actions[vessel] = action
+            env.update_vessel_status(state=state)
             
-            next_state, reward = env.step(state, actions)
+            available_vessels = env.find_available_vessels(vessels=state['vessels'])
+            
+            if len(available_vessels) >= 0:
+                legal_actions={}
+                for vessel in available_vessels:
+                    legal_actions[vessel] = env.find_legal_actions_for_vessel(state=state, vessel=vessel)
+                    
+                actions = {}
+                for vessel in vessels:
+                    action = agent.select_action(state=state, legal_actions=legal_actions[vessel], env=env)
+                    actions[vessel] = action
+            
+                state = env.step(state=state, actions=actions)
             
             # agent.update_policy(state, action, reward, next_state)
-            state = next_state
-            total_reward += reward
             done = state['done']
+            
             if done:
                 print(f"Episode {episode}: Total Reward = {total_reward}")
                 if total_reward > 0:
                     feasible_counter += 1
     
-    print(f"Episode {episode}: Total Reward = {total_reward}")
-    print(f"Feasible solutions found: {feasible_counter}/{num_episodes}")
-
+    # print(f"Episode {episode}: Total Reward = {total_reward}")
+    # print(f"Feasible solutions found: {feasible_counter}/{num_episodes}")
     
-        
+import sys        
 if __name__ == "__main__":
+    # print(sys.prefix)
     main()
         
         
