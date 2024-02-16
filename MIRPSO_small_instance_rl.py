@@ -3,6 +3,7 @@ import numpy as np
 import math
 import random
 import copy
+import sys
 
 # sys.path.append('/Users/tobiaskolstobergeland/Documents/IndØk/10.Semester/ProsjektOppgave/Repo/SpeedOptiRepo/MIRPSO_M.py')
 from MIRPSO_M import build_problem, build_simplified_RL_model, visualize_network_for_vessel
@@ -71,6 +72,7 @@ class MIRPSOEnv():
         }
             
         return self.state
+    """
     
     def encode_state(self, state):
         port_inventories = np.array([(port.inventory)/port.capacity for port in state['ports']])
@@ -90,6 +92,44 @@ class MIRPSOEnv():
         time_period = np.array([self.state['time'] / max(self.TIME_PERIOD_RANGE)])
         # Concatenate all parts of the state into a single vector
         return np.concatenate([port_inventories, vessel_inventories, vessel_positions, vessel_in_transit, time_period])
+    """
+    def encode_state(self, state, vessel):
+        port_inventories = np.array([(port.inventory)/port.capacity for port in state['ports']])
+        vessel_inventories = np.array([(vessel.inventory)/(vessel.max_inventory) for vessel in state['vessels']])
+        
+        # Initialize arrays to store the position and in-transit status
+        vessel_positions = np.zeros(len(state['vessels']))
+        vessel_in_transit = np.zeros(len(state['vessels']))  # 0 if at port, remaining time to next arrival if in transit
+
+        for i, vessel in enumerate(state['vessels']):
+            if vessel.position:  # Vessel is at a port
+                vessel_positions[i] = vessel.position.number / (len(self.PORTS) + 2)  # +2 to account for the sink and sourceport
+                print('HHHHHHEEEEEEIII')
+                print(vessel_positions)
+            elif vessel.in_transit_towards:  # Vessel is in transit
+                vessel_positions[i] = vessel.in_transit_towards[0].number / (len(self.PORTS) + 2)  # +1 for the same reason
+                # calculate the remaining time to next arrival
+                vessel_in_transit[i] = vessel.in_transit_towards[1] - self.state['time']
+        
+        #vessels_to_act = copy.deepcopy(vessel_positions)
+        #active_vessel = self.get_active_vessel(vessels_to_act)
+        
+        #active_vessel = np.array(active_vessel)
+
+        time_period = np.array([self.state['time'] / max(self.TIME_PERIOD_RANGE)])
+        #print(time_period)
+        return np.concatenate([port_inventories, vessel_inventories, vessel_positions, vessel_in_transit, time_period, vessel.number])
+    
+    def get_active_vessel(self, vessels_to_act):
+        #print(vessels_to_act)
+        return_this = np.zeros(len(vessels_to_act))
+        #print(return_this)
+        for i, position in enumerate(vessels_to_act):
+            if position != 0:
+                return_this[i] = 1
+                #print(return_this)
+                return return_this
+        return return_this
     
 
     # def find_legal_actions_for_vessel(self, state, vessel):
@@ -270,30 +310,34 @@ class MIRPSOEnv():
         if state['time'] == len(self.TIME_PERIOD_RANGE):
             return True
         
-    def check_state(self, state, experience_path, replay, agent):
+    def check_state(self, state, experience_path, replay, agent, vessel):
         '''Evaluates the state and returns status and reward.'''
         if self.is_infeasible(state):
-            experience_path = self.update_rewards_in_experience_path(state, experience_path, -1000, agent)
+            experience_path = self.update_rewards_in_experience_path(state, experience_path, -1000, agent, vessel)
             for exp in experience_path:
                 replay.push(exp)
             state['done'] = True
             return state
         
         if self.is_terminal(state):
-            self.update_rewards_in_experience_path(state, experience_path, 1000, agent)
+            self.update_rewards_in_experience_path(state, experience_path, 1000, agent, vessel)
             for exp in experience_path:
                 replay.push(exp)
             state['done'] = True
             return state
         return state
     
-    def update_rewards_in_experience_path(self, state, experience_path, reward, agent):
+    def update_rewards_in_experience_path(self, state, experience_path, reward, agent, vessel):
         for exp in experience_path:
             time = state['time']
             time_marked = exp[0]['time']
             time_diff = time - time_marked
+            #print(experience_path)
+            #exp_list = list(exp)
+            #print(exp_list)
             new_state = exp[3]
-            exp[2] = reward + agent.gamma**time_diff*(agent.target_model(torch.FloatTensor(self.encode_state(new_state))).detach().numpy())
+            exp[2] = reward + agent.gamma**time_diff*(agent.target_model(torch.FloatTensor(self.encode_state(new_state, vessel))).detach().numpy())
+            print(exp[2])
         return experience_path
             
             
@@ -344,13 +388,13 @@ class MIRPSOEnv():
                 
     def step(self, state, actions):
         for vessel, action in actions.items():
-                self.execute_action(vessel=vessel, actions=action)
+                self.execute_action(vessel=vessel, action=action)
                 
         # Consumption happens
         state = self.consumption(state)
         
         # Check if state is infeasible or terminal
-        state = self.check_state(state)
+        #state = self.check_state(state, experience_path, replay, agent)
         return state
     
 
@@ -400,10 +444,13 @@ class ReplayMemory:
 class DQNAgent:
     def __init__(self, ports, vessels):
         # ports plus source and sink, vessel inventory, (vessel position, vessel in transit), time period, vessel_number
-        state_size = len(ports) + 3 * len(vessels) + 2
+        state_size = len(ports) + 4 * len(vessels) + 1
+
+        print(state_size)
         
         # Ports plus sink port
         action_size = len(ports) + 1
+        print(action_size)
         
         self.state_size = state_size
         self.action_size = action_size
@@ -432,7 +479,7 @@ class DQNAgent:
         for state, action, reward, next_state, done in minibatch:
             target = reward
             if not done:
-                target = reward + self.gamma * np.amax(self.model(torch.FloatTensor(next_state)).detach().numpy())
+                target = reward + self.gamma * np.amax(self.main_model(torch.FloatTensor(next_state)).detach().numpy())
             target_f = self.model(torch.FloatTensor(state))
             target_f[0][action] = target
             self.optimizer.zero_grad()
@@ -442,13 +489,13 @@ class DQNAgent:
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
             
-    def select_action(self, legal_actions, state, env):
+    def select_action(self, legal_actions, state, env, vessel):
         
         if np.random.rand() < self.epsilon:
             # Choose one of the legal actions at random
             return random.choice(legal_actions)
         
-        encoded_state = env.encode_state(state)
+        encoded_state = env.encode_state(state, vessel)
         state_tensor = torch.tensor(encoded_state, dtype=torch.float32).unsqueeze(0)
         q_values = self.main_model(state_tensor).detach().numpy()
         
@@ -518,9 +565,14 @@ def main():
         
         actions = {}
         for vessel in vessels:
-            action = agent.select_action(legal_actions=legal_actions[vessel], state=state, env=env)
+            action = agent.select_action(legal_actions=legal_actions[vessel], state=state, env=env, vessel=vessel)
             actions[vessel] = action
         
+        # Check current recursion limit
+        print("Current recursion limit:", sys.getrecursionlimit())
+        
+        # Set a higher recursion limit (be cautious with this)
+        sys.setrecursionlimit(5000)  # Example new limit
         exp_dict ={}
         for vessel in vessels:
             old_state = state
@@ -529,7 +581,7 @@ def main():
             state_copy = copy.deepcopy(state)
             fake_state = env.consumption(state=state_copy)
             fake_state['time'] += 1
-            exp_dict[vessel] = (old_state, actions[vessel], None, fake_state)
+            exp_dict[vessel] = [old_state, actions[vessel], None, fake_state]
             experience_path.append(exp_dict[vessel])
             
         env.consumption(state=state)
@@ -558,11 +610,12 @@ def main():
                     legal_actions[vessel] = env.find_legal_actions_for_vessel(state=state, vessel=vessel)
                     
                 actions = {}
-                for vessel in vessels:
+                for vessel in available_vessels:
                     action = agent.select_action(state=state, legal_actions=legal_actions[vessel], env=env)
                     actions[vessel] = action
             
                 state = env.step(state=state, actions=actions)
+                state = env.check_state(state, experience_path, replay, agent)
             
             # agent.update_policy(state, action, reward, next_state)
             done = state['done']
