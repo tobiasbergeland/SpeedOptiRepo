@@ -742,7 +742,8 @@ def build_problem(INSTANCE):
         'waiting_arcs': waiting_arcs,
         'OPERATING_COST': OPERATING_COST,
         'OPERATING_SPEED': OPERATING_SPEED,
-        'NODES' : NODES
+        'NODES' : NODES,
+        'NODE_DICT' : NODE_DICT,
     }
     
     return problem_data
@@ -988,7 +989,7 @@ def build_model(vessels, vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, no
     return m, costs
 
 ### GUROBI MODEL
-def build_simplified_RL_model(vessels, vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, non_operational, sourceNode, sinkNode, waiting_arcs, OPERATING_COST, OPERATING_SPEED, NODES):
+def build_simplified_RL_model(vessels, vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, non_operational, sourceNode, sinkNode, waiting_arcs, OPERATING_COST, OPERATING_SPEED, NODES, NODE_DICT):
     m = gp.Model('Maritime Inventory Routing Problem Speed Optimization')
     port_dict = {port.number: port for port in ports}
     print(port_dict)
@@ -1198,8 +1199,8 @@ def build_simplified_RL_model(vessels, vessel_arcs, regularNodes, ports, TIME_PE
         'waiting_arcs': waiting_arcs,
         'OPERATING_COST': OPERATING_COST,
         'OPERATING_SPEED': OPERATING_SPEED,
-        'ports_dict' : port_dict
-        
+        'ports_dict' : port_dict, 
+        'node_dict' : NODE_DICT
     }
     
     return m, env_data
