@@ -1187,6 +1187,7 @@ def build_simplified_RL_model(vessels, vessel_arcs, regularNodes, ports, TIME_PE
                         name=f'q_{node.port.number}_{node.time}_{v}')
     m.update()
     
+    
     env_data = {
         'vessels': vessels,
         'vessel_arcs': vessel_arcs,
@@ -1200,7 +1201,8 @@ def build_simplified_RL_model(vessels, vessel_arcs, regularNodes, ports, TIME_PE
         'OPERATING_COST': OPERATING_COST,
         'OPERATING_SPEED': OPERATING_SPEED,
         'ports_dict' : port_dict, 
-        'node_dict' : NODE_DICT
+        'node_dict' : NODE_DICT,
+        'vessel_dict' : {v.number: v for v in vessels}
     }
     
     return m, env_data
