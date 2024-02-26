@@ -743,7 +743,7 @@ def build_problem(INSTANCE):
         'OPERATING_COST': OPERATING_COST,
         'OPERATING_SPEED': OPERATING_SPEED,
         'NODES' : NODES,
-        'NODE_DICT' : NODE_DICT,
+        'NODE_DICT' : NODE_DICT
     }
     
     return problem_data
