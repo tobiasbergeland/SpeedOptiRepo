@@ -94,6 +94,11 @@ def main_no_proximity_search():
     model, costs = build_model(vessels, vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, non_operational, sourceNode, sinkNode, waiting_arcs, OPERATING_COST)
     # simp_model, env_data = build_simplified_RL_model(vessels, vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, non_operational, sourceNode, sinkNode, waiting_arcs, OPERATING_COST, OPERATING_SPEED, NODES)
     
+    #ps_data = {'model': model, 'costs': costs, 'regularNodes': regularNodes, 'vessels': vessels, 'operating_cost':OPERATING_COST, 'vessel_arcs': vessel_arcs}
+
+    # Perform the proximity search using the initial solution
+    solve_model(model)
+
     # for v in vessels:
     #     visualize_network_for_vessel(v, env_data['vessel_arcs'], False, NODES, sinkNode)
     
@@ -103,5 +108,5 @@ def main_no_proximity_search():
 
 if __name__ == "__main__":
     main()
-    # main_no_proximity_search()
+    #main_no_proximity_search()
 
