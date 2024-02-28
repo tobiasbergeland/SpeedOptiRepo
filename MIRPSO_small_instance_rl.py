@@ -403,7 +403,7 @@ class MIRPSOEnv():
         if self.is_terminal(state):
             experience_path = self.update_rewards_in_experience_path(experience_path, agent)
             for exp in experience_path:
-                replay.push(exp)
+                replay.push(exp, self)
                 rew = exp[3]
                 total_reward_for_path += rew
             state['done'] = True
@@ -425,20 +425,48 @@ class MIRPSOEnv():
     
     def log_episode(self, episode, total_reward_for_path, experience_path):
         infeasibility_counter = 0
+        infeasibility_dict = {}
+        
         for exp in experience_path:
             result_state = exp[4]
+            time = result_state['time']
             if result_state['infeasible']:
-                infeasibility_counter += 1
+                if time not in infeasibility_dict.keys():
+                    infeasibility_dict[time] = True
+        
+        infeasibility_counter = len(infeasibility_dict.keys())
+        
             
         print(f"Episode {episode}: Total Reward = {total_reward_for_path}, Infeasibility Counter = {infeasibility_counter}")
+        if infeasibility_counter > 0:
+            print('Infeasible time periods:', infeasibility_dict.keys())
+        if infeasibility_counter == 0:
+            print('Feasible solution:)')
         
         
     def update_rewards_in_experience_path(self, experience_path, agent):
+        
+        feasible_path = True
         for exp in experience_path:
-            _, _, vessel, _, next_state, earliest_vessel = exp
+            _, _, _, _, next_state, _, _= exp
+            port_dict = {k: port for k, port in next_state['port_dict'].items() if port['capacity'] is not None}
+            num_infeasible_ports = len([port for port in port_dict.values() if port['inventory'] < 0 or port['inventory'] > port['capacity']])
+            if num_infeasible_ports > 0:
+                # There may be a simpler infeasibility check
+                feasible_path = False
+                break  # Exit the loop early if any infeasible state is found
+            
+        if feasible_path:
+            print('Feasible path found')
+
+        # Extra reward for fully feasible path
+        extra_reward_for_feasible_path = 1000
+        
+        for exp in experience_path:
+            current_state, _, vessel, _, next_state, earliest_vessel, _ = exp
             # Num feasible ports in next state
             port_dict = {k: port for k, port in next_state['port_dict'].items() if port['capacity'] is not None}
-            num_feasible_ports = len([port for port in port_dict.values() if 0 <= port['inventory'] <= port['capacity']])
+            # num_feasible_ports = len([port for port in port_dict.values() if 0 <= port['inventory'] <= port['capacity']])
             num_infeasible_ports = len([port for port in port_dict.values() if port['inventory'] < 0 or port['inventory'] > port['capacity']])
             
             if num_infeasible_ports > 0:
@@ -458,11 +486,20 @@ class MIRPSOEnv():
             # Select the maximum future Q-value as an indicator of the next state's potential
             max_future_reward = np.max(future_rewards)
             # Clip the future reward to be within the desired range, e.g., [-1, 1]
-            clipped_future_reward = np.clip(max_future_reward, -1, 1)
+            clipped_future_reward = np.clip(max_future_reward, -1, 1000)
             # Update the reward using the clipped future reward
             updated_reward = immediate_reward + clipped_future_reward
+            
+            if feasible_path:
+                time = next_state['time']
+                time_until_terminal = max(len(self.TIME_PERIOD_RANGE) - time, 1)
+                # Add a reward for finding a feasible path and discount it based on the time until terminal using a discount factor
+                discount_factor = agent.gamma ** time_until_terminal
+                feasibility_reward = extra_reward_for_feasible_path*discount_factor
+                updated_reward += feasibility_reward
             # updated_reward = immediate_reward + max_future_reward
             exp[3] = updated_reward
+            exp[6] = feasible_path
         return experience_path
 
 
@@ -578,8 +615,8 @@ class MIRPSOEnv():
                 decision_basis_state = decision_basis_states[vessel.number]
                 # Check infeasibility for simulation_state
                 simulation_state['infeasible'] = self.sim_is_infeasible(simulation_state)
-                
-                exp = [decision_basis_state, action, vessel, None, simulation_state, earliest_vessel]
+                feasible_path = None
+                exp = [decision_basis_state, action, vessel, None, simulation_state, earliest_vessel, feasible_path]
                 # exp_dict[vessel] = exp
                 experience_path.append(exp)
         return state
@@ -614,41 +651,193 @@ class DQN(nn.Module):
         x = self.relu(self.fc2(x))
         return self.fc3(x)
     
-class ReplayMemory:
-    def __init__(self, capacity):
-        self.capacity = capacity
-        self.memory = deque(maxlen=capacity)
     
-    def push(self, event):
-        self.memory.append(event)
+
+class ReplayMemory:
+    def __init__(self, capacity, feasibility_priority=0.5):
+        self.capacity = capacity  # Total capacity of the memory
+        self.feasibility_priority = feasibility_priority  # Priority for feasible experiences
+        self.memory = deque()  # Memory for infeasible experiences
+        self.feasible_memory = deque()  # Memory for feasible experiences
+
+    def push(self, event, env):
+        state, action, vessel, reward, next_state, earliest_simp_vessel, is_feasible = event
+        
+        vessel_simp = state['vessel_dict'][vessel.number]
+        encoded_state = env.encode_state(state, vessel_simp)
+        
+        # Important action data is quantity and destination port
+        vnum, operation_type, quantity, arc = action
+        destination_port = arc.destination_node.port.number
+        
+        # Convert encoded_state to a tuple for hashing
+        encoded_state_tuple = tuple(encoded_state.flatten())
+        
+        # Create a unique identifier for the experience
+        exp_id = hash((encoded_state_tuple, quantity, destination_port))
+        
+        # Logic to handle feasible and infeasible experiences
+        if is_feasible:
+            self.feasible_memory = deque([(id, exp) for id, exp in self.feasible_memory if id != exp_id])
+            self.memory = deque([(id, exp) for id, exp in self.memory if id != exp_id])
+            self.feasible_memory.append((exp_id, event))
+        else:
+            if not any(id == exp_id for id, _ in self.feasible_memory):
+                self.memory = deque([(id, exp) for id, exp in self.memory if id != exp_id])
+                self.memory.append((exp_id, event))
+
+    def sample(self, batch_size):
+        num_feasible = int(batch_size * self.feasibility_priority)
+        num_regular = batch_size - num_feasible
+        
+        samples = []
+        if len(self.feasible_memory) < num_feasible:
+            num_feasible = len(self.feasible_memory)
+            num_regular = batch_size - num_feasible
+        
+        if num_feasible > 0:
+            samples.extend(random.sample(self.feasible_memory, num_feasible))
+        if num_regular > 0 and len(self.memory) > 0:
+            samples.extend(random.sample(self.memory, num_regular))
+        
+        return samples
+
+    def __len__(self):
+        return len(self.memory) + len(self.feasible_memory)
+
+    def clean_up(self):
+        # Calculate the target size for each memory based on 75% of their respective capacities
+        target_infeasible_size = int((self.capacity - int(self.capacity * self.feasibility_priority)) * 0.75)
+        target_feasible_size = int((self.capacity * self.feasibility_priority) * 0.75)
+        
+        # Reduce the size of each memory to the target size
+        while len(self.memory) > target_infeasible_size:
+            self.memory.popleft()
+        while len(self.feasible_memory) > target_feasible_size:
+            self.feasible_memory.popleft()
+
+    
+    
+    
+    
+    
+'''
+class ReplayMemory:
+    def __init__(self, capacity, feasibility_priority = 0.5):
+        # self.capacity = capacity
+        # self.feasibility_priority = feasibility_priority
+        # self.memory = deque(maxlen=capacity)
+        # self.feasible_memory = deque(maxlen=int(capacity * self.feasibility_priority))
+        
+        self.capacity = capacity
+        self.feasibility_priority = feasibility_priority
+        self.memory = deque()
+        self.feasible_memory = deque()
+    
+    def push(self, event, env):
+        state, action, vessel, reward, next_state, earliest_simp_vessel, is_feasible = event
+        
+        vessel_simp = state['vessel_dict'][vessel.number]
+        encoded_state = env.encode_state(state, vessel_simp)
+        # Important action data is quantity, and destination port
+        vnum, operation_type, quantity, arc = action
+        destination_port = arc.destination_node.port.number
+        
+        # Convert encoded_state to a tuple
+        encoded_state_tuple = tuple(encoded_state.flatten())
+        
+        exp_id = hash((encoded_state_tuple, quantity, destination_port))
+        
+        
+        if is_feasible:
+            # Remove any existing instance with the same ID from both memories
+            self.feasible_memory = deque([(id, exp) for id, exp in self.feasible_memory if id != exp_id], maxlen=int(self.capacity * self.feasibility_priority))
+            self.memory = deque([(id, exp) for id, exp in self.memory if id != exp_id], maxlen=self.capacity)
+            # Add the new event to the feasible memory
+            self.feasible_memory.append((exp_id, event))
+        else:
+            # If the event is infeasible, first check if it's not in the feasible memory
+            if not any(id == exp_id for id, _ in self.feasible_memory):
+                # If a duplicate exists in the infeasible memory, remove it before adding the new one
+                if any(id == exp_id for id, _ in self.memory):
+                    self.memory = deque([(id, exp) for id, exp in self.memory if id != exp_id], maxlen=self.capacity)
+                # Add the new event to the infeasible memory
+                self.memory.append((exp_id, event))
+
+        
+        
+        
+        
+        # if is_feasible:
+        #     # self.feasible_memory.append(event)
+        #     # Here you might want to ensure there's no duplicate in the infeasible memory
+        #     self.feasible_memory.append((exp_id, event))
+        #     self.memory = deque([(id, exp) for id, exp in self.memory if id != exp_id], maxlen=self.capacity)
+        # else:
+        #     # Check if the exp_id already exists in the feasible memory
+        #     if not any(id == exp_id for id, _ in self.feasible_memory):
+        #         self.memory.append((exp_id, event))
+        #     # self.memory.append(event)
+            
+        # Check if total memory exceeds capacity and adjust
+        while len(self.memory) + len(self.feasible_memory) > self.capacity:
+            self.memory.popleft()  # Remove the oldest from the general memory first
+    
+    # def sample(self, batch_size):
+    #     return random.sample(self.memory, batch_size)
     
     def sample(self, batch_size):
-        return random.sample(self.memory, batch_size)
+        num_feasible = int(batch_size * self.feasibility_priority)
+        num_regular = batch_size - num_feasible
+        
+        samples = []
+        if len(self.feasible_memory) < num_feasible:
+            # Not enough feasible samples, adjust numbers
+            num_feasible = len(self.feasible_memory)
+            num_regular = batch_size - num_feasible
+        
+        if num_feasible > 0:
+            samples.extend(random.sample(self.feasible_memory, num_feasible))
+        if num_regular > 0 and len(self.memory) > 0:
+            samples.extend(random.sample(self.memory, num_regular))
+        
+        return samples
+    
+    def clean_up(self):
+        
+        
+    
     
     def __len__(self):
-        return len(self.memory)
+        return len(self.memory) + len(self.feasible_memory)
+        
+'''
     
 class DQNAgent:
-    def __init__(self, ports, vessels):
+    def __init__(self, ports, vessels, TRAINING_FREQUENCY, TARGET_UPDATE_FREQUENCY, NON_RANDOM_ACTION_EPISODE_FREQUENCY, BATCH_SIZE, replay):
         # ports plus source and sink, vessel inventory, (vessel position, vessel in transit), time period, vessel_number
         state_size = len(ports) + 3 * len(vessels) + 2 + len(ports)
         # Ports plus sink port
         action_size = len(ports)
         self.state_size = state_size
         self.action_size = action_size
-        self.memory = ReplayMemory(10000)
-        self.gamma = 0.95    # discount rate
-        self.epsilon = 0.5   # exploration rate
-        self.epsilon_min = 0.01
-        self.epsilon_decay = 0.95
+        self.memory = replay
+        self.gamma = 0.99    # discount rate
+        self.epsilon = 0.75   # exploration rate
+        self.epsilon_min = 0.1
+        self.epsilon_decay = 0.99
         self.main_model = DQN(state_size, action_size)
         self.target_model = DQN(state_size, action_size)
         # Load the state dictionaries
-        self.optimizer = optim.Adam(self.main_model.parameters(), lr=0.01)
+        self.optimizer = optim.Adam(self.main_model.parameters())
+        self.TRAINING_FREQUENCY = TRAINING_FREQUENCY
+        self.TARGET_UPDATE_FREQUENCY = TARGET_UPDATE_FREQUENCY
+        self.NON_RANDOM_ACTION_EPISODE_FREQUENCY = NON_RANDOM_ACTION_EPISODE_FREQUENCY
+        self.BATCH_SIZE = BATCH_SIZE
             
     def select_action(self, state, legal_actions,  env, vessel_simp, episode_number):  
         
-        if episode_number % 10 != 0:
+        if episode_number % self.NON_RANDOM_ACTION_EPISODE_FREQUENCY != 0:
             if np.random.rand() < self.epsilon:
                 action = random.choice(legal_actions)
                 arc = action[3]
@@ -695,13 +884,14 @@ class DQNAgent:
                     return action, new_state
                 
                 
-    def train_main_network(self, batch_size, env):
-        if len(self.memory) < batch_size:
+    def train_main_network(self, env):
+        if len(self.memory) < self.BATCH_SIZE:
             return  # Not enough samples to train
         
         total_loss = 0
-        minibatch = self.memory.sample(batch_size)
-        for state, action, vessel, reward, next_state, _ in minibatch:
+        minibatch = self.memory.sample(self.BATCH_SIZE)
+        for _, exp in minibatch:
+            state, action, vessel, reward, next_state, _, _ = exp
             vessel_simp = state['vessel_dict'][vessel.number]
             encoded_state = env.encode_state(state, vessel_simp)
             encoded_state = torch.FloatTensor(encoded_state).unsqueeze(0)
@@ -785,6 +975,11 @@ def main():
     OPERATING_SPEED = problem_data['OPERATING_SPEED']
     NODES = problem_data['NODES']
     NODE_DICT = problem_data['NODE_DICT']
+    TRAINING_FREQUENCY = 10
+    TARGET_UPDATE_FREQUENCY = 200
+    NON_RANDOM_ACTION_EPISODE_FREQUENCY = 20
+    BATCH_SIZE = 250
+    random.seed(0)
     
     
     simp_model, env_data = build_simplified_RL_model(vessels, vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, non_operational, sourceNode, sinkNode, waiting_arcs, OPERATING_COST, OPERATING_SPEED, NODES, NODE_DICT)
@@ -793,17 +988,16 @@ def main():
     #     visualize_network_for_vessel(v, vessel_arcs, False, NODES, sinkNode)
     
     env = MIRPSOEnv(ports, vessels, env_data['vessel_arcs'], NODES, TIME_PERIOD_RANGE, sourceNode, sinkNode, env_data['node_dict'])
-    agent = DQNAgent(ports = ports, vessels=vessels)
+    
     replay = ReplayMemory(10000)
-    agent.memory = replay
+    agent = DQNAgent(ports = ports, vessels=vessels, TRAINING_FREQUENCY = TRAINING_FREQUENCY, TARGET_UPDATE_FREQUENCY = TARGET_UPDATE_FREQUENCY, NON_RANDOM_ACTION_EPISODE_FREQUENCY = NON_RANDOM_ACTION_EPISODE_FREQUENCY, BATCH_SIZE = BATCH_SIZE, replay = replay)
+    # agent.memory = replay
     # agent.memory = agent.load_replay_buffer(file_name= 'replay_buffer_1.pkl')
     
-    TRAINING_FREQUENCY = 5
-    TARGET_UPDATE_FREQUENCY = 10
-    NON_RANDOM_ACTION_EPISODE_FREQUENCY = 10
-    REPLAY_SAVING_FREQUENCY = 25
-    MODEL_SAVING_FREQUENCY = 100
-    BATCH_SIZE = 250
+    # TRAINING_FREQUENCY = 5
+    # TARGET_UPDATE_FREQUENCY = 10
+    # REPLAY_SAVING_FREQUENCY = 25
+    # MODEL_SAVING_FREQUENCY = 100
     
     '''Load main and target model.'''
     # agent.main_model.load_state_dict(torch.load('main_model.pth'))
@@ -815,13 +1009,16 @@ def main():
     # profiler = cProfile.Profile()
     for episode in range(1, num_episodes):
         
-        if episode % TRAINING_FREQUENCY == 0:
-            agent.train_main_network(BATCH_SIZE, env)
-            gc.collect()
+        if episode % agent.TRAINING_FREQUENCY == 0:
+            agent.train_main_network(env)
             
-        if episode % TARGET_UPDATE_FREQUENCY == 0:
+        if episode % agent.TARGET_UPDATE_FREQUENCY == 0:
             agent.update_target_network()
-            
+            print('Target network updated')
+            gc.collect()
+            # Reduce the size of the replay buffer. Remove the the oldest experiences so the replay buffer is at 75% of its capacity
+            replay.clean_up()
+                       
         if episode % NON_RANDOM_ACTION_EPISODE_FREQUENCY == 0:
             print(f"NON Random Action Episode: {episode}")
         
