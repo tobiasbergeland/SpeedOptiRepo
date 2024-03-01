@@ -1,6 +1,6 @@
 from MIRPSO_M import build_model
 from MIRPSO_M import build_problem
-from proximity_search import perform_proximity_search
+from proximity_search import perform_proximity_search, perform_proximity_search_with_simulated_annealing
 from MIRPSO_M import find_initial_solution
 from MIRPSO_M import solve_model
 from MIRPSO_M import build_simplified_RL_model
@@ -56,8 +56,9 @@ def main():
     ps_data = {'model': model, 'initial_solution':x_initial_solution, 'costs': costs, 'regularNodes': regularNodes, 'vessels': vessels, 'operating_cost':OPERATING_COST, 'vessel_arcs': vessel_arcs}
 
     # Perform the proximity search using the initial solution
-    improved_solution, obj_value = perform_proximity_search(ps_data)
-
+    #improved_solution, obj_value = perform_proximity_search(ps_data)
+    #Perform proximity search with simulated annealing
+    improved_solution, obj_value = perform_proximity_search_with_simulated_annealing(ps_data)
     # print("Final solution:", improved_solution)
     print("Objective value:", obj_value)
     
