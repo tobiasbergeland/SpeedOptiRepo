@@ -243,6 +243,63 @@ class MIRPSOEnv():
         for arc in legal_arcs:
             legal_actions.append((vessel.number, operation_type, legal_quantity, arc))
         return legal_actions
+    
+    def sim_find_legal_actions_for_vessel(self, state, vessel):
+        # Initialize the operation type and vessel ID
+        position_port_number = vessel['position']
+        position_port = state['port_dict'][position_port_number]
+        # Determine the operation type based on the vessel's position and the state's time
+        if state['time'] == 0:
+            operation_type = 0
+        elif position_port['isLoadingPort'] == 1:
+            operation_type = 1
+        else:
+            operation_type = 2
+            
+        legal_quantity = self.sim_get_legal_quantities(operation_type=operation_type, vessel=vessel, position_port=position_port)
+        legal_arcs = self.sim_get_legal_arcs(state=state, vessel=vessel, quantity=legal_quantity)
+        
+        legal_actions = []
+        for arc in legal_arcs:
+            legal_actions.append((vessel['number'], operation_type, legal_quantity, arc))
+        return legal_actions
+        
+        
+    def sim_get_legal_arcs(self, state, vessel, quantity):
+            
+            # Find the node the vessel is currently at
+            current_node_key = (vessel['position'], state['time'])
+            current_node = self.NODE_DICT[current_node_key]
+            
+            # Check if vessel is at a loading port or a consumption port
+            if current_node.port.isLoadingPort == 1:
+                # Vessel is at a loading port
+                inventory_after_operation = vessel['inventory'] + quantity
+            else:
+                # Vessel is at a consumption port
+                inventory_after_operation = vessel['inventory'] - quantity
+                
+            non_sim_vessel = self.VESSEL_DICT[vessel['number']]
+                
+            # Pre-filter arcs that originate from the current node
+            potential_arcs = [arc for arc in self.VESSEL_ARCS[non_sim_vessel] if arc.origin_node == current_node]
+            
+            # Filter based on vessel state and destination port characteristics
+            if inventory_after_operation == 0:
+                # Vessel is empty, can only travel to loading ports or sink
+                legal_arcs = [arc for arc in potential_arcs if arc.destination_node.port.isLoadingPort == 1 or arc.destination_node.port == self.SINK_NODE.port]
+            elif inventory_after_operation == vessel['max_inventory']:
+                # Vessel is full, can only travel to consumption ports or sink
+                legal_arcs = [arc for arc in potential_arcs if arc.destination_node.port.isLoadingPort == -1 or arc.destination_node.port == self.SINK_NODE.port]
+            else:
+                # Vessel can travel anywhere except back to the same port
+                legal_arcs = [arc for arc in potential_arcs if arc.destination_node.port != arc.origin_node.port]
+                
+            # Remove the sink arc if there are other legal arcs
+            if len(legal_arcs) > 1:
+                legal_arcs = [arc for arc in legal_arcs if arc.destination_node.port != self.SINK_NODE.port]
+    
+            return legal_arcs
 
     
     def get_legal_arcs(self, state, vessel, quantity):
@@ -279,6 +336,28 @@ class MIRPSOEnv():
             legal_arcs = {arc for arc in legal_arcs if arc.destination_node.port != self.SINK_NODE.port}
 
         return legal_arcs
+    
+    
+    def sim_get_legal_quantities(self, operation_type, vessel, position_port):
+
+            if operation_type == 0:
+                return 0
+            
+            else:
+                
+                # Calculate available capacity or inventory based on port type.
+                if position_port['isLoadingPort'] == 1:
+                    # For loading ports, calculate the maximum quantity that can be loaded onto the vessel.
+                    port_limiting_quantity = position_port['inventory']
+                    vessel_limiting_quantity = vessel['max_inventory'] - vessel['inventory']
+                    return min(port_limiting_quantity, vessel_limiting_quantity, position_port['capacity'])
+                else:
+                    # For discharging ports, calculate the maximum quantity that can be unloaded from the vessel.
+                    port_limiting_quantity = position_port['capacity'] - position_port['inventory']
+                    vessel_limiting_quantity = vessel['inventory']
+                    return min(port_limiting_quantity, vessel_limiting_quantity, position_port['capacity'])
+                
+                
                 
     def get_legal_quantities(self, operation_type, vessel):
         
@@ -920,7 +999,7 @@ def main():
     replay = ReplayMemory(10000)
     agent = DQNAgent(ports = ports, vessels=vessels, TRAINING_FREQUENCY = TRAINING_FREQUENCY, TARGET_UPDATE_FREQUENCY = TARGET_UPDATE_FREQUENCY, NON_RANDOM_ACTION_EPISODE_FREQUENCY = NON_RANDOM_ACTION_EPISODE_FREQUENCY, BATCH_SIZE = BATCH_SIZE, replay = replay)
     # agent.memory = replay
-    agent.memory = agent.load_replay_buffer(file_name= 'replay_buffer.pkl')
+    # agent.memory = agent.load_replay_buffer(file_name= 'replay_buffer.pkl')
     
     # TRAINING_FREQUENCY = 5
     # TARGET_UPDATE_FREQUENCY = 10
@@ -984,6 +1063,7 @@ def main():
             # Find the vessels that are available to perform an action
             available_vessels = env.find_available_vessels(state=state)
             
+            '''
             # If some vessels are available, select actions for them
             if len(available_vessels) > 0:
                 # profiler.enable()
@@ -1011,6 +1091,27 @@ def main():
 
                 # Perform the operation and routing actions and update the state based on this
                 state = env.step(state=state, actions=actions, experience_path=experience_path, decision_basis_states=decision_basis_states)
+                '''
+                 # If some vessels are available, select actions for them
+            if len(available_vessels) > 0:
+                # profiler.enable()
+                
+                actions = {}
+                decision_basis_states = {}
+                decision_basis_state = env.custom_deep_copy_of_state(state)
+                for vessel in available_vessels:
+                    corresponding_vessel = decision_basis_state['vessel_dict'][vessel.number]
+                    decision_basis_states[corresponding_vessel['number']] = decision_basis_state
+                    
+                    legal_actions = env.sim_find_legal_actions_for_vessel(state=decision_basis_state, vessel=corresponding_vessel)
+                    
+                    action, decision_basis_state = agent.select_action(state=copy.deepcopy(decision_basis_state), legal_actions=legal_actions, env=env, vessel_simp=corresponding_vessel, episode_number=episode)
+                    actions[vessel] = action
+
+                # Perform the operation and routing actions and update the state based on this
+                state = env.step(state=state, actions=actions, experience_path=experience_path, decision_basis_states=decision_basis_states)
+                
+                
                 
             # profiler.disable()
             # Create Stats object and sort by cumulative time
