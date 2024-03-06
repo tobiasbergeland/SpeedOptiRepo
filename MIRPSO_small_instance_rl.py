@@ -169,6 +169,22 @@ class MIRPSOEnv():
         port_dict = {k: port for k, port in state['port_dict'].items() if port['capacity'] is not None}
         vessel_dict = state['vessel_dict']
         
+        port_critical_times = []
+        # Use the rates to calculate the amount of time periods it takes before the port is empty
+        for port in port_dict.values():
+            rate = port['rate']
+            current_inventory = port['inventory']
+            if port['isLoadingPort'] != 1:
+                time_to_empty = max(0, math.floor(current_inventory / rate))
+            else:
+                time_to_empty = max(0, math.floor((port['capacity'] - current_inventory )/ rate))
+            port_critical_times.append(time_to_empty)
+            
+        # Convert to numpy array
+        port_critical_times = np.array(port_critical_times)
+                
+            
+        
         # If the port is a loading port, invert the inventory value. This way, all ports status are "good" if the value are high, and "bad" if the value is low.
         port_inventories = np.array([(port['capacity'] - port['inventory']) / port['capacity'] if port.get('is_loading_port', 1) else port['inventory'] / port['capacity'] for port in port_dict.values()])
 
@@ -182,7 +198,7 @@ class MIRPSOEnv():
             travel_times = np.array(self.TRAVEL_TIME_DICT[vessel_simp['position']])
             
         
-        
+        time = state['time']
         # Create a try catch block to handle cases where a vessel in the vessel_dict is on wrong format
         try :
             vessel_positions = np.array([v['position'] if v['position'] else v['in_transit_towards']['destination_port_number'] for v in vessel_dict.values()])
@@ -192,13 +208,19 @@ class MIRPSOEnv():
             vessel_in_transit = np.array([0 for v in vessel_dict.values()])
         # Create the vessel_positions and vessel_in_transit arrays. If vessel position is None put in 0.
         
+        # Create a np.array with values eqaul to (time - vessel_in_transit) values
+        vessel_in_transit = np.array([v['in_transit_towards']['destination_time'] - time if v['in_transit_towards'] else 0 for v in vessel_dict.values()])
+        
+        
+        
         # vessel_positions = np.array([v['position'] if v['position'] else v['in_transit_towards']['destination_port_number'] for v in vessel_dict.values()])
         # vessel_in_transit = np.array([v['in_transit_towards']['destination_time'] if v['in_transit_towards'] else 0 for v in vessel_dict.values()])
         
-        time = np.array([state['time']])
+        # time = np.array([state['time']])
         
         # Combine all features into a single numpy array
-        encoded_state = np.concatenate([port_inventories, vessel_inventories, vessel_positions, vessel_in_transit, travel_times, time, current_vessel_number])
+        # encoded_state = np.concatenate([port_critical_times, vessel_inventories, vessel_positions, vessel_in_transit, travel_times, time, current_vessel_number])
+        encoded_state = np.concatenate([port_critical_times, vessel_inventories, vessel_positions, vessel_in_transit, travel_times, current_vessel_number])
         return encoded_state
     
     
@@ -515,6 +537,9 @@ class MIRPSOEnv():
             print('Infeasible time periods:', infeasibility_dict.keys())
         if infeasibility_counter == 0:
             print('Feasible solution:)')
+            
+        first_infeasible_time = experience_path[0][7]
+        return first_infeasible_time, infeasibility_counter
         
         
     def update_rewards_in_experience_path(self, experience_path, agent):
@@ -536,8 +561,8 @@ class MIRPSOEnv():
             print('Feasible path found')
 
         # Extra reward for fully feasible path
-        extra_reward_for_feasible_path = 1000
-        penalty_for_infeasibility = -100
+        extra_reward_for_feasible_path = 10000
+        penalty_for_infeasibility = -10000
         
         
         for exp in experience_path:
@@ -550,10 +575,11 @@ class MIRPSOEnv():
             num_infeasible_ports = len([port for port in port_dict.values() if port['inventory'] < 0 or port['inventory'] > port['capacity']])
             
             if num_infeasible_ports > 0:
-                num_ports = len(port_dict)
-                immediate_reward = -(num_infeasible_ports / num_ports)
+                # num_ports = len(port_dict)
+                # immediate_reward = -(num_infeasible_ports / num_ports)
+                immediate_reward = -num_infeasible_ports*100
             else:
-                immediate_reward = 1
+                immediate_reward = 100
             
             # num_infeasible_ports = len([port for port in next_state['port'] if port.inventory < 0 or port.inventory > port.capacity])
             # Calculate when the state became infeasible. Save for later
@@ -566,7 +592,7 @@ class MIRPSOEnv():
             # Select the maximum future Q-value as an indicator of the next state's potential
             max_future_reward = np.max(future_rewards)
             # Clip the future reward to be within the desired range, e.g., [-1, 1]
-            clipped_future_reward = np.clip(max_future_reward, -100, 1000)
+            clipped_future_reward = np.clip(max_future_reward, -10000, 10000)
             # Update the reward using the clipped future reward
             updated_reward = immediate_reward + clipped_future_reward
             
@@ -814,15 +840,16 @@ class ReplayMemory:
         # Reduce the size of each memory to the target size
         while len(self.memory) > target_infeasible_size:
             self.memory.popleft()
-        while len(self.feasible_memory) > target_feasible_size:
-            self.feasible_memory.popleft()
+        # while len(self.feasible_memory) > target_feasible_size:
+        #     self.feasible_memory.popleft()
 
     
 
 class DQNAgent:
     def __init__(self, ports, vessels, TRAINING_FREQUENCY, TARGET_UPDATE_FREQUENCY, NON_RANDOM_ACTION_EPISODE_FREQUENCY, BATCH_SIZE, replay):
         # ports plus source and sink, vessel inventory, (vessel position, vessel in transit), time period, vessel_number
-        state_size = len(ports) + 3 * len(vessels) + 2 + len(ports)
+        # state_size = len(ports) + 3 * len(vessels) + 2 + len(ports)
+        state_size = len(ports) + 3 * len(vessels) + 1 + len(ports)
         # Ports plus sink port
         action_size = len(ports)
         self.state_size = state_size
@@ -842,9 +869,9 @@ class DQNAgent:
         self.NON_RANDOM_ACTION_EPISODE_FREQUENCY = NON_RANDOM_ACTION_EPISODE_FREQUENCY
         self.BATCH_SIZE = BATCH_SIZE
             
-    def select_action(self, state, legal_actions,  env, vessel_simp, episode_number):  
+    def select_action(self, state, legal_actions,  env, vessel_simp, exploit):  
         
-        if episode_number % self.NON_RANDOM_ACTION_EPISODE_FREQUENCY != 0:
+        if not exploit:
             if np.random.rand() < self.epsilon:
                 action = random.choice(legal_actions)
                 arc = action[3]
@@ -873,6 +900,7 @@ class DQNAgent:
         
         # Make q_values into a list
         q_values = q_values[0]
+
         
         # Sort the q-values, but keep track of the original indices
         q_values = [(q_value, index +1) for index, q_value in enumerate(q_values)]
@@ -948,27 +976,198 @@ class DQNAgent:
             replay_buffer = pickle.load(f)
         print(f"Replay buffer loaded from {file_name}.")
         return replay_buffer
-                
-                
-        
-def main():
-    # Set a higher recursion limit (be cautious with this)
-    sys.setrecursionlimit(5000) 
-    # np.random.seed(0)
-    INSTANCE = 'LR1_1_DR1_3_VC1_V7a'
-    # INSTANCE = 'LR1_1_DR1_4_VC3_V8a'
-    # INSTANCE = 'LR1_1_DR1_4_VC3_V9a'
-    # INSTANCE = 'LR1_1_DR1_4_VC3_V11a'
-    # INSTANCE = 'LR1_1_DR1_4_VC3_V12a'
-    # INSTANCE = 'LR1_2_DR1_3_VC2_V6a'
-    # INSTANCE = 'LR1_2_DR1_3_VC3_V8a'
-    # INSTANCE = 'LR1_1_DR1_4_VC3_V12b'
-    # INSTANCE = 'LR2_11_DR2_22_VC3_V6a'
-    # INSTANCE = 'LR2_11_DR2_33_VC4_V11a'
-
-    problem_data = build_problem(INSTANCE)
     
-    # Unpack the problem data
+def evaluate_agent_until_solution_is_found(env, agent, replay):
+    solution_found = False
+    while not solution_found:
+    
+        experience_path = []
+        state = env.reset()
+        done = False
+        decision_basis_states = {vessel.number: state for vessel in state['vessels']}
+        for vessel in state['vessels']:
+            decision_basis_states[vessel.number] = env.custom_deep_copy_of_state(decision_basis_states[vessel.number])
+        actions = {}
+        for vessel in state['vessels']:
+            legal_actions_for_vessel =  env.find_legal_actions_for_vessel(state=state, vessel=vessel)
+            actions[vessel] = legal_actions_for_vessel[0]
+        state = env.step(state=state, actions=actions, experience_path=experience_path, decision_basis_states=decision_basis_states)
+        
+        while not done:
+            # Increase time and make production ports produce.
+            state = env.increment_time_and_produce(state=state)
+            # Check if state is infeasible or terminal        
+            state, total_reward_for_path = env.check_state(state=state, experience_path=experience_path, replay=replay, agent=agent)
+            # With the increased time, the vessels have moved and some of them have maybe reached their destination. Updating the vessel status based on this.
+            env.update_vessel_status(state=state)
+            # Find the vessels that are available to perform an action
+            available_vessels = env.find_available_vessels(state=state)
+            # If some vessels are available, select actions for them
+            if len(available_vessels) > 0:
+                actions = {}
+                decision_basis_states = {}
+                decision_basis_state = env.custom_deep_copy_of_state(state)
+                for vessel in available_vessels:
+                    corresponding_vessel = decision_basis_state['vessel_dict'][vessel.number]
+                    decision_basis_states[corresponding_vessel['number']] = decision_basis_state
+                    
+                    legal_actions = env.sim_find_legal_actions_for_vessel(state=decision_basis_state, vessel=corresponding_vessel)
+                    
+                    action, decision_basis_state = agent.select_action(state=copy.deepcopy(decision_basis_state), legal_actions=legal_actions, env=env, vessel_simp=corresponding_vessel, exploit=False)
+                    actions[vessel] = action
+
+                # Perform the operation and routing actions and update the state based on this
+                state = env.step(state=state, actions=actions, experience_path=experience_path, decision_basis_states=decision_basis_states)
+                
+            # Make consumption ports consume (1 timeperiod worth of consume) regardless if any actions were performed
+            state = env.consumption(state)
+            
+            # Check if state is infeasible or terminal
+            state, total_reward_for_path = env.check_state(state=state, experience_path=experience_path, replay=replay, agent=agent)
+            
+            # agent.update_policy(state, action, reward, next_state)
+            done = state['done']
+            
+            if done:
+                if not state['infeasible']:
+                    return experience_path
+                break
+            
+            
+def evaluate_agent(env, agent):
+    experience_path = []
+    state = env.reset()
+    done = False
+    decision_basis_states = {vessel.number: state for vessel in state['vessels']}
+    for vessel in state['vessels']:
+        decision_basis_states[vessel.number] = env.custom_deep_copy_of_state(decision_basis_states[vessel.number])
+    actions = {}
+    for vessel in state['vessels']:
+        legal_actions_for_vessel =  env.find_legal_actions_for_vessel(state=state, vessel=vessel)
+        actions[vessel] = legal_actions_for_vessel[0]
+    state = env.step(state=state, actions=actions, experience_path=experience_path, decision_basis_states=decision_basis_states)
+    
+    while not done:
+        # Increase time and make production ports produce.
+        state = env.increment_time_and_produce(state=state)
+        # Check if state is infeasible or terminal        
+        state, total_reward_for_path = env.check_state(state=state, experience_path=experience_path, replay=agent.memory, agent=agent)
+        # With the increased time, the vessels have moved and some of them have maybe reached their destination. Updating the vessel status based on this.
+        env.update_vessel_status(state=state)
+        # Find the vessels that are available to perform an action
+        available_vessels = env.find_available_vessels(state=state)
+        # If some vessels are available, select actions for them
+        if len(available_vessels) > 0:
+            actions = {}
+            decision_basis_states = {}
+            decision_basis_state = env.custom_deep_copy_of_state(state)
+            for vessel in available_vessels:
+                corresponding_vessel = decision_basis_state['vessel_dict'][vessel.number]
+                decision_basis_states[corresponding_vessel['number']] = decision_basis_state
+                
+                legal_actions = env.sim_find_legal_actions_for_vessel(state=decision_basis_state, vessel=corresponding_vessel)
+                
+                action, decision_basis_state = agent.select_action(state=copy.deepcopy(decision_basis_state), legal_actions=legal_actions, env=env, vessel_simp=corresponding_vessel, exploit=True)
+                actions[vessel] = action
+
+            # Perform the operation and routing actions and update the state based on this
+            state = env.step(state=state, actions=actions, experience_path=experience_path, decision_basis_states=decision_basis_states)
+            
+        # Make consumption ports consume (1 timeperiod worth of consume) regardless if any actions were performed
+        state = env.consumption(state)
+        
+        # Check if state is infeasible or terminal
+        state, total_reward_for_path = env.check_state(state=state, experience_path=experience_path, replay=agent.memory, agent=agent)
+        
+        # agent.update_policy(state, action, reward, next_state)
+        done = state['done']
+        
+        if done:
+            first_infeasible_time = env.log_episode(1, total_reward_for_path, experience_path)
+            return first_infeasible_time
+    
+
+
+def convert_path_to_MIRPSO_solution(env, experience_path):
+    # Create a dict with vesselnumber as key, and an empty list as value
+    active_arcs = {}
+    operational_nodes_for_vessel = {}
+    
+    for vessel in env.VESSELS:
+        active_arcs[vessel.number] = []
+        operational_nodes_for_vessel[vessel.number] = []
+        
+    for exp in experience_path:
+        state, action, vessel, reward, next_state, earliest_vessel, feasible_path, first_infeasible_time = exp
+        #vessel_number, operation_type, quantity, arc = action
+        arc = action[3]
+        active_arcs[vessel.number].append(arc)
+        # operation_time = state['time']
+        operation_node = arc.origin_node
+        quantity = action[2]
+        operational_nodes_for_vessel[vessel.number].append((operation_node, quantity))
+    return active_arcs, operational_nodes_for_vessel
+
+import matplotlib.pyplot as plt
+from IPython.display import display, clear_output
+def train_from_pre_populated_buffer(env, agent, num_episodes):
+    TRAINING_FREQUENCY = 1
+    TARGET_UPDATE_FREQUENCY = 10
+    EVALUATION_FREQUENCY = 1
+    first_infeasible_times = []
+    infeasibility_counters = []
+    plt.figure(figsize=(10, 6))
+    ax1 = plt.gca()  # Get the current axis
+    ax2 = ax1.twinx()  # Create another axis that shares the same x-axis
+    
+    for episode in range(1, num_episodes + 1):
+        # Training the agent's network with a batch from the replay buffer.
+        if episode % TRAINING_FREQUENCY == 0:
+            agent.train_main_network(env)
+
+        # Updating the target network
+        if episode % TARGET_UPDATE_FREQUENCY == 0:
+            agent.update_target_network()
+            print('Target network updated')
+        
+        if episode % EVALUATION_FREQUENCY == 0:
+            first_inf_time, infeasibility_counter = evaluate_agent(env=env, agent=agent)
+            if first_inf_time is None:
+                first_inf_time = env.TIME_PERIOD_RANGE[-1]
+            
+            first_infeasible_times.append(first_inf_time)
+            infeasibility_counters.append(infeasibility_counter)
+            # Update live histogram plot
+            # Clear the current plot's output and display the updated plot
+            # Clear the current plot's output and display the updated plot
+            clear_output(wait=True)  # Clear the previous output
+            # plt.plot(first_infeasible_times, '-o', label='First Infeasible Time')
+            ax1.plot(first_infeasible_times, '-ob', label='First Infeasible Time')
+            ax2.plot(infeasibility_counters, '-or', label='Infeasibility Counter')
+            if episode == EVALUATION_FREQUENCY:  # Add the legend only once
+                ax1.legend(loc='upper left')
+                ax2.legend(loc='upper right')
+            # if episode == EVALUATION_FREQUENCY:  # Add the legend only once
+                # plt.legend()
+                
+            ax1.set_title('Development of First Infeasible Times and Infeasibility Counters Over Episodes')
+            ax1.set_xlabel('Episode')
+            ax1.set_ylabel('First Infeasible Time', color='b')
+            ax2.set_ylabel('Infeasibility Counter', color='r')
+            
+            display(plt.gcf())  # Display the current figure
+            plt.pause(0.001)  # Pause for a short period to allow the plot to update
+
+    plt.close()  # Close the figure to prevent additional output
+            # plt.title('Development of First Infeasible Times Over Episodes')
+            # plt.xlabel('Episode')
+            # plt.ylabel('First Infeasible Time')
+            # display(plt.gcf())  # Display the current figure
+            # plt.pause(0.001)
+
+    # plt.close()  # Close the figure to prevent additional output
+            
+def unpack_problem_data(problem_data):
     vessels = problem_data['vessels']
     vessel_arcs = problem_data['vessel_arcs']
     regularNodes = problem_data['regularNodes']
@@ -982,38 +1181,80 @@ def main():
     OPERATING_SPEED = problem_data['OPERATING_SPEED']
     NODES = problem_data['NODES']
     NODE_DICT = problem_data['NODE_DICT']
-    TRAINING_FREQUENCY = 5
-    TARGET_UPDATE_FREQUENCY = 200
-    NON_RANDOM_ACTION_EPISODE_FREQUENCY = 25
-    BATCH_SIZE = 500
+    return vessels, vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, non_operational, sourceNode, sinkNode, waiting_arcs, OPERATING_COST, OPERATING_SPEED, NODES, NODE_DICT
+
+def unpack_env_data(env_data):
+    vessels = env_data['vessels']
+    vessel_arcs = env_data['vessel_arcs']
+    regularNodes = env_data['regularNodes']
+    ports = env_data['ports']
+    TIME_PERIOD_RANGE = env_data['TIME_PERIOD_RANGE']
+    non_operational = env_data['non_operational']
+    sourceNode = env_data['sourceNode']
+    sinkNode = env_data['sinkNode']
+    waiting_arcs = env_data['waiting_arcs']
+    OPERATING_COST = env_data['OPERATING_COST']
+    OPERATING_SPEED = env_data['OPERATING_SPEED']
+    ports_dict = env_data['ports_dict']
+    NODE_DICT = env_data['node_dict']
+    vessel_dict = env_data['vessel_dict']
+    return vessels, vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, non_operational, sourceNode, sinkNode, waiting_arcs, OPERATING_COST, OPERATING_SPEED, ports_dict, NODE_DICT, vessel_dict
+
+
+                
+        
+def main(FULLSIM):
+    # Set a higher recursion limit (be cautious with this)
+    sys.setrecursionlimit(5000) 
     random.seed(0)
+    gc.enable()
     
+    INSTANCE = 'LR1_1_DR1_3_VC1_V7a'
+    # INSTANCE = 'LR1_1_DR1_4_VC3_V8a'
+    # INSTANCE = 'LR1_1_DR1_4_VC3_V9a'
+    # INSTANCE = 'LR1_1_DR1_4_VC3_V11a'
+    # INSTANCE = 'LR1_1_DR1_4_VC3_V12a'
+    # INSTANCE = 'LR1_2_DR1_3_VC2_V6a'
+    # INSTANCE = 'LR1_2_DR1_3_VC3_V8a'
+    # INSTANCE = 'LR1_1_DR1_4_VC3_V12b'
+    # INSTANCE = 'LR2_11_DR2_22_VC3_V6a'
+    # INSTANCE = 'LR2_11_DR2_33_VC4_V11a'
     
+    TRAINING_FREQUENCY = 1
+    TARGET_UPDATE_FREQUENCY = 100
+    NON_RANDOM_ACTION_EPISODE_FREQUENCY = 25
+    BATCH_SIZE = 256
+
+    problem_data = build_problem(INSTANCE)
+    vessels, vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, non_operational, sourceNode, sinkNode, waiting_arcs, OPERATING_COST, OPERATING_SPEED, NODES, NODE_DICT = unpack_problem_data(problem_data)
     simp_model, env_data = build_simplified_RL_model(vessels, vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, non_operational, sourceNode, sinkNode, waiting_arcs, OPERATING_COST, OPERATING_SPEED, NODES, NODE_DICT)
+    #Vessel arcs are the only thing that changes between the simplified and the full model
+    vessels, vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, non_operational, sourceNode, sinkNode, waiting_arcs, OPERATING_COST, OPERATING_SPEED, ports_dict, NODE_DICT, vessel_dict = unpack_env_data(env_data)
     
-    # for v in vessels:
-    #     visualize_network_for_vessel(v, vessel_arcs, False, NODES, sinkNode)
-    
-    env = MIRPSOEnv(ports, vessels, env_data['vessel_arcs'], NODES, TIME_PERIOD_RANGE, sourceNode, sinkNode, env_data['node_dict'])
-    
-    replay = ReplayMemory(10000)
+    env = MIRPSOEnv(ports, vessels, vessel_arcs, NODES, TIME_PERIOD_RANGE, sourceNode, sinkNode, NODE_DICT)
+    replay = ReplayMemory(3000)
     agent = DQNAgent(ports = ports, vessels=vessels, TRAINING_FREQUENCY = TRAINING_FREQUENCY, TARGET_UPDATE_FREQUENCY = TARGET_UPDATE_FREQUENCY, NON_RANDOM_ACTION_EPISODE_FREQUENCY = NON_RANDOM_ACTION_EPISODE_FREQUENCY, BATCH_SIZE = BATCH_SIZE, replay = replay)
-    # agent.memory = replay
-    # agent.memory = agent.load_replay_buffer(file_name= 'replay_buffer.pkl')
-    
-    # TRAINING_FREQUENCY = 5
-    # TARGET_UPDATE_FREQUENCY = 10
-    # MODEL_SAVING_FREQUENCY = 100
-    
-    '''Load main and target model.'''
+    if not FULLSIM:
+        replay = agent.load_replay_buffer(file_name= 'replay_buffer.pkl')
+        agent.memory = replay
+        train_from_pre_populated_buffer(env, agent, 1000)
+        # Evaluate the agent one last time to get a solution
+        experience_path = evaluate_agent_until_solution_is_found(env, agent, replay)
+        convert_path_to_MIRPSO_solution(experience_path)
+        
+    # '''Load main and target model.'''
     # agent.main_model.load_state_dict(torch.load('main_model.pth'))
     # agent.target_model.load_state_dict(torch.load('target_model.pth'))
         
-    gc.enable()
     num_episodes = 10000
     # Start profiling
     # profiler = cProfile.Profile()
+    first_infeasible_times = []
     for episode in range(1, num_episodes):
+        if episode % NON_RANDOM_ACTION_EPISODE_FREQUENCY == 0:
+            exploit = True
+        else:
+            exploit = False
         
         if episode % agent.TRAINING_FREQUENCY == 0:
             agent.train_main_network(env)
@@ -1054,7 +1295,10 @@ def main():
             state, total_reward_for_path = env.check_state(state=state, experience_path=experience_path, replay=replay, agent=agent)
             if state['done']:
                 if episode % NON_RANDOM_ACTION_EPISODE_FREQUENCY == 0:
-                    env.log_episode(episode, total_reward_for_path, experience_path)
+                    first_infeasible_time, infeasibility_counter = env.log_episode(episode, total_reward_for_path, experience_path)
+                    if first_infeasible_time is not None:
+                        first_infeasible_times.append(first_infeasible_time)
+                        
                 break
             
             # With the increased time, the vessels have moved and some of them have maybe reached their destination. Updating the vessel status based on this.
@@ -1063,36 +1307,8 @@ def main():
             # Find the vessels that are available to perform an action
             available_vessels = env.find_available_vessels(state=state)
             
-            '''
+        
             # If some vessels are available, select actions for them
-            if len(available_vessels) > 0:
-                # profiler.enable()
-                
-                legal_actions={}
-                for vessel in available_vessels:
-                    legal_actions[vessel] = env.find_legal_actions_for_vessel(state=state, vessel=vessel)
-                    
-                actions = {}
-                
-                # if len(available_vessels)>2:
-                    # print(f"Available vessels taking actions in the same time period = {len(available_vessels)}")
-                    
-                # decision_basis_state = copy.deepcopy(state)
-                
-                decision_basis_state = env.custom_deep_copy_of_state(state)
-                
-                decision_basis_states = {}
-                
-                for vessel in available_vessels:
-                    corresponding_vessel = decision_basis_state['vessel_dict'][vessel.number]
-                    decision_basis_states[corresponding_vessel['number']] = decision_basis_state
-                    action, decision_basis_state = agent.select_action(state=copy.deepcopy(decision_basis_state), legal_actions=legal_actions[vessel], env=env, vessel_simp=corresponding_vessel, episode_number=episode)
-                    actions[vessel] = action
-
-                # Perform the operation and routing actions and update the state based on this
-                state = env.step(state=state, actions=actions, experience_path=experience_path, decision_basis_states=decision_basis_states)
-                '''
-                 # If some vessels are available, select actions for them
             if len(available_vessels) > 0:
                 # profiler.enable()
                 
@@ -1105,7 +1321,7 @@ def main():
                     
                     legal_actions = env.sim_find_legal_actions_for_vessel(state=decision_basis_state, vessel=corresponding_vessel)
                     
-                    action, decision_basis_state = agent.select_action(state=copy.deepcopy(decision_basis_state), legal_actions=legal_actions, env=env, vessel_simp=corresponding_vessel, episode_number=episode)
+                    action, decision_basis_state = agent.select_action(state=copy.deepcopy(decision_basis_state), legal_actions=legal_actions, env=env, vessel_simp=corresponding_vessel, exploit=exploit)
                     actions[vessel] = action
 
                 # Perform the operation and routing actions and update the state based on this
@@ -1131,14 +1347,22 @@ def main():
             # If we are done, we will start a new episode
             if done:
                 if episode % NON_RANDOM_ACTION_EPISODE_FREQUENCY == 0:
-                    env.log_episode(state, episode, total_reward_for_path, experience_path)
+                    first_infeasible_time, infeasibility_counter = env.log_episode(state, episode, total_reward_for_path, experience_path)
+                    if first_infeasible_time is not None:
+                        first_infeasible_times.append(first_infeasible_time)
                 break
         
-    agent.save_replay_buffer(file_name=f"replay_buffer.pkl")
+    # agent.save_replay_buffer(file_name=f"replay_buffer_.pkl")
             
         # if episode % MODEL_SAVING_FREQUENCY == 0:
         #     torch.save(agent.main_model.state_dict(), 'main_model.pth')
         #     torch.save(agent.target_model.state_dict(), 'target_model.pth')
+        
+    # When agent is done training. Let the agent solve the problem, and return the solution
+    experience_path = evaluate_agent(env, agent, replay)
+    
+    
+    
             
     
     
@@ -1146,9 +1370,10 @@ def main():
 import sys
 
 if __name__ == "__main__":
-    # print(sys.prefix)
-    # cProfile.run('main()', sort='time')
-    main()
+    FULL_SIM = True
+    # FULL_SIM = False
+    
+    main(FULL_SIM)
         
         
     

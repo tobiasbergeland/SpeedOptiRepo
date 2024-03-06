@@ -992,11 +992,9 @@ def build_model(vessels, vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, no
 def build_simplified_RL_model(vessels, vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, non_operational, sourceNode, sinkNode, waiting_arcs, OPERATING_COST, OPERATING_SPEED, NODES, NODE_DICT):
     m = gp.Model('Maritime Inventory Routing Problem Speed Optimization')
     port_dict = {port.number: port for port in ports}
-    print(port_dict)
     
     # Keep only the arcs that are using the operating speed
     vessel_arcs = get_operating_speed_and_waiting_arcs(vessel_arcs, OPERATING_SPEED, NODES, ports)
-    
     
     '''Creating the variables'''
     '''Binary first'''
