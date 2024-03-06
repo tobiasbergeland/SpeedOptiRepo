@@ -1185,7 +1185,6 @@ def build_simplified_RL_model(vessels, vessel_arcs, regularNodes, ports, TIME_PE
                         name=f'q_{node.port.number}_{node.time}_{v}')
     m.update()
     
-    
     env_data = {
         'vessels': vessels,
         'vessel_arcs': vessel_arcs,
