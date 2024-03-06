@@ -503,19 +503,7 @@ class MIRPSOEnv():
                 total_reward_for_path += rew
             state['done'] = True
             state['infeasible'] = self.is_infeasible(state=state)
-            
-            
             return state, total_reward_for_path
-        
-        # if self.is_infeasible(state):
-        #     experience_path = self.update_rewards_in_experience_path(experience_path, agent)
-        #     for exp in experience_path:
-        #         replay.push(exp)
-        #         rew = exp[3]
-        #         total_reward_for_path += rew
-        #     state['infeasible'] = True
-        #     return state, total_reward_for_path
-        
         return state, None
     
     def log_episode(self, episode, total_reward_for_path, experience_path):
@@ -1087,7 +1075,6 @@ def evaluate_agent(env, agent):
             return first_infeasible_time
     
 
-
 def convert_path_to_MIRPSO_solution(env, experience_path):
     # Create a dict with vesselnumber as key, and an empty list as value
     active_arcs = {}
@@ -1099,12 +1086,9 @@ def convert_path_to_MIRPSO_solution(env, experience_path):
         
     for exp in experience_path:
         state, action, vessel, reward, next_state, earliest_vessel, feasible_path, first_infeasible_time = exp
-        #vessel_number, operation_type, quantity, arc = action
-        arc = action[3]
+        vessel_number, operation_type, quantity, arc = action
         active_arcs[vessel.number].append(arc)
-        # operation_time = state['time']
         operation_node = arc.origin_node
-        quantity = action[2]
         operational_nodes_for_vessel[vessel.number].append((operation_node, quantity))
     return active_arcs, operational_nodes_for_vessel
 
@@ -1159,11 +1143,6 @@ def train_from_pre_populated_buffer(env, agent, num_episodes):
             plt.pause(0.001)  # Pause for a short period to allow the plot to update
 
     plt.close()  # Close the figure to prevent additional output
-            # plt.title('Development of First Infeasible Times Over Episodes')
-            # plt.xlabel('Episode')
-            # plt.ylabel('First Infeasible Time')
-            # display(plt.gcf())  # Display the current figure
-            # plt.pause(0.001)
 
     # plt.close()  # Close the figure to prevent additional output
             
@@ -1234,137 +1213,92 @@ def main(FULLSIM):
     env = MIRPSOEnv(ports, vessels, vessel_arcs, NODES, TIME_PERIOD_RANGE, sourceNode, sinkNode, NODE_DICT)
     replay = ReplayMemory(3000)
     agent = DQNAgent(ports = ports, vessels=vessels, TRAINING_FREQUENCY = TRAINING_FREQUENCY, TARGET_UPDATE_FREQUENCY = TARGET_UPDATE_FREQUENCY, NON_RANDOM_ACTION_EPISODE_FREQUENCY = NON_RANDOM_ACTION_EPISODE_FREQUENCY, BATCH_SIZE = BATCH_SIZE, replay = replay)
+    # '''Load main and target model.'''
+    # agent.main_model.load_state_dict(torch.load('main_model.pth'))
+    # agent.target_model.load_state_dict(torch.load('target_model.pth'))
+    
     if not FULLSIM:
         replay = agent.load_replay_buffer(file_name= 'replay_buffer.pkl')
         agent.memory = replay
         train_from_pre_populated_buffer(env, agent, 1000)
-        # Evaluate the agent one last time to get a solution
-        experience_path = evaluate_agent_until_solution_is_found(env, agent, replay)
-        convert_path_to_MIRPSO_solution(experience_path)
         
-    # '''Load main and target model.'''
-    # agent.main_model.load_state_dict(torch.load('main_model.pth'))
-    # agent.target_model.load_state_dict(torch.load('target_model.pth'))
-        
-    num_episodes = 10000
-    # Start profiling
-    # profiler = cProfile.Profile()
-    first_infeasible_times = []
-    for episode in range(1, num_episodes):
-        if episode % NON_RANDOM_ACTION_EPISODE_FREQUENCY == 0:
-            exploit = True
-        else:
-            exploit = False
-        
-        if episode % agent.TRAINING_FREQUENCY == 0:
-            agent.train_main_network(env)
+    else:
+        NUM_EPISODES = 10000
+        # profiler = cProfile.Profile()
+        for episode in range(1, NUM_EPISODES):
+            if episode % NON_RANDOM_ACTION_EPISODE_FREQUENCY == 0:
+                exploit = True
+                print(f"NON Random Action Episode: {episode}")
+            else:
+                exploit = False
             
-        if episode % agent.TARGET_UPDATE_FREQUENCY == 0:
-            agent.update_target_network()
-            print('Target network updated')
-            gc.collect()
-            # Reduce the size of the replay buffer. Remove the the oldest experiences so the replay buffer is at 75% of its capacity
-            replay.clean_up()
-                       
-        if episode % NON_RANDOM_ACTION_EPISODE_FREQUENCY == 0:
-            print(f"NON Random Action Episode: {episode}")
-        
-        # Liste av alle experiences gjort av samtlige vessels denne episoden (State, action, reward, next_state)
-        experience_path = []
-        # Resetting the state of the environment
-        state = env.reset()
-        done = False
-        decision_basis_states = {vessel.number: state for vessel in state['vessels']}
-        # For each state in the decision basis states, convert to custom_state
-        for vessel in state['vessels']:
-            decision_basis_states[vessel.number] = env.custom_deep_copy_of_state(decision_basis_states[vessel.number])
-        # We know that each vessel have only one legal action in the initial state
-        actions = {}
-        for vessel in state['vessels']:
-            legal_actions_for_vessel =  env.find_legal_actions_for_vessel(state=state, vessel=vessel)
-            actions[vessel] = legal_actions_for_vessel[0]
-        state = env.step(state=state, actions=actions, experience_path=experience_path, decision_basis_states=decision_basis_states)
-        
-        # All vessels have made their initial action.
-        # Now we can start the main loop
-        while not done:
-            # Increase time and make production ports produce.
-            state = env.increment_time_and_produce(state=state)
-            
-            # Check if state is infeasible or terminal        
-            state, total_reward_for_path = env.check_state(state=state, experience_path=experience_path, replay=replay, agent=agent)
-            if state['done']:
-                if episode % NON_RANDOM_ACTION_EPISODE_FREQUENCY == 0:
-                    first_infeasible_time, infeasibility_counter = env.log_episode(episode, total_reward_for_path, experience_path)
-                    if first_infeasible_time is not None:
-                        first_infeasible_times.append(first_infeasible_time)
+            if episode % agent.TRAINING_FREQUENCY == 0:
+                agent.train_main_network(env)
+                
+            if episode % agent.TARGET_UPDATE_FREQUENCY == 0:
+                agent.update_target_network()
+                print('Target network updated')
+                gc.collect()
+                replay.clean_up()
                         
-                break
-            
-            # With the increased time, the vessels have moved and some of them have maybe reached their destination. Updating the vessel status based on this.
-            env.update_vessel_status(state=state)
-            
-            # Find the vessels that are available to perform an action
-            available_vessels = env.find_available_vessels(state=state)
-            
-        
-            # If some vessels are available, select actions for them
-            if len(available_vessels) > 0:
-                # profiler.enable()
+            experience_path = []
                 
-                actions = {}
-                decision_basis_states = {}
-                decision_basis_state = env.custom_deep_copy_of_state(state)
-                for vessel in available_vessels:
-                    corresponding_vessel = decision_basis_state['vessel_dict'][vessel.number]
-                    decision_basis_states[corresponding_vessel['number']] = decision_basis_state
+            # Resetting the state of the environment
+            state = env.reset()
+            done = False
+            # Directly create and fill decision_basis_states with custom deep-copied states for each vessel
+            decision_basis_states = {vessel.number: env.custom_deep_copy_of_state(state) for vessel in state['vessels']}
+            # We know that each vessel have only one legal action in the initial state
+            actions = {vessel: env.find_legal_actions_for_vessel(state=state, vessel=vessel)[0] for vessel in state['vessels']}
+            state = env.step(state=state, actions=actions, experience_path=experience_path, decision_basis_states=decision_basis_states)
+            
+            # All vessels have made their initial action.
+            while not done:
+                # Increase time and make production ports produce.
+                state = env.increment_time_and_produce(state=state)
+                
+                # Check if state is infeasible or terminal        
+                state, total_reward_for_path = env.check_state(state=state, experience_path=experience_path, replay=replay, agent=agent)
+                if state['done']:
+                    if episode % NON_RANDOM_ACTION_EPISODE_FREQUENCY == 0:
+                        env.log_episode(episode, total_reward_for_path, experience_path)
+                    break
+                
+                # With the increased time, the vessels have moved and some of them have maybe reached their destination. Updating the vessel status based on this.
+                env.update_vessel_status(state=state)
+                # Find the vessels that are available to perform an action
+                available_vessels = env.find_available_vessels(state=state)
+            
+                # If some vessels are available, select actions for them
+                if available_vessels:
+                    actions = {}
+                    decision_basis_states = {}
+                    decision_basis_state = env.custom_deep_copy_of_state(state)
+                    for vessel in available_vessels:
+                        corresponding_vessel = decision_basis_state['vessel_dict'][vessel.number]
+                        decision_basis_states[corresponding_vessel['number']] = decision_basis_state
+                        legal_actions = env.sim_find_legal_actions_for_vessel(state=decision_basis_state, vessel=corresponding_vessel)
+                        action, decision_basis_state = agent.select_action(state=copy.deepcopy(decision_basis_state), legal_actions=legal_actions, env=env, vessel_simp=corresponding_vessel, exploit=exploit)
+                        actions[vessel] = action
+                    # Perform the operation and routing actions and update the state based on this
+                    state = env.step(state=state, actions=actions, experience_path=experience_path, decision_basis_states=decision_basis_states)
                     
-                    legal_actions = env.sim_find_legal_actions_for_vessel(state=decision_basis_state, vessel=corresponding_vessel)
-                    
-                    action, decision_basis_state = agent.select_action(state=copy.deepcopy(decision_basis_state), legal_actions=legal_actions, env=env, vessel_simp=corresponding_vessel, exploit=exploit)
-                    actions[vessel] = action
-
-                # Perform the operation and routing actions and update the state based on this
-                state = env.step(state=state, actions=actions, experience_path=experience_path, decision_basis_states=decision_basis_states)
-                
-                
-                
-            # profiler.disable()
-            # Create Stats object and sort by cumulative time
-            # stats = pstats.Stats(profiler).sort_stats('cumulative')
-            # Print the stats
-            # stats.print_stats()
-                
-            # Make consumption ports consume (1 timeperiod worth of consume) regardless if any actions were performed
-            state = env.consumption(state)
+                # Make consumption ports consume regardless if any actions were performed
+                state = env.consumption(state)
             
-            # Check if state is infeasible or terminal
-            state, total_reward_for_path = env.check_state(state=state, experience_path=experience_path, replay=replay, agent=agent)
+        # agent.save_replay_buffer(file_name=f"replay_buffer_.pkl")
+                
+            # if episode % MODEL_SAVING_FREQUENCY == 0:
+            #     torch.save(agent.main_model.state_dict(), 'main_model.pth')
+            #     torch.save(agent.target_model.state_dict(), 'target_model.pth')
             
-            # agent.update_policy(state, action, reward, next_state)
-            done = state['done']
-            
-            # If we are done, we will start a new episode
-            if done:
-                if episode % NON_RANDOM_ACTION_EPISODE_FREQUENCY == 0:
-                    first_infeasible_time, infeasibility_counter = env.log_episode(state, episode, total_reward_for_path, experience_path)
-                    if first_infeasible_time is not None:
-                        first_infeasible_times.append(first_infeasible_time)
-                break
+        # When agent is done training. Let the agent solve the problem, and return the solution
+        experience_path = evaluate_agent(env, agent, replay)
         
-    # agent.save_replay_buffer(file_name=f"replay_buffer_.pkl")
-            
-        # if episode % MODEL_SAVING_FREQUENCY == 0:
-        #     torch.save(agent.main_model.state_dict(), 'main_model.pth')
-        #     torch.save(agent.target_model.state_dict(), 'target_model.pth')
-        
-    # When agent is done training. Let the agent solve the problem, and return the solution
-    experience_path = evaluate_agent(env, agent, replay)
-    
-    
-    
-            
-    
+    # Evaluate the agent one last time to get a solution
+    experience_path = evaluate_agent_until_solution_is_found(env, agent, replay)
+    active_arcs, operational_nodes_for_vessel = convert_path_to_MIRPSO_solution(experience_path)
+    # Save the variables to a file
     
     
 import sys
@@ -1374,7 +1308,3 @@ if __name__ == "__main__":
     # FULL_SIM = False
     
     main(FULL_SIM)
-        
-        
-    
-    
