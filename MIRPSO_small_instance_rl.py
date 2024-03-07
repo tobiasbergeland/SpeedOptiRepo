@@ -11,8 +11,7 @@ import numpy as np
 import torch.nn.functional as F
 
 # sys.path.append('/Users/tobiaskolstobergeland/Documents/IndØk/10.Semester/ProsjektOppgave/Repo/SpeedOptiRepo/MIRPSO_M.py')
-from MIRPSO_M import (build_problem, build_simplified_RL_model,
-                      visualize_network_for_vessel)
+from MIRPSO_M import (build_problem, build_simplified_RL_model, build_model, visualize_network_for_vessel, solve_model)
 
 
 class MIRPSOEnv():
@@ -78,9 +77,6 @@ class MIRPSOEnv():
         }
         
     def reset(self):
-        # Reset the environment to an initial state
-        # Initialize your state here
-        # Ports, vessels, vessel_arcs, nodes and timeperiodrange is already initialized in the __init__ method. Only port- and vessel inventory and vessel position needs to be reset.
         for port in self.PORTS:
             port.inventory = self.INITIAL_PORT_INVENTORY[port]
         for vessel in self.VESSELS:
@@ -100,33 +96,8 @@ class MIRPSOEnv():
             'done' : False,
             'infeasible' : False,
         }
-            
         return self.state
    
-    # def encode_state(self, state, vessel):
-    #     port_inventories = np.array([(port.inventory)/port.capacity for port in state['ports']])
-    #     vessel_inventories = np.array([(vessel.inventory)/(vessel.max_inventory) for vessel in state['vessels']])
-    #     current_vessel_number = [vessel.number]
-        
-    #     # Initialize arrays to store the position and in-transit status
-    #     vessel_positions = np.zeros(len(state['vessels']))
-    #     vessel_in_transit = np.zeros(len(state['vessels']))  # 0 if at port, remaining time to next arrival if in transit
-
-    #     for i, vessel in enumerate(state['vessels']):
-    #         if vessel.position:  # Vessel is at a port
-    #             vessel_positions[i] = vessel.position.number
-    #         elif vessel.in_transit_towards:  # Vessel is in transit
-    #             vessel_positions[i] = vessel.in_transit_towards[0].number
-    #             # Time the vessel reaches the port
-    #             vessel_in_transit[i] = vessel.in_transit_towards[1]
-        
-    #     # time_period = np.array([self.state['time'] / max(self.TIME_PERIOD_RANGE)])
-    #     time = [state['time']]
-    #     # vessel_number = [vessel.number]
-    #     #print(time_period)
-    #     encoded_state = np.concatenate([port_inventories, vessel_inventories, vessel_positions, vessel_in_transit, time, current_vessel_number])
-    #     return encoded_state
-    
     def custom_deep_copy_of_state(self, state):
         new_state = {
             'port_dict': {},
@@ -160,110 +131,31 @@ class MIRPSOEnv():
         return new_state
         
         
-    
     def encode_state(self, state, vessel_simp):
-        #Simplified Vessel also
-        # We instead take in a simplified state with only the necessary attributes
-        
         # Skip the sink port
         port_dict = {k: port for k, port in state['port_dict'].items() if port['capacity'] is not None}
         vessel_dict = state['vessel_dict']
-        
-        port_critical_times = []
-        # Use the rates to calculate the amount of time periods it takes before the port is empty
-        for port in port_dict.values():
-            rate = port['rate']
-            current_inventory = port['inventory']
-            if port['isLoadingPort'] != 1:
-                time_to_empty = max(0, math.floor(current_inventory / rate))
-            else:
-                time_to_empty = max(0, math.floor((port['capacity'] - current_inventory )/ rate))
-            port_critical_times.append(time_to_empty)
-            
-        # Convert to numpy array
-        port_critical_times = np.array(port_critical_times)
-                
-            
-        
-        # If the port is a loading port, invert the inventory value. This way, all ports status are "good" if the value are high, and "bad" if the value is low.
-        port_inventories = np.array([(port['capacity'] - port['inventory']) / port['capacity'] if port.get('is_loading_port', 1) else port['inventory'] / port['capacity'] for port in port_dict.values()])
-
-        # port_inventories = np.array([port['inventory'] / port['capacity'] for port in port_dict.values()])
-        
+        port_critical_times = np.array([
+            max(0, math.floor(current_inventory / rate)) if port['isLoadingPort'] != 1 else max(0, math.floor((port['capacity'] - current_inventory) / rate))
+            for port in port_dict.values()
+            for rate, current_inventory in [(port['rate'], port['inventory'])]])
         vessel_inventories = np.array([vessel['inventory'] / vessel['max_inventory'] for vessel in vessel_dict.values()])
         current_vessel_number = np.array([vessel_simp['number']])
-        if vessel_simp['position'] is len(port_dict) + 1:
-            travel_times = np.array([0 for p in port_dict.values()])
-        else:
-            travel_times = np.array(self.TRAVEL_TIME_DICT[vessel_simp['position']])
-            
-        
-        time = state['time']
-        # Create a try catch block to handle cases where a vessel in the vessel_dict is on wrong format
-        try :
-            vessel_positions = np.array([v['position'] if v['position'] else v['in_transit_towards']['destination_port_number'] for v in vessel_dict.values()])
-            vessel_in_transit = np.array([v['in_transit_towards']['destination_time'] if v['in_transit_towards'] else 0 for v in vessel_dict.values()])
-        except:
-            vessel_positions = np.array([0 for v in vessel_dict.values()])
-            vessel_in_transit = np.array([0 for v in vessel_dict.values()])
-        # Create the vessel_positions and vessel_in_transit arrays. If vessel position is None put in 0.
-        
-        # Create a np.array with values eqaul to (time - vessel_in_transit) values
-        vessel_in_transit = np.array([v['in_transit_towards']['destination_time'] - time if v['in_transit_towards'] else 0 for v in vessel_dict.values()])
-        
-        
-        
-        # vessel_positions = np.array([v['position'] if v['position'] else v['in_transit_towards']['destination_port_number'] for v in vessel_dict.values()])
-        # vessel_in_transit = np.array([v['in_transit_towards']['destination_time'] if v['in_transit_towards'] else 0 for v in vessel_dict.values()])
-        
-        # time = np.array([state['time']])
-        
-        # Combine all features into a single numpy array
-        # encoded_state = np.concatenate([port_critical_times, vessel_inventories, vessel_positions, vessel_in_transit, travel_times, time, current_vessel_number])
+        travel_times = np.array(self.TRAVEL_TIME_DICT[vessel_simp['position']])
+        vessel_positions = np.array([v['position'] if v['position'] else v['in_transit_towards']['destination_port_number'] for v in vessel_dict.values()])
+        vessel_in_transit = np.array([v['in_transit_towards']['destination_time'] - state['time'] if v['in_transit_towards'] else 0 for v in vessel_dict.values()])
         encoded_state = np.concatenate([port_critical_times, vessel_inventories, vessel_positions, vessel_in_transit, travel_times, current_vessel_number])
         return encoded_state
     
-    
-    def encode_actual_state(self, state, vessel):
-        port_inventories = np.array([port.inventory / port.capacity for port in state['ports']])
-        vessel_inventories = np.array([v.inventory / v.max_inventory for v in state['vessels']])
-        current_vessel_number = np.array([vessel.number])
-
-        # Precompute vessel positions and in-transit statuses using numpy operations where possible
-        vessel_positions = np.array([v.position.number if v.position else v.in_transit_towards[0].number for v in state['vessels']])
-        vessel_in_transit = np.array([v.in_transit_towards[1] if v.in_transit_towards else 0 for v in state['vessels']])
-        travel_times = np.array(self.TRAVEL_TIME_DICT[vessel.position])
-        
-        
-        # Assuming state['time'] is a scalar value representing the current time
-        time = np.array([state['time']])
-
-        # Combine all features into a single numpy array
-        encoded_state = np.concatenate([port_inventories, vessel_inventories, vessel_positions, vessel_in_transit, travel_times, time, current_vessel_number])
-        return encoded_state
-        
-    
-     
-    
     def find_legal_actions_for_vessel(self, state, vessel):
-        # Initialize the operation type and vessel ID
-
         # Determine the operation type based on the vessel's position and the state's time
-        if state['time'] == 0:
-            operation_type = 0
-        elif vessel.position.isLoadingPort == 1:
-            operation_type = 1  # Loading at a production port
-        else:
-            operation_type = 2  # Offloading at a consumption port
-
+        operation_type = 0 if state['time'] == 0 else 1 if vessel.position.isLoadingPort == 1 else 2
         # Get legal quantities and arcs for the vessel
         legal_quantity = self.get_legal_quantities(operation_type=operation_type, vessel=vessel)
         legal_arcs = self.get_legal_arcs(state=state, vessel=vessel, quantity=legal_quantity)
 
         # Generate legal actions, considering special conditions
-        legal_actions = []
-        for arc in legal_arcs:
-            legal_actions.append((vessel.number, operation_type, legal_quantity, arc))
+        legal_actions = [(vessel.number, operation_type, legal_quantity, arc) for arc in legal_arcs]
         return legal_actions
     
     def sim_find_legal_actions_for_vessel(self, state, vessel):
@@ -271,41 +163,20 @@ class MIRPSOEnv():
         position_port_number = vessel['position']
         position_port = state['port_dict'][position_port_number]
         # Determine the operation type based on the vessel's position and the state's time
-        if state['time'] == 0:
-            operation_type = 0
-        elif position_port['isLoadingPort'] == 1:
-            operation_type = 1
-        else:
-            operation_type = 2
-            
+        operation_type = 0 if state['time'] == 0 else 1 if position_port['isLoadingPort'] == 1 else 2
         legal_quantity = self.sim_get_legal_quantities(operation_type=operation_type, vessel=vessel, position_port=position_port)
         legal_arcs = self.sim_get_legal_arcs(state=state, vessel=vessel, quantity=legal_quantity)
-        
-        legal_actions = []
-        for arc in legal_arcs:
-            legal_actions.append((vessel['number'], operation_type, legal_quantity, arc))
+        legal_actions = [(vessel['number'], operation_type, legal_quantity, arc) for arc in legal_arcs]
         return legal_actions
         
         
     def sim_get_legal_arcs(self, state, vessel, quantity):
-            
-            # Find the node the vessel is currently at
             current_node_key = (vessel['position'], state['time'])
             current_node = self.NODE_DICT[current_node_key]
-            
-            # Check if vessel is at a loading port or a consumption port
-            if current_node.port.isLoadingPort == 1:
-                # Vessel is at a loading port
-                inventory_after_operation = vessel['inventory'] + quantity
-            else:
-                # Vessel is at a consumption port
-                inventory_after_operation = vessel['inventory'] - quantity
-                
+            inventory_after_operation = vessel['inventory'] + quantity if current_node.port.isLoadingPort == 1 else vessel['inventory'] - quantity
             non_sim_vessel = self.VESSEL_DICT[vessel['number']]
-                
             # Pre-filter arcs that originate from the current node
             potential_arcs = [arc for arc in self.VESSEL_ARCS[non_sim_vessel] if arc.origin_node == current_node]
-            
             # Filter based on vessel state and destination port characteristics
             if inventory_after_operation == 0:
                 # Vessel is empty, can only travel to loading ports or sink
@@ -316,32 +187,19 @@ class MIRPSOEnv():
             else:
                 # Vessel can travel anywhere except back to the same port
                 legal_arcs = [arc for arc in potential_arcs if arc.destination_node.port != arc.origin_node.port]
-                
             # Remove the sink arc if there are other legal arcs
             if len(legal_arcs) > 1:
                 legal_arcs = [arc for arc in legal_arcs if arc.destination_node.port != self.SINK_NODE.port]
-    
             return legal_arcs
 
     
     def get_legal_arcs(self, state, vessel, quantity):
-        
         # Find the node the vessel is currently at
         current_node_key = (vessel.position.number, state['time'])
         current_node = self.NODE_DICT[current_node_key]
-        
-        # Check if vessel is at a loading port or a consumption port
-        if current_node.port.isLoadingPort == 1:
-            # Vessel is at a loading port
-            inventory_after_operation = vessel.inventory + quantity
-        else:
-            # Vessel is at a consumption port
-            inventory_after_operation = vessel.inventory - quantity
-            
-        
+        inventory_after_operation = vessel.inventory + quantity if current_node.port.isLoadingPort == 1 else vessel.inventory - quantity
         # Pre-filter arcs that originate from the current node
         potential_arcs = [arc for arc in self.VESSEL_ARCS[vessel] if arc.origin_node == current_node]
-        
         # Filter based on vessel state and destination port characteristics
         if inventory_after_operation == 0:
             # Vessel is empty, can only travel to loading ports or sink
@@ -352,21 +210,16 @@ class MIRPSOEnv():
         else:
             # Vessel can travel anywhere except back to the same port
             legal_arcs = {arc for arc in potential_arcs if arc.destination_node.port != arc.origin_node.port}
-            
         # Remove the sink arc if there are other legal arcs
         if len(legal_arcs) > 1:
             legal_arcs = {arc for arc in legal_arcs if arc.destination_node.port != self.SINK_NODE.port}
-
         return legal_arcs
     
     
     def sim_get_legal_quantities(self, operation_type, vessel, position_port):
-
             if operation_type == 0:
                 return 0
-            
             else:
-                
                 # Calculate available capacity or inventory based on port type.
                 if position_port['isLoadingPort'] == 1:
                     # For loading ports, calculate the maximum quantity that can be loaded onto the vessel.
@@ -379,13 +232,9 @@ class MIRPSOEnv():
                     vessel_limiting_quantity = vessel['inventory']
                     return min(port_limiting_quantity, vessel_limiting_quantity, position_port['capacity'])
                 
-                
-                
     def get_legal_quantities(self, operation_type, vessel):
-        
         if operation_type == 0:
             return 0
-        
         else:
             port = vessel.position
             # Calculate available capacity or inventory based on port type.
@@ -406,10 +255,8 @@ class MIRPSOEnv():
             destination_port = vessel.in_transit_towards[0]
             destination_time = vessel.in_transit_towards[1]
             if time == destination_time:
-                # Vessel has reached its destination
-                # Update the vessel's position
+                # Vessel has reached its destination. Update the vessel's position
                 self.update_vessel_position(vessel=vessel, new_position=destination_port)
-                
                 
     def sim_update_vessel_status(self, state):
         time = state['time']
@@ -417,55 +264,29 @@ class MIRPSOEnv():
             destination_port = vessel['in_transit_towards']['destination_port_number']
             destination_time = vessel['in_transit_towards']['destination_time']
             if time == destination_time:
-                # Vessel has reached its destination
-                # Update the vessel's position
+                # Vessel has reached its destination. Update the vessel's position
                 self.sim_update_vessel_position(vessel=vessel, new_position=destination_port)
                 
     def update_vessel_in_transition_and_inv_for_state(self, state, vessel, destination_port, destination_time, origin_port, quantity, operation_type):
-        
-        # vessel_copy = state['vessel_dict'][vessel.number]
-        # origin_port = state['port_dict'][origin_port.number]
-        # destination_port = state['port_dict'][destination_port.number]
-        
-        # vessel_copy.in_transit_towards = (destination_port, destination_time)
-        # vessel_copy.position = None
-        
-        # if operation_type == 1:
-        #     origin_port.inventory -= quantity
-        #     vessel_copy.inventory += quantity
-        # else:
-        #     origin_port.inventory += quantity
-        #     vessel_copy.inventory -= quantity
-            
         v = state['vessel_dict'][vessel['number']]
-        # if v['position'] is not None:
-        in_transit_towards = {}
-        in_transit_towards['destination_port_number'] = destination_port.number
-        in_transit_towards['destination_time'] = destination_time
+        in_transit_towards = {
+            'destination_port_number': destination_port.number,
+            'destination_time': destination_time}
         v['in_transit_towards'] = in_transit_towards
-        # v['in_transit_towards']['destination_port'] = destination_port.number
-        # v['in_transit_towards']['destination_time'] = destination_time
-        # v['in_transit_towards'] = (destination_port, destination_time)    
         v['position'] = None
-        
         origin_port = state['port_dict'][origin_port.number]
         destination_port = state['port_dict'][destination_port.number]
+        
         if operation_type == 1:
             origin_port['inventory'] -= quantity
             v['inventory'] += quantity
         else:
             origin_port['inventory'] += quantity
             v['inventory'] -= quantity
-            
         return state
         
-                
-        
     def is_infeasible(self, state):
-        # Implement a check for infeasible states
-        # For example, if the inventory of a port or vessel is negative, the state is infeasible
         for port in state['ports']:
-            # Use 0 as a lower limit for inventory
             if port.inventory < 0 or port.inventory > port.capacity:
                 return True
         for vessel in state['vessels']:
@@ -474,12 +295,8 @@ class MIRPSOEnv():
         return False
     
     def sim_is_infeasible(self, state):
-        # Implement a check for infeasible states
-        # For example, if the inventory of a port or vessel is negative, the state is infeasible
         port_dict = {k: v for k, v in state['port_dict'].items() if v['capacity'] is not None}
-        
         for port in port_dict.values():
-            # Use 0 as a lower limit for inventory
             if port['inventory'] < 0 or port['inventory'] > port['capacity']:
                 return True
         for vessel in state['vessel_dict'].values():
@@ -494,7 +311,6 @@ class MIRPSOEnv():
     def check_state(self, state, experience_path, replay, agent):
         '''Evaluates the state and returns status and reward.'''
         total_reward_for_path  = 0
-        
         if self.is_terminal(state):
             experience_path = self.update_rewards_in_experience_path(experience_path, agent)
             for exp in experience_path:
@@ -509,29 +325,21 @@ class MIRPSOEnv():
     def log_episode(self, episode, total_reward_for_path, experience_path):
         infeasibility_counter = 0
         infeasibility_dict = {}
-        
         for exp in experience_path:
             result_state = exp[4]
             time = result_state['time']
             if result_state['infeasible']:
                 if time not in infeasibility_dict.keys():
                     infeasibility_dict[time] = True
-        
         infeasibility_counter = len(infeasibility_dict.keys())
-        
-            
         print(f"Episode {episode}: Total Reward = {total_reward_for_path}, Infeasibility Counter = {infeasibility_counter}")
         if infeasibility_counter > 0:
             print('Infeasible time periods:', infeasibility_dict.keys())
-        if infeasibility_counter == 0:
-            print('Feasible solution:)')
-            
         first_infeasible_time = experience_path[0][7]
         return first_infeasible_time, infeasibility_counter
         
         
     def update_rewards_in_experience_path(self, experience_path, agent):
-        
         feasible_path = True
         first_infeasible_time = None
         for exp in experience_path:
@@ -539,7 +347,6 @@ class MIRPSOEnv():
             port_dict = {k: port for k, port in next_state['port_dict'].items() if port['capacity'] is not None}
             num_infeasible_ports = len([port for port in port_dict.values() if port['inventory'] < 0 or port['inventory'] > port['capacity']])
             if num_infeasible_ports > 0:
-                # There may be a simpler infeasibility check
                 feasible_path = False
                 if first_infeasible_time is None:
                     first_infeasible_time = next_state['time']
@@ -547,32 +354,20 @@ class MIRPSOEnv():
             
         if feasible_path:
             print('Feasible path found')
-
-        # Extra reward for fully feasible path
+            
         extra_reward_for_feasible_path = 10000
         penalty_for_infeasibility = -10000
-        
         
         for exp in experience_path:
             current_state, _, vessel, _, next_state, earliest_vessel, _, fi_time = exp
             
-            
-            # Num feasible ports in next state
             port_dict = {k: port for k, port in next_state['port_dict'].items() if port['capacity'] is not None}
-            # num_feasible_ports = len([port for port in port_dict.values() if 0 <= port['inventory'] <= port['capacity']])
             num_infeasible_ports = len([port for port in port_dict.values() if port['inventory'] < 0 or port['inventory'] > port['capacity']])
-            
             if num_infeasible_ports > 0:
-                # num_ports = len(port_dict)
-                # immediate_reward = -(num_infeasible_ports / num_ports)
                 immediate_reward = -num_infeasible_ports*100
             else:
                 immediate_reward = 100
             
-            # num_infeasible_ports = len([port for port in next_state['port'] if port.inventory < 0 or port.inventory > port.capacity])
-            # Calculate when the state became infeasible. Save for later
-            # immediate_reward = num_feasible_ports - 100  * num_infeasible_ports
-            # Encode the next state for the given vessel
             vessel_simp = next_state['vessel_dict'][earliest_vessel['number']]
             encoded_next_state = self.encode_state(next_state, vessel_simp)
             # Use the target model to predict the future Q-values for the next state
@@ -580,39 +375,21 @@ class MIRPSOEnv():
             # Select the maximum future Q-value as an indicator of the next state's potential
             max_future_reward = np.max(future_rewards)
             # Clip the future reward to be within the desired range, e.g., [-1, 1]
-            clipped_future_reward = np.clip(max_future_reward, -10000, 10000)
+            max_future_reward = np.clip(max_future_reward, -10000, 10000)
             # Update the reward using the clipped future reward
-            updated_reward = immediate_reward + clipped_future_reward
+            reward = immediate_reward + max_future_reward
+            time = next_state['time']
             
             if feasible_path:
-                time = next_state['time']
                 time_until_terminal = len(self.TIME_PERIOD_RANGE) - time
-                # Add a reward for finding a feasible path and discount it based on the time until terminal using a discount factor
-                discount_factor = agent.gamma ** time_until_terminal
-                feasibility_reward = extra_reward_for_feasible_path*discount_factor
-                updated_reward += feasibility_reward
-                
+                feasibility_reward = extra_reward_for_feasible_path * agent.gamma ** time_until_terminal
+                reward += feasibility_reward
             else:
-                current_time = next_state['time']
                 if first_infeasible_time is not None:
-                    if current_time == first_infeasible_time:
-                        # Apply the penalty to the updated_reward
-                        updated_reward += penalty_for_infeasibility
-                    
+                    if time == first_infeasible_time:
+                        reward += penalty_for_infeasibility
                         
-                    # # Calculate the time difference from the first infeasible time
-                    # time_diff = first_infeasible_time - current_time
-                    
-                    # if time_diff >= 0:
-                    #     # Calculate a discount factor that heavily penalizes states closer to the first infeasible time
-                    #     discount_factor = agent.sigma ** time_diff
-                    #     infeasibility_penalty = penalty_for_infeasibility * discount_factor
-                        
-                    #     # Apply the penalty to the updated_reward
-                    #     updated_reward += infeasibility_penalty
-                    
-            # updated_reward = immediate_reward + max_future_reward
-            exp[3] = updated_reward
+            exp[3] = reward
             exp[6] = feasible_path
             exp[7] = first_infeasible_time
         return experience_path
@@ -622,9 +399,7 @@ class MIRPSOEnv():
         # Action is on the form (vessel_id, operation_type, quantity, arc)
         # Execute the action and update the state
         _, operation_type, quantity, arc = action
-        
         port = arc.origin_node.port
-        # Update the vessel's inventory
         if operation_type == 1:
             #Loading
             vessel.inventory += quantity
@@ -634,7 +409,6 @@ class MIRPSOEnv():
             vessel.inventory -= quantity
             port.inventory += quantity
         
-        # ROUTING
         # Update the vessel's position and in_transit_towards attributes
         vessel.position = None
         vessel.in_transit_towards = (arc.destination_node.port, arc.destination_node.time)
@@ -649,8 +423,6 @@ class MIRPSOEnv():
     def sim_update_vessel_position(self, vessel, new_position):
         vessel['position'] = new_position
         vessel['in_transit_towards'] = None
-        
-        
         
     def sim_increment_time_and_produce(self, state):
         state['time'] += 1
@@ -682,11 +454,7 @@ class MIRPSOEnv():
                 
     def step(self, state, actions, experience_path, decision_basis_states):
         # We want to perform the actual vessel operations, but not consume or produce goods yet
-        # Argument state is the actual state of the environment
         vessels_performing_actions = actions.keys()
-        
-        # Take a copy of the state here before doing the actions
-        # old_state = copy.deepcopy(state)
         
         # Perform operations and update vessel positions for the actual state
         for vessel in vessels_performing_actions:
@@ -696,13 +464,10 @@ class MIRPSOEnv():
         simulation_state = self.custom_deep_copy_of_state(state)
         
         # Find the next time a vessel reaches a port
-        earliest_time = 1000000
+        earliest_time = math.inf
         earliest_vessel = None
         for vessel in simulation_state['vessel_dict'].values():
-            # All vessels are now in transit
-            # Find the earliest time a vessel reaches a port
             time_to_port = vessel['in_transit_towards']['destination_time']
-            # time_to_port = vessel.in_transit_towards[1]
             if time_to_port < earliest_time:
                 earliest_time = time_to_port
                 earliest_vessel = vessel
@@ -711,7 +476,6 @@ class MIRPSOEnv():
         simulation_state = self.sim_consumption(simulation_state)
         
         while simulation_state['time'] < earliest_time:
-            # Produce first
             simulation_state = self.sim_increment_time_and_produce(simulation_state)
             if simulation_state['time'] == earliest_time:
                 # Only update vessel positions, do not consume
@@ -724,15 +488,11 @@ class MIRPSOEnv():
             destination_port_number = action[3].destination_node.port.number
             origin_port_number = action[3].origin_node.port.number
             # Save if the action is not to the sink or from the source
-            if destination_port_number != len(simulation_state['port_dict']) and origin_port_number != 0:
-                # old_state = state
-                # action = actions[vessel]
+            if destination_port_number != self.SINK_NODE.port.number and origin_port_number != self.SOURCE_NODE.port.number:
                 decision_basis_state = decision_basis_states[vessel.number]
-                # Check infeasibility for simulation_state
                 simulation_state['infeasible'] = self.sim_is_infeasible(simulation_state)
                 feasible_path = None
                 exp = [decision_basis_state, action, vessel, None, simulation_state, earliest_vessel, feasible_path, None]
-                # exp_dict[vessel] = exp
                 experience_path.append(exp)
         return state
 
@@ -746,12 +506,10 @@ class MIRPSOEnv():
 import pickle
 import random
 from collections import deque
-
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-
 
 class DQN(nn.Module):
     def __init__(self, state_size, action_size):
@@ -766,8 +524,6 @@ class DQN(nn.Module):
         x = self.relu(self.fc2(x))
         return self.fc3(x)
     
-    
-
 class ReplayMemory:
     def __init__(self, capacity, feasibility_priority=0.5):
         self.capacity = capacity  # Total capacity of the memory
@@ -777,7 +533,6 @@ class ReplayMemory:
 
     def push(self, event, env):
         state, action, vessel, reward, next_state, earliest_simp_vessel, is_feasible, first_infeasible_time = event
-        
         vessel_simp = state['vessel_dict'][vessel.number]
         encoded_state = env.encode_state(state, vessel_simp)
         
@@ -787,34 +542,32 @@ class ReplayMemory:
         
         # Convert encoded_state to a tuple for hashing
         encoded_state_tuple = tuple(encoded_state.flatten())
-        
         # Create a unique identifier for the experience
         exp_id = hash((encoded_state_tuple, quantity, destination_port))
         
-        # Logic to handle feasible and infeasible experiences
         if is_feasible:
+            # Delete existing similar experience in both feasible and infeasible memory if it exists
             self.feasible_memory = deque([(id, exp) for id, exp in self.feasible_memory if id != exp_id])
             self.memory = deque([(id, exp) for id, exp in self.memory if id != exp_id])
             self.feasible_memory.append((exp_id, event))
         else:
+            # Check if the experience is already in the feasible memory
             if not any(id == exp_id for id, _ in self.feasible_memory):
+                # If not, add it to the infeasible memory. Substitute if similar exp already exists in infeasible memory
                 self.memory = deque([(id, exp) for id, exp in self.memory if id != exp_id])
                 self.memory.append((exp_id, event))
-
+        
     def sample(self, batch_size):
         num_feasible = int(batch_size * self.feasibility_priority)
         num_regular = batch_size - num_feasible
-        
         samples = []
         if len(self.feasible_memory) < num_feasible:
             num_feasible = len(self.feasible_memory)
             num_regular = batch_size - num_feasible
-        
         if num_feasible > 0:
             samples.extend(random.sample(self.feasible_memory, num_feasible))
         if num_regular > 0 and len(self.memory) > 0:
             samples.extend(random.sample(self.memory, num_regular))
-        
         return samples
 
     def __len__(self):
@@ -836,9 +589,7 @@ class ReplayMemory:
 class DQNAgent:
     def __init__(self, ports, vessels, TRAINING_FREQUENCY, TARGET_UPDATE_FREQUENCY, NON_RANDOM_ACTION_EPISODE_FREQUENCY, BATCH_SIZE, replay):
         # ports plus source and sink, vessel inventory, (vessel position, vessel in transit), time period, vessel_number
-        # state_size = len(ports) + 3 * len(vessels) + 2 + len(ports)
         state_size = len(ports) + 3 * len(vessels) + 1 + len(ports)
-        # Ports plus sink port
         action_size = len(ports)
         self.state_size = state_size
         self.action_size = action_size
@@ -850,7 +601,6 @@ class DQNAgent:
         self.epsilon_decay = 0.99
         self.main_model = DQN(state_size, action_size)
         self.target_model = DQN(state_size, action_size)
-        # Load the state dictionaries
         self.optimizer = optim.Adam(self.main_model.parameters())
         self.TRAINING_FREQUENCY = TRAINING_FREQUENCY
         self.TARGET_UPDATE_FREQUENCY = TARGET_UPDATE_FREQUENCY
@@ -858,18 +608,14 @@ class DQNAgent:
         self.BATCH_SIZE = BATCH_SIZE
             
     def select_action(self, state, legal_actions,  env, vessel_simp, exploit):  
-        
         if not exploit:
             if np.random.rand() < self.epsilon:
                 action = random.choice(legal_actions)
                 arc = action[3]
-                # new_state = copy.deepcopy(state)
                 new_state = env.update_vessel_in_transition_and_inv_for_state(state = state, vessel = vessel_simp, destination_port = arc.destination_node.port, destination_time = arc.destination_node.time, origin_port = arc.origin_node.port, quantity = action[2], operation_type = action[1])
-                
-                # Choose one of the legal actions at random
-                return random.choice(legal_actions), new_state
+                return action, new_state
             
-        # If the only legal action is to travel to sink, do it
+        # If there is only one legal action, choose it
         if len(legal_actions) == 1:
             action = legal_actions[0]
             arc = action[3]
@@ -878,18 +624,11 @@ class DQNAgent:
             return action, new_state
         
         # Encode state and add vessel number
-        # vessel_simp= state['vessel_dict'][vessel.number]
         encoded_state = env.encode_state(state, vessel_simp)
-        # print(encoded_state)
         # Convert the state to a tensor
         state_tensor = torch.tensor(encoded_state, dtype=torch.float32).unsqueeze(0)
-        # Get the q-values from the main model. One value for each destination port
         q_values = self.main_model(state_tensor).detach().numpy()
-        
-        # Make q_values into a list
         q_values = q_values[0]
-
-        
         # Sort the q-values, but keep track of the original indices
         q_values = [(q_value, index +1) for index, q_value in enumerate(q_values)]
         q_values.sort(reverse=True)
@@ -898,12 +637,7 @@ class DQNAgent:
             for action in legal_actions:
                 arc = action[3]
                 if arc.destination_node.port.number == destination_port_number:
-                    # We now have the action with the highest q-value that is legal
-                    # Create a deep copy of the state and update the vessel's position and in_transit_towards attributes
-                    # new_state = copy.deepcopy(state)
-                    # new_state = env.update_vessel_in_transition_for_state(new_state, vessel, arc.destination_node.port, arc.destination_node.time)
                     new_state = env.update_vessel_in_transition_and_inv_for_state(state = state, vessel = vessel_simp, destination_port = arc.destination_node.port, destination_time = arc.destination_node.time, origin_port = arc.origin_node.port, quantity = action[2], operation_type = action[1])
-                    
                     return action, new_state
                 
                 
@@ -918,38 +652,28 @@ class DQNAgent:
             vessel_simp = state['vessel_dict'][vessel.number]
             encoded_state = env.encode_state(state, vessel_simp)
             encoded_state = torch.FloatTensor(encoded_state).unsqueeze(0)
-            
             _, _, _, arc = action
             destination_port = arc.destination_node.port
             action_idx = destination_port.number - 1
-            
             # Reward is already adjusted in the experience path, so use it directly
             adjusted_reward = torch.FloatTensor([reward]).to(encoded_state.device)
-            
             # Predicted Q-values for the current state
             current_q_values = self.main_model(encoded_state)
-            
             # Extract the Q-value for the action taken. This time keeping it connected to the graph.
             correct_q = current_q_values.gather(1, torch.tensor([[action_idx]], dtype=torch.long).to(encoded_state.device)).squeeze()
-
             # Use the adjusted_reward directly as the target
             target_q = adjusted_reward
             target_q = target_q.squeeze()
-            
             # Compute loss
             loss = F.mse_loss(correct_q, target_q)
             # Print the actual loss value
             total_loss += loss.item()
-                        
             # Optimize the model
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
-        
         # Update epsilon
-        # print(f"LossAvg: {total_loss/batch_size}")
         self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
-            
         
     def update_target_network(self):
         self.target_model.load_state_dict(self.main_model.state_dict())   
@@ -965,13 +689,15 @@ class DQNAgent:
         print(f"Replay buffer loaded from {file_name}.")
         return replay_buffer
     
-def evaluate_agent_until_solution_is_found(env, agent, replay):
-    solution_found = False
-    while not solution_found:
-    
+def evaluate_agent_until_solution_is_found(env, agent):
+    agent.epsilon = 0.1
+    attempts = 1
+    while True:
         experience_path = []
         state = env.reset()
         done = False
+        port_inventory_dict = {}
+        vessel_inventory_dict = {}
         decision_basis_states = {vessel.number: state for vessel in state['vessels']}
         for vessel in state['vessels']:
             decision_basis_states[vessel.number] = env.custom_deep_copy_of_state(decision_basis_states[vessel.number])
@@ -981,11 +707,16 @@ def evaluate_agent_until_solution_is_found(env, agent, replay):
             actions[vessel] = legal_actions_for_vessel[0]
         state = env.step(state=state, actions=actions, experience_path=experience_path, decision_basis_states=decision_basis_states)
         
+        # Init port inventory is the inventory at this time
+        port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
+        # Init vessel inventory is the inventory at this time
+        vessel_inventory_dict[state['time']] = {vessel.number: vessel.inventory for vessel in state['vessels']}
+        
         while not done:
             # Increase time and make production ports produce.
             state = env.increment_time_and_produce(state=state)
             # Check if state is infeasible or terminal        
-            state, total_reward_for_path = env.check_state(state=state, experience_path=experience_path, replay=replay, agent=agent)
+            state, total_reward_for_path = env.check_state(state=state, experience_path=experience_path, replay=agent.memory, agent=agent)
             # With the increased time, the vessels have moved and some of them have maybe reached their destination. Updating the vessel status based on this.
             env.update_vessel_status(state=state)
             # Find the vessels that are available to perform an action
@@ -998,9 +729,7 @@ def evaluate_agent_until_solution_is_found(env, agent, replay):
                 for vessel in available_vessels:
                     corresponding_vessel = decision_basis_state['vessel_dict'][vessel.number]
                     decision_basis_states[corresponding_vessel['number']] = decision_basis_state
-                    
                     legal_actions = env.sim_find_legal_actions_for_vessel(state=decision_basis_state, vessel=corresponding_vessel)
-                    
                     action, decision_basis_state = agent.select_action(state=copy.deepcopy(decision_basis_state), legal_actions=legal_actions, env=env, vessel_simp=corresponding_vessel, exploit=False)
                     actions[vessel] = action
 
@@ -1010,15 +739,21 @@ def evaluate_agent_until_solution_is_found(env, agent, replay):
             # Make consumption ports consume (1 timeperiod worth of consume) regardless if any actions were performed
             state = env.consumption(state)
             
+            # Save the inventory levels for the ports and vessels at this time
+            port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
+            vessel_inventory_dict[state['time']] = {vessel.number: vessel.inventory for vessel in state['vessels']}
             # Check if state is infeasible or terminal
-            state, total_reward_for_path = env.check_state(state=state, experience_path=experience_path, replay=replay, agent=agent)
-            
+            state, total_reward_for_path = env.check_state(state=state, experience_path=experience_path, replay=agent.memory, agent=agent)
             # agent.update_policy(state, action, reward, next_state)
             done = state['done']
-            
             if done:
-                if not state['infeasible']:
-                    return experience_path
+                feasible_path = experience_path[0][6]
+                if feasible_path:
+                    first_infeasible_time, infeasibility_counter = env.log_episode(1, total_reward_for_path, experience_path)
+                    return first_infeasible_time,infeasibility_counter, experience_path, port_inventory_dict, vessel_inventory_dict
+                else:
+                    attempts += 1
+                    print(f"Attempt {attempts} failed. Retrying...")
                 break
             
             
@@ -1026,6 +761,11 @@ def evaluate_agent(env, agent):
     experience_path = []
     state = env.reset()
     done = False
+    
+    # Create a dictionary with time as key and a list with inventory levels for each port as value
+    
+    port_inventory_dict = {}
+    vessel_inventory_dict = {}
     decision_basis_states = {vessel.number: state for vessel in state['vessels']}
     for vessel in state['vessels']:
         decision_basis_states[vessel.number] = env.custom_deep_copy_of_state(decision_basis_states[vessel.number])
@@ -1034,6 +774,11 @@ def evaluate_agent(env, agent):
         legal_actions_for_vessel =  env.find_legal_actions_for_vessel(state=state, vessel=vessel)
         actions[vessel] = legal_actions_for_vessel[0]
     state = env.step(state=state, actions=actions, experience_path=experience_path, decision_basis_states=decision_basis_states)
+    
+    # Init port inventory is the inventory at this time
+    port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
+    # Init vessel inventory is the inventory at this time
+    vessel_inventory_dict[state['time']] = {vessel.number: vessel.inventory for vessel in state['vessels']}
     
     while not done:
         # Increase time and make production ports produce.
@@ -1064,6 +809,10 @@ def evaluate_agent(env, agent):
         # Make consumption ports consume (1 timeperiod worth of consume) regardless if any actions were performed
         state = env.consumption(state)
         
+        # Save the inventory levels for the ports and vessels at this time
+        port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
+        vessel_inventory_dict[state['time']] = {vessel.number: vessel.inventory for vessel in state['vessels']}
+        
         # Check if state is infeasible or terminal
         state, total_reward_for_path = env.check_state(state=state, experience_path=experience_path, replay=agent.memory, agent=agent)
         
@@ -1071,26 +820,38 @@ def evaluate_agent(env, agent):
         done = state['done']
         
         if done:
-            first_infeasible_time = env.log_episode(1, total_reward_for_path, experience_path)
-            return first_infeasible_time
+            first_infeasible_time, infeasibility_counter = env.log_episode(1, total_reward_for_path, experience_path)
+            return first_infeasible_time,infeasibility_counter, experience_path, port_inventory_dict, vessel_inventory_dict
     
 
-def convert_path_to_MIRPSO_solution(env, experience_path):
+def convert_path_to_MIRPSO_solution(env, experience_path, port_inventory_dict, vessel_inventory_dict):
     # Create a dict with vesselnumber as key, and an empty list as value
-    active_arcs = {}
-    operational_nodes_for_vessel = {}
-    
-    for vessel in env.VESSELS:
-        active_arcs[vessel.number] = []
-        operational_nodes_for_vessel[vessel.number] = []
+    active_arcs = {vessel.number: [] for vessel in env.VESSELS}
         
+    active_O_and_Q = {}
     for exp in experience_path:
         state, action, vessel, reward, next_state, earliest_vessel, feasible_path, first_infeasible_time = exp
         vessel_number, operation_type, quantity, arc = action
         active_arcs[vessel.number].append(arc)
         operation_node = arc.origin_node
-        operational_nodes_for_vessel[vessel.number].append((operation_node, quantity))
-    return active_arcs, operational_nodes_for_vessel
+        active_O_and_Q[(operation_node.port.number, operation_node.time, vessel)] = quantity
+        
+    active_X_keys = []
+    for vessel in env.VESSELS:
+        for arc in active_arcs[vessel.number]:
+            active_X_keys.append(((arc.origin_node, arc.destination_node), vessel))
+            
+    S_values = {}
+    for time, invs_at_time in port_inventory_dict.items():
+        for port in env.PORTS:
+            S_values[(port.number, time)] = invs_at_time[port.number]
+            
+    W_values = {}
+    for time, invs_at_time in vessel_inventory_dict.items():
+        for vessel in env.VESSELS:
+            W_values[(time, vessel)] = invs_at_time[vessel.number]
+        
+    return active_O_and_Q, active_X_keys, S_values, W_values
 
 import matplotlib.pyplot as plt
 from IPython.display import display, clear_output
@@ -1115,36 +876,27 @@ def train_from_pre_populated_buffer(env, agent, num_episodes):
             print('Target network updated')
         
         if episode % EVALUATION_FREQUENCY == 0:
-            first_inf_time, infeasibility_counter = evaluate_agent(env=env, agent=agent)
+            
+            first_inf_time,infeasibility_counter, _, _, _ = evaluate_agent(env=env, agent=agent)
+            
             if first_inf_time is None:
                 first_inf_time = env.TIME_PERIOD_RANGE[-1]
             
             first_infeasible_times.append(first_inf_time)
             infeasibility_counters.append(infeasibility_counter)
-            # Update live histogram plot
-            # Clear the current plot's output and display the updated plot
-            # Clear the current plot's output and display the updated plot
             clear_output(wait=True)  # Clear the previous output
-            # plt.plot(first_infeasible_times, '-o', label='First Infeasible Time')
             ax1.plot(first_infeasible_times, '-ob', label='First Infeasible Time')
             ax2.plot(infeasibility_counters, '-or', label='Infeasibility Counter')
             if episode == EVALUATION_FREQUENCY:  # Add the legend only once
                 ax1.legend(loc='upper left')
                 ax2.legend(loc='upper right')
-            # if episode == EVALUATION_FREQUENCY:  # Add the legend only once
-                # plt.legend()
-                
             ax1.set_title('Development of First Infeasible Times and Infeasibility Counters Over Episodes')
             ax1.set_xlabel('Episode')
             ax1.set_ylabel('First Infeasible Time', color='b')
             ax2.set_ylabel('Infeasibility Counter', color='r')
-            
             display(plt.gcf())  # Display the current figure
             plt.pause(0.001)  # Pause for a short period to allow the plot to update
-
     plt.close()  # Close the figure to prevent additional output
-
-    # plt.close()  # Close the figure to prevent additional output
             
 def unpack_problem_data(problem_data):
     vessels = problem_data['vessels']
@@ -1180,8 +932,48 @@ def unpack_env_data(env_data):
     return vessels, vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, non_operational, sourceNode, sinkNode, waiting_arcs, OPERATING_COST, OPERATING_SPEED, ports_dict, NODE_DICT, vessel_dict
 
 
-                
+def warm_start_model(m, active_O_and_Q, active_X_keys, S_values, W_values):
+    # Setting initial values for 'o' and 'q' variables
+    for (port_number, time, vessel), q_value in active_O_and_Q.items():
+        # Construct variable names based on the provided format
+        o_var_name = f"o[{port_number},{time},{vessel}]"
+        q_var_name = f"q[{port_number},{time},{vessel}]"
         
+        # Retrieve the variables by name
+        o_var = m.getVarByName(o_var_name)
+        q_var = m.getVarByName(q_var_name)
+        
+        # Set the start values if variables are found
+        if o_var is not None:
+            o_var.Start = 1  # Assuming operation is active if listed in active_O_and_Q
+        if q_var is not None:
+            q_var.Start = q_value  # Set the initial loading/unloading quantity
+        
+    # Setting initial values for 'x' variables
+    for (arc_tuple, vessel) in active_X_keys:
+        x_var_name = f"x[{arc_tuple},{vessel}]"
+        x_var = m.getVarByName(x_var_name)
+        if x_var is not None:
+            x_var.Start = 1  # Indicate that the arc is used
+    
+    # Setting initial values for 's' and 'w' variables
+    for (port_number, time), s_value in S_values.items():
+        s_var_name = f"s[{port_number},{time}]"
+        s_var = m.getVarByName(s_var_name)
+        if s_var is not None:
+            s_var.Start = s_value  # Set the inventory level at the port at the end of the time period
+            
+    for (time, vessel), w_value in W_values.items():
+        w_var_name = f"w[{time},{vessel}]"
+        w_var = m.getVarByName(w_var_name)
+        if w_var is not None:
+            w_var.Start = w_value  # Set the inventory level on the vessel at the end of the time period
+            
+    return m
+
+
+    
+
 def main(FULLSIM):
     # Set a higher recursion limit (be cautious with this)
     sys.setrecursionlimit(5000) 
@@ -1203,10 +995,11 @@ def main(FULLSIM):
     TARGET_UPDATE_FREQUENCY = 100
     NON_RANDOM_ACTION_EPISODE_FREQUENCY = 25
     BATCH_SIZE = 256
+    BUFFER_SAVING_FREQUENCY = 1000
 
     problem_data = build_problem(INSTANCE)
-    vessels, vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, non_operational, sourceNode, sinkNode, waiting_arcs, OPERATING_COST, OPERATING_SPEED, NODES, NODE_DICT = unpack_problem_data(problem_data)
-    simp_model, env_data = build_simplified_RL_model(vessels, vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, non_operational, sourceNode, sinkNode, waiting_arcs, OPERATING_COST, OPERATING_SPEED, NODES, NODE_DICT)
+    vessels, all_vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, non_operational, sourceNode, sinkNode, waiting_arcs, OPERATING_COST, OPERATING_SPEED, NODES, NODE_DICT = unpack_problem_data(problem_data)
+    simp_model, env_data = build_simplified_RL_model(vessels, all_vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, non_operational, sourceNode, sinkNode, waiting_arcs, OPERATING_COST, OPERATING_SPEED, NODES, NODE_DICT)
     #Vessel arcs are the only thing that changes between the simplified and the full model
     vessels, vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, non_operational, sourceNode, sinkNode, waiting_arcs, OPERATING_COST, OPERATING_SPEED, ports_dict, NODE_DICT, vessel_dict = unpack_env_data(env_data)
     
@@ -1217,13 +1010,20 @@ def main(FULLSIM):
     # agent.main_model.load_state_dict(torch.load('main_model.pth'))
     # agent.target_model.load_state_dict(torch.load('target_model.pth'))
     
+    
+    
+    
+    
     if not FULLSIM:
-        replay = agent.load_replay_buffer(file_name= 'replay_buffer.pkl')
+        replay = agent.load_replay_buffer(file_name= 'replay_buffer_new_reward_policy_5000.pkl')
         agent.memory = replay
-        train_from_pre_populated_buffer(env, agent, 1000)
+        
+        agent.main_model.load_state_dict(torch.load('main_model_5000.pth'))
+        agent.target_model.load_state_dict(torch.load('target_model_5000.pth'))
+        # train_from_pre_populated_buffer(env, agent, 1000)
         
     else:
-        NUM_EPISODES = 10000
+        NUM_EPISODES = 5001
         # profiler = cProfile.Profile()
         for episode in range(1, NUM_EPISODES):
             if episode % NON_RANDOM_ACTION_EPISODE_FREQUENCY == 0:
@@ -1239,7 +1039,9 @@ def main(FULLSIM):
                 agent.update_target_network()
                 print('Target network updated')
                 gc.collect()
-                replay.clean_up()
+                if episode < 3000:
+                    # After 3000 episodes, the target net is good, so keep all the experiences in the replay buffer
+                    replay.clean_up()
                         
             experience_path = []
                 
@@ -1286,25 +1088,26 @@ def main(FULLSIM):
                 # Make consumption ports consume regardless if any actions were performed
                 state = env.consumption(state)
             
-        # agent.save_replay_buffer(file_name=f"replay_buffer_.pkl")
-                
-            # if episode % MODEL_SAVING_FREQUENCY == 0:
-            #     torch.save(agent.main_model.state_dict(), 'main_model.pth')
-            #     torch.save(agent.target_model.state_dict(), 'target_model.pth')
+            if episode % BUFFER_SAVING_FREQUENCY == 0:
+                agent.save_replay_buffer(file_name=f"replay_buffer_new_reward_policy_{episode}.pkl")
+                torch.save(agent.main_model.state_dict(), f'main_model_{episode}.pth')
+                torch.save(agent.target_model.state_dict(), f'target_model_{episode}.pth')
             
-        # When agent is done training. Let the agent solve the problem, and return the solution
-        experience_path = evaluate_agent(env, agent, replay)
-        
-    # Evaluate the agent one last time to get a solution
-    experience_path = evaluate_agent_until_solution_is_found(env, agent, replay)
-    active_arcs, operational_nodes_for_vessel = convert_path_to_MIRPSO_solution(experience_path)
-    # Save the variables to a file
+    # When agent is done training. Let the agent solve the problem, and return the solution
+    # first_infeasible_time, infeasibility_counter, experience_path, port_inventory_dict, vessel_inventory_dict  = evaluate_agent(env, agent)
+    first_infeasible_time, infeasibility_counter, experience_path, port_inventory_dict, vessel_inventory_dict  = evaluate_agent_until_solution_is_found(env, agent)
+    active_O_and_Q, active_X_keys, S_values, W_values = convert_path_to_MIRPSO_solution(env, experience_path, port_inventory_dict, vessel_inventory_dict)
+    env.reset()
+    main_model, costs = build_model(vessels, all_vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, non_operational, sourceNode, sinkNode, waiting_arcs, OPERATING_COST)
+    main_model = warm_start_model(main_model, active_O_and_Q, active_X_keys, S_values, W_values)
+    solve_model(main_model)
+    
     
     
 import sys
 
 if __name__ == "__main__":
-    FULL_SIM = True
-    # FULL_SIM = False
+    # FULL_SIM = True
+    FULL_SIM = False
     
     main(FULL_SIM)
