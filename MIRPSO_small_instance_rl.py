@@ -12,6 +12,7 @@ import torch.nn.functional as F
 
 # sys.path.append('/Users/tobiaskolstobergeland/Documents/IndØk/10.Semester/ProsjektOppgave/Repo/SpeedOptiRepo/MIRPSO_M.py')
 from MIRPSO_M import (build_problem, build_simplified_RL_model, build_model, visualize_network_for_vessel, solve_model)
+from proximity_search import perform_proximity_search
 
 
 class MIRPSOEnv():
@@ -376,7 +377,7 @@ class MIRPSOEnv():
                 immediate_reward = 100
                 
             if destination_port== self.SINK_NODE.port.number:
-                print('Whaddup')
+                #print('Whaddup')
                 continue
             
             vessel_simp = next_state['vessel_dict'][earliest_vessel['number']]
@@ -1056,8 +1057,10 @@ def warm_start_model(m, active_O_and_Q, active_X_keys, S_values, W_values):
     for var in m.getVars():
         if var.VarName.startswith('q') and var.Start <= 300:  # Adjusted condition for clarity
             print(f"{var.VarName}: {var.Start}")
+    
+    x_solution = {v.VarName: v.Start for v in m.getVars() if v.VarName.startswith('x')}
 
-    return m
+    return x_solution, m
 
 
 
@@ -1104,15 +1107,15 @@ def main(FULLSIM):
     
     
     if not FULLSIM:
-        replay = agent.load_replay_buffer(file_name= 'replay_buffer_new_reward_policy_5000.pkl')
+        replay = agent.load_replay_buffer(file_name= 'replay_buffer_new_reward_policy_7000.pkl')
         agent.memory = replay
         
-        agent.main_model.load_state_dict(torch.load('main_model_5000.pth'))
-        agent.target_model.load_state_dict(torch.load('target_model_5000.pth'))
+        agent.main_model.load_state_dict(torch.load('main_model_7000.pth'))
+        agent.target_model.load_state_dict(torch.load('target_model_7000.pth'))
         # train_from_pre_populated_buffer(env, agent, 1000)
         
     else:
-        NUM_EPISODES = 5001
+        NUM_EPISODES = 10001
         # profiler = cProfile.Profile()
         for episode in range(1, NUM_EPISODES):
             if episode % NON_RANDOM_ACTION_EPISODE_FREQUENCY == 0:
@@ -1128,7 +1131,7 @@ def main(FULLSIM):
                 agent.update_target_network()
                 print('Target network updated')
                 gc.collect()
-                if episode < 3000:
+                if episode < 5000:
                     # After 3000 episodes, the target net is good, so keep all the experiences in the replay buffer
                     replay.clean_up()
                         
@@ -1188,15 +1191,27 @@ def main(FULLSIM):
     active_O_and_Q, active_X_keys, S_values, W_values = convert_path_to_MIRPSO_solution(env, experience_path, port_inventory_dict, vessel_inventory_dict)
     env.reset()
     main_model, costs = build_model(vessels, all_vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, non_operational, sourceNode, sinkNode, waiting_arcs, OPERATING_COST)
-    main_model = warm_start_model(main_model, active_O_and_Q, active_X_keys, S_values, W_values)
-    solve_model(main_model)
+    x_initial_solution, main_model = warm_start_model(main_model, active_O_and_Q, active_X_keys, S_values, W_values)
+
+    #print the initial solution
+    #print("Initial solution:", x_initial_solution)
+
+    ps_data = {'model': main_model, 'initial_solution':x_initial_solution,'costs': costs, 'regularNodes': regularNodes, 'vessels': vessels, 'operating_cost':OPERATING_COST, 'vessel_arcs': vessel_arcs}
+
+    # Perform the proximity search using the initial solution
+    improved_solution, obj_value = perform_proximity_search(ps_data)
+    #Perform proximity search with simulated annealing
+    #improved_solution, obj_value = perform_proximity_search_with_simulated_annealing(ps_data)
+    # print("Final solution:", improved_solution)
+    print("Objective value:", obj_value)
+    #solve_model(main_model)
     
     
     
 import sys
 
 if __name__ == "__main__":
-    # FULL_SIM = True
+    #FULL_SIM = True
     FULL_SIM = False
     
     main(FULL_SIM)
