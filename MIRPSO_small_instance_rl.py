@@ -314,6 +314,11 @@ class MIRPSOEnv():
         if self.is_terminal(state):
             experience_path = self.update_rewards_in_experience_path(experience_path, agent)
             for exp in experience_path:
+                action = exp[1]
+                arc = action[3]
+                destination_port = arc.destination_node.port.number
+                if destination_port == self.SINK_NODE.port.number:
+                    continue
                 replay.push(exp, self)
                 rew = exp[3]
                 total_reward_for_path += rew
@@ -359,7 +364,9 @@ class MIRPSOEnv():
         penalty_for_infeasibility = -10000
         
         for exp in experience_path:
-            current_state, _, vessel, _, next_state, earliest_vessel, _, fi_time = exp
+            current_state, action, vessel, _, next_state, earliest_vessel, _, fi_time = exp
+            arc = action[3]
+            destination_port = arc.destination_node.port.number
             
             port_dict = {k: port for k, port in next_state['port_dict'].items() if port['capacity'] is not None}
             num_infeasible_ports = len([port for port in port_dict.values() if port['inventory'] < 0 or port['inventory'] > port['capacity']])
@@ -367,6 +374,10 @@ class MIRPSOEnv():
                 immediate_reward = -num_infeasible_ports*100
             else:
                 immediate_reward = 100
+                
+            if destination_port== self.SINK_NODE.port.number:
+                print('Whaddup')
+                continue
             
             vessel_simp = next_state['vessel_dict'][earliest_vessel['number']]
             encoded_next_state = self.encode_state(next_state, vessel_simp)
@@ -488,7 +499,7 @@ class MIRPSOEnv():
             destination_port_number = action[3].destination_node.port.number
             origin_port_number = action[3].origin_node.port.number
             # Save if the action is not to the sink or from the source
-            if destination_port_number != self.SINK_NODE.port.number and origin_port_number != self.SOURCE_NODE.port.number:
+            if origin_port_number != self.SOURCE_NODE.port.number:
                 decision_basis_state = decision_basis_states[vessel.number]
                 simulation_state['infeasible'] = self.sim_is_infeasible(simulation_state)
                 feasible_path = None
@@ -654,6 +665,8 @@ class DQNAgent:
             encoded_state = torch.FloatTensor(encoded_state).unsqueeze(0)
             _, _, _, arc = action
             destination_port = arc.destination_node.port
+            if destination_port.number == env.SINK_NODE.port.number:
+                continue
             action_idx = destination_port.number - 1
             # Reward is already adjusted in the experience path, so use it directly
             adjusted_reward = torch.FloatTensor([reward]).to(encoded_state.device)
@@ -827,6 +840,16 @@ def evaluate_agent(env, agent):
 def convert_path_to_MIRPSO_solution(env, experience_path, port_inventory_dict, vessel_inventory_dict):
     # Create a dict with vesselnumber as key, and an empty list as value
     active_arcs = {vessel.number: [] for vessel in env.VESSELS}
+    
+    #add source arcs at the beginning of the each vessel's active arcs
+    for vessel in env.VESSELS:
+        # Find the source arc for the vessel
+        arcs = env.VESSEL_ARCS[vessel]
+        for arc in arcs:
+            if arc.origin_node == env.SOURCE_NODE and arc.destination_node != env.SINK_NODE:
+                source_arc = arc
+                active_arcs[vessel.number].append(source_arc)
+                break
         
     active_O_and_Q = {}
     for exp in experience_path:
@@ -932,44 +955,110 @@ def unpack_env_data(env_data):
     return vessels, vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, non_operational, sourceNode, sinkNode, waiting_arcs, OPERATING_COST, OPERATING_SPEED, ports_dict, NODE_DICT, vessel_dict
 
 
+# def warm_start_model(m, active_O_and_Q, active_X_keys, S_values, W_values):
+#     # Setting initial values for 'o' and 'q' variables
+#     for (port_number, time, vessel), q_value in active_O_and_Q.items():
+#         # Construct variable names based on the provided format
+#         o_var_name = f"o[{port_number},{time},{vessel}]"
+#         q_var_name = f"q[{port_number},{time},{vessel}]"
+        
+#         # Retrieve the variables by name
+#         o_var = m.getVarByName(o_var_name)
+#         q_var = m.getVarByName(q_var_name)
+        
+#         # Set the start values if variables are found
+#         if o_var is not None:
+#             o_var.Start = 1  # Assuming operation is active if listed in active_O_and_Q
+#         else:
+#             print(f"Variable {o_var_name} not found")
+#         if q_var is not None:
+#             q_var.Start = q_value  # Set the initial loading/unloading quantity
+#         else:
+#             print(f"Variable {q_var_name} not found")
+            
+#     m.update()
+#     # Print out start value if the name starts with q or o
+#     for var in m.getVars():
+#         if var.VarName[0] in ['q']:
+#             if var.Start <= 300:
+#                 print(f"{var.VarName}: {var.Start}")
+        
+
+        
+#     # Setting initial values for 'x' variables
+#     for (arc_tuple, vessel) in active_X_keys:
+#         x_var_name = f"x[{arc_tuple},{vessel}]"
+#         x_var = m.getVarByName(x_var_name)
+#         if x_var is not None:
+#             x_var.Start = 1  # Indicate that the arc is used
+    
+#     # Setting initial values for 's' and 'w' variables
+#     for (port_number, time), s_value in S_values.items():
+#         s_var_name = f"s[{port_number},{time}]"
+#         s_var = m.getVarByName(s_var_name)
+#         if s_var is not None:
+#             s_var.Start = s_value  # Set the inventory level at the port at the end of the time period
+            
+#     for (time, vessel), w_value in W_values.items():
+#         w_var_name = f"w[{time},{vessel}]"
+#         w_var = m.getVarByName(w_var_name)
+#         if w_var is not None:
+#             w_var.Start = w_value  # Set the inventory level on the vessel at the end of the time period
+            
+#     m.update()
+            
+#     return m
+
+
 def warm_start_model(m, active_O_and_Q, active_X_keys, S_values, W_values):
-    # Setting initial values for 'o' and 'q' variables
+    # Initialize all 'x', 'o', and 'q' variables to 0 to ensure a complete warm start
+    for var in m.getVars():
+        if var.VarName.startswith('x') or var.VarName.startswith('o') or var.VarName.startswith('q'):
+            var.Start = 0  # Default start value for all variables not explicitly set
+    
+    # Setting initial values for 'o' and 'q' variables based on active_O_and_Q
     for (port_number, time, vessel), q_value in active_O_and_Q.items():
-        # Construct variable names based on the provided format
         o_var_name = f"o[{port_number},{time},{vessel}]"
         q_var_name = f"q[{port_number},{time},{vessel}]"
         
-        # Retrieve the variables by name
         o_var = m.getVarByName(o_var_name)
         q_var = m.getVarByName(q_var_name)
         
-        # Set the start values if variables are found
         if o_var is not None:
-            o_var.Start = 1  # Assuming operation is active if listed in active_O_and_Q
+            o_var.Start = 1
         if q_var is not None:
-            q_var.Start = q_value  # Set the initial loading/unloading quantity
-        
-    # Setting initial values for 'x' variables
+            q_var.Start = q_value
+            
+    # Setting initial values for 'x' variables based on active_X_keys
     for (arc_tuple, vessel) in active_X_keys:
         x_var_name = f"x[{arc_tuple},{vessel}]"
         x_var = m.getVarByName(x_var_name)
         if x_var is not None:
-            x_var.Start = 1  # Indicate that the arc is used
+            x_var.Start = 1
     
-    # Setting initial values for 's' and 'w' variables
+    # For 's' and 'w' variables, since you believe all values are set already, we maintain your original logic
     for (port_number, time), s_value in S_values.items():
         s_var_name = f"s[{port_number},{time}]"
         s_var = m.getVarByName(s_var_name)
         if s_var is not None:
-            s_var.Start = s_value  # Set the inventory level at the port at the end of the time period
+            s_var.Start = s_value
             
     for (time, vessel), w_value in W_values.items():
         w_var_name = f"w[{time},{vessel}]"
         w_var = m.getVarByName(w_var_name)
         if w_var is not None:
-            w_var.Start = w_value  # Set the inventory level on the vessel at the end of the time period
-            
+            w_var.Start = w_value
+    
+    # Finally, update the model to apply these start values
+    m.update()
+    
+    # Optionally, print start values for verification or debugging
+    for var in m.getVars():
+        if var.VarName.startswith('q') and var.Start <= 300:  # Adjusted condition for clarity
+            print(f"{var.VarName}: {var.Start}")
+
     return m
+
 
 
     

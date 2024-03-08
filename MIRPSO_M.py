@@ -856,20 +856,25 @@ def build_model(vessels, vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, no
     m.setObjective(original_obj, GRB.MINIMIZE)
     m.update()
 
-    # Can fix some variables, to reduce the complexity of the model
-    for v in vessels:
-        for node in non_operational[v]:   
-            port_number = node.port.number
-            time = node.time
-            o[port_number, time, v] = 0
-            q[port_number, time, v] = 0
-    m.update()
+    # # Can fix some variables, to reduce the complexity of the model
+    # for v in vessels:
+    #     for node in non_operational[v]:   
+    #         port_number = node.port.number
+    #         time = node.time
+    #         o[port_number, time, v] = 0
+    #         q[port_number, time, v] = 0
+    # m.update()
 
     # Constraint (2)
     '''Must leave the source node'''
     for v in vessels:
         outgoing_from_source = [arc for arc in vessel_arcs[v] if arc.origin_node == sourceNode]
-        m.addConstr(gp.quicksum((x[arc.tuple, v]) for arc in outgoing_from_source) == 1, name = 'SourceFlow')
+        outgoing_arcs = [(arc.tuple, v) for arc in outgoing_from_source]  # Prepare arcs for this vessel
+        constraint_name = "SourceFlow_" + "_".join([f"{arc_tuple}_{v}" for arc_tuple, v in outgoing_arcs])
+        m.addConstr(gp.quicksum(x[arc_tuple, v] for arc_tuple, v in outgoing_arcs) == 1, name=constraint_name)
+
+
+        # m.addConstr(gp.quicksum((x[arc.tuple, v]) for arc in outgoing_from_source) == 1, name = f'SourceFlow_{arc.tuple}_{v}')
     m.update()
 
     # Constraint (3)
@@ -978,13 +983,13 @@ def build_model(vessels, vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, no
             m.addConstr(o[node.port.number, node.time, v] >= gp.quicksum((x[out_arc.tuple, v]) for out_arc in outgoing_from_node), name = 'Must_operate_in_every_port')
     m.update()
 
-    # Constraint (14) modification
-    # Ensure that q is at least 1/4 of the vessel's capacity if o is 1
-    for v in vessels:
-        for node in regularNodes:
-            m.addConstr(q[node.port.number, node.time, v] >= 1/4 * v.max_inventory * o[node.port.number, node.time, v], 
-                        name=f'q_{node.port.number}_{node.time}_{v}')
-    m.update()
+    # # Constraint (14) modification
+    # # Ensure that q is at least 1/4 of the vessel's capacity if o is 1
+    # for v in vessels:
+    #     for node in regularNodes:
+    #         m.addConstr(q[node.port.number, node.time, v] >= 1/4 * v.max_inventory * o[node.port.number, node.time, v], 
+    #                     name=f'q_{node.port.number}_{node.time}_{v}')
+    # m.update()
     
     return m, costs
 
@@ -1179,11 +1184,11 @@ def build_simplified_RL_model(vessels, vessel_arcs, regularNodes, ports, TIME_PE
 
     # Constraint (14) modification
     # Ensure that q is at least 1/4 of the vessel's capacity if o is 1
-    for v in vessels:
-        for node in regularNodes:
-            m.addConstr(q[node.port.number, node.time, v] >= 1/4 * v.max_inventory * o[node.port.number, node.time, v], 
-                        name=f'q_{node.port.number}_{node.time}_{v}')
-    m.update()
+    # for v in vessels:
+    #     for node in regularNodes:
+    #         m.addConstr(q[node.port.number, node.time, v] >= 1/4 * v.max_inventory * o[node.port.number, node.time, v], 
+    #                     name=f'q_{node.port.number}_{node.time}_{v}')
+    # m.update()
     
     env_data = {
         'vessels': vessels,
@@ -1236,11 +1241,16 @@ def find_initial_solution(model):
     
 
 def solve_model(model):
-    H = 3600  # 1 hour in seconds
-    model.setParam(gp.GRB.Param.TimeLimit, 0.25*H)  # 3 hours limit
+    H = 3600
+    model.setParam(gp.GRB.Param.TimeLimit, 0.25*H)
 
+    try:
+        model.optimize()
+    except gp.GurobiError as e:
+        print(f"Gurobi Error: {e}")
     # Run the optimization
-    model.optimize()
+    # model.optimize()
+        
     
     # Check the status of the optimization
     if model.status == gp.GRB.OPTIMAL:
