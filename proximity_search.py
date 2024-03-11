@@ -132,8 +132,6 @@ def perform_proximity_search(ps_data):  # Add other parameters as needed
         add_cutoff_constraint(model, current_best_obj, cutoff_value)
 
         #add_tabu_constraints(model, tabu_list, x_variables)  # Add constraints to avoid tabu solutions
-
-        
         update_objective_to_minimize_hamming_distance(model, y, x_variables, current_solution)
         #find_alternative_solution_with_flip_limit(model, x_variables, current_solution, i, 100)
 

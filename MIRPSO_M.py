@@ -120,7 +120,7 @@ def adjust_vessel_classes(metadata):
     metadata['numTermVesselsInClass'] = [sum(vessels_in_classes)]
     return metadata
 
-def get_vesels_data(VESSELINFO_PATH):
+def get_vessels_data(VESSELINFO_PATH):
     ### Read the vessel data
     with open(VESSELINFO_PATH, 'r') as file:
         file_content = file.read()
@@ -678,8 +678,8 @@ def find_sink_arcs(vessels, vessel_arcs, sinkNode):
     return sink_arcs
 
 def build_problem(INSTANCE):    
-    INSTANCE_PATH = INSTANCE+'/'+INSTANCE+'.txt'
-    VESSELINFO_PATH = INSTANCE+'/vessel_data.txt'
+    INSTANCE_PATH = 'GROUP_1/'+INSTANCE+'/'+INSTANCE+'.txt'
+    VESSELINFO_PATH = 'GROUP_1/'+INSTANCE+'/vessel_data.txt'
     
     # Read file content
     with open(INSTANCE_PATH, 'r') as file:
@@ -689,7 +689,7 @@ def build_problem(INSTANCE):
     metadata = extract_metadata(content)
     metadata = adjust_vessel_classes(metadata)
     ORIGINAL_NUM_TIME_PERIODS = metadata['numPeriods']
-    vessel_data = get_vesels_data(VESSELINFO_PATH)
+    vessel_data = get_vessels_data(VESSELINFO_PATH)
     regions_info, ports_info = extract_region_and_port_info(content)
     all_ports, loading_regions, discharging_regions = create_ports_from_info_with_loading(ports_info)
     ports = get_ports(all_ports)
