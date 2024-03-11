@@ -705,7 +705,7 @@ class DQNAgent:
     
 def evaluate_agent_until_solution_is_found(env, agent):
     agent.epsilon = 0.1
-    attempts = 1
+    attempts = 0
     while True:
         experience_path = []
         state = env.reset()

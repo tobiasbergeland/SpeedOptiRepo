@@ -29,6 +29,8 @@ def main():
     # INSTANCE = 'LR1_1_DR1_4_VC3_V12b'
     # INSTANCE = 'LR2_11_DR2_22_VC3_V6a'
     # INSTANCE = 'LR2_11_DR2_33_VC4_V11a'
+    # GROUP 2
+    # INSTANCE = 'LR1_DR02_VC01_V6a'
 
     problem_data = build_problem(INSTANCE)
     
