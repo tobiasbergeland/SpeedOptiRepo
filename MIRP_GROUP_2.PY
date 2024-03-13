@@ -1,6 +1,7 @@
 import re
 import gurobipy as gp
 from gurobipy import GRB
+import time
 
 
 class Port:
@@ -467,7 +468,7 @@ def populate_all_info(source_arcs_info, vessels, ports, full_distance_matrix_nm,
             all_info.extend(arcs_for_current_vessel)
     return all_info
 
-def create_arcs_for_node(node, vessel, all_port_numbers, full_distance_matrix_nm, ports, NUM_TIME_PERIODS, travel_cost_matrix, travel_time_matrix, port_dict):
+def create_arcs_for_node(node, vessel, all_port_numbers, full_distance_matrix_km, ports, NUM_TIME_PERIODS, travel_cost_matrix, travel_time_matrix, port_dict):
     node_arcs = []
     if node.port.number in [0, len(ports) + 1]:
         return node_arcs
@@ -484,21 +485,26 @@ def create_arcs_for_node(node, vessel, all_port_numbers, full_distance_matrix_nm
         else:
             # Only create the arcs from a loading to a discharging port and vice versa
             if node.port.isLoadingPort != destination_port.isLoadingPort:
-                # Create the arcs to the discharging ports
-                distance_nm = full_distance_matrix_nm[node.port.number - 1][destination_port_number - 1]
-                # Note that there is a difference between [origin, destination] and [destination, origin] in the travel cost matrix. Check that it is correct
-                travel_cost = travel_cost_matrix[node.port.number - 1][destination_port_number - 1]
+                # The the arc is from a discharging port to a loading port, the cost is reduced by the discount factor
+                distance_km = full_distance_matrix_km[node.port.number - 1][destination_port_number - 1]
+                if node.port.isLoadingPort != 1:
+                    # Cannot extract the costs directly.
+                    cost_per_km_for_vessel = vessel.travel_cost_as_term_per_km  
+                    travel_cost = distance_km * cost_per_km_for_vessel
+                    # Add discount
+                    travel_cost = travel_cost * (1 - vessel.discount_traveling_empty)
+                    # Add port fee at destination
+                    travel_cost += destination_port.port_fee  
+                else:
+                    # Note that there is a difference between [origin, destination] and [destination, origin] in the travel cost matrix. Check that it is correct
+                    travel_cost = travel_cost_matrix[node.port.number - 1][destination_port_number - 1]
+                    
                 travel_time = travel_time_matrix[node.port.number - 1][destination_port_number - 1]
-                if travel_time>17:
-                    print('here')
-                # minimum_timesteps, speed = calculate_minimum_timesteps_and_speed(distance_nm=distance_nm, MAX_SPEED=MAX_SPEED, MIN_SPEED=MIN_SPEED)
                 arrival_time = node.time + travel_time
                 
                 if arrival_time < vessel.first_time_available or arrival_time > NUM_TIME_PERIODS:
                     continue
-                # arc_info = [(speed, travel_time, departure, arrival_time, origin_port, destination_port, travel_cost, distance_to_port, vessel, is_waiting_arc)]
-                arc_info = [vessel.avg_speed, travel_time, node.time, arrival_time, node.port.number, destination_port_number, travel_cost, distance_nm, vessel, False, False]
-                # arc_info_matrix = create_arc_info_fixed_speed(speed=vessel.avg_speed, minimum_timesteps=travel_time, departure=node.time, origin_port=node.port.number, destination_port=destination_port_number, distance_to_port=distance_nm, vessel=vessel, is_waiting_arc=False, NUM_TIME_PERIODS = NUM_TIME_PERIODS)
+                arc_info = [vessel.avg_speed, travel_time, node.time, arrival_time, node.port.number, destination_port_number, travel_cost, distance_km, vessel, False, False]
                 node_arcs.append(arc_info)
 
     return node_arcs
@@ -622,10 +628,6 @@ def rearrange_arcs(arc_dict):
     
 def build_model(vessels, arc_dict, regularNodes, ports, TIME_PERIOD_RANGE, sourceNode, sinkNode, waiting_arcs, vessel_classes, origin_node_arcs, destination_node_arcs, vessel_class_arcs, NODE_DICT, vessel_class_capacities):
     m = gp.Model('Maritime Inventory Routing Problem Speed Optimization')
-    
-    # for vc, arcs in vessel_class_arcs.items():
-    #     for arc in arcs:
-    #         print(arc)
  
     x = m.addVars(((arc.tuple, vc) for vc, arcs in vessel_class_arcs.items() for arc in arcs), vtype=gp.GRB.BINARY, name="x")
 
@@ -637,7 +639,7 @@ def build_model(vessels, arc_dict, regularNodes, ports, TIME_PERIOD_RANGE, sourc
     s.update(s_source)
     
     alpha_bounds = {(node.port.number, node.time): ((len(TIME_PERIOD_RANGE)*node.port.rate) - (node.port.capacity-node.port.inventory)) if node.port.isLoadingPort else (len(TIME_PERIOD_RANGE)*node.port.rate - node.port.initial_inventory) for node in regularNodes}
-    alpha = m.addVars(alpha_bounds.keys(), lb=0, ub=alpha_bounds, vtype=gp.GRB.CONTINUOUS, name="alpha")
+    alpha = m.addVars(alpha_bounds.keys(), lb=0, ub=alpha_bounds, vtype=gp.GRB.CONTINUOUS, name="a")
     
     # Create a dict where the arc.tuple is the key and arc.cost is the value
     costs = {(arc.tuple, vc): arc.cost for vc in vessel_classes for arc in vessel_class_arcs[vc]}
@@ -678,12 +680,12 @@ def build_model(vessels, arc_dict, regularNodes, ports, TIME_PERIOD_RANGE, sourc
             incoming_to_node = destination_node_arcs[vc].get(node.tuple, [])
             outgoing_from_node = origin_node_arcs[vc].get(node.tuple, [])
             if not incoming_to_node or not outgoing_from_node:
-                # continue
-                if incoming_to_node:
-                    # Set all the x vars to 0
-                    m.addConstr(gp.quicksum((x[in_arc.tuple, vc]) for in_arc in incoming_to_node) == 0, name = "ImpossibleFlow")
-                elif outgoing_from_node:
-                    m.addConstr(gp.quicksum((x[out_arc.tuple, vc]) for out_arc in outgoing_from_node) == 0, name = "ImpossibleFlow")
+                continue
+                # if incoming_to_node:
+                #     # Set all the x vars to 0
+                #     m.addConstr(gp.quicksum((x[in_arc.tuple, vc]) for in_arc in incoming_to_node) == 0, name = "ImpossibleFlow")
+                # elif outgoing_from_node:
+                #     m.addConstr(gp.quicksum((x[out_arc.tuple, vc]) for out_arc in outgoing_from_node) == 0, name = "ImpossibleFlow")
             else:
                 m.addConstr(gp.quicksum((x[in_arc.tuple, vc]) for in_arc in incoming_to_node) - gp.quicksum((x[out_arc.tuple, vc]) for out_arc in outgoing_from_node) == 0, name = "FlowBalance")
     m.update()
@@ -753,7 +755,7 @@ def build_model(vessels, arc_dict, regularNodes, ports, TIME_PERIOD_RANGE, sourc
             m.addConstr((gp.quicksum((x[arc.tuple, vc]) for arc in interegional_arcs) <= node.port.berth_limit), name = 'Birth_limit_in_time_t')
     m.update()
     
-    return m, costs
+    return m, costs, P
     
 def build_problem(INSTANCE):    
     INSTANCE_PATH = 'GROUP_2/'+INSTANCE+'/'+INSTANCE+'.txt'
@@ -773,6 +775,8 @@ def build_problem(INSTANCE):
     all_ports, loading_regions, discharging_regions, port_dict = create_ports_from_info_with_loading(ports_info, spotMarketPricePerUnit, spotMarketDiscountFactor)
     ports = get_ports(all_ports)
     NUM_TIME_PERIODS = metadata['numPeriods']
+    # SET NUM TIME PERIODS TO 120 FOR COMPARISON
+    NUM_TIME_PERIODS = 120
     TIME_PERIOD_RANGE = list(range(1, NUM_TIME_PERIODS+1))
     # MAX_SPEED = 15
     # MIN_SPEED = 8
@@ -795,12 +799,12 @@ def build_problem(INSTANCE):
     # Extracting the full distance matrix from the file content
     full_distance_matrix = parse_full_distance_matrix(INSTANCE_PATH)
     FULL_DISTANCE_MATRIX = full_distance_matrix
-    full_distance_matrix_nm = convert_matrix_to_nautical_miles(FULL_DISTANCE_MATRIX)
+    # full_distance_matrix_nm = convert_matrix_to_nautical_miles(FULL_DISTANCE_MATRIX)
     full_travel_cost_matrices = parse_full_travel_cost_matrices(INSTANCE_PATH)
     full_travel_time_matrices = parse_full_travel_time_matrices(INSTANCE_PATH)
     
     source_arcs_info = generate_source_arc_info(sourceNode, vessels)
-    all_info = populate_all_info(source_arcs_info, vessels, ports, full_distance_matrix_nm, NODE_DICT, NUM_TIME_PERIODS, full_travel_cost_matrices, full_travel_time_matrices, port_dict)
+    all_info = populate_all_info(source_arcs_info, vessels, ports, FULL_DISTANCE_MATRIX, NODE_DICT, NUM_TIME_PERIODS, full_travel_cost_matrices, full_travel_time_matrices, port_dict)
     arc_dict, vessel_arcs, waiting_arcs, sink_and_source_arcs = add_arcs_to_nodes(all_info, NODE_DICT, NUM_TIME_PERIODS)
     arc_dict, vessel_arcs = create_sink_arcs(vessels=vessels, sinkNode=sinkNode, arc_dict=arc_dict, vessel_arcs=vessel_arcs, sourceNode=sourceNode, NODE_DICT=NODE_DICT)
     populate_vessel_arcs(vessels, vessel_arcs)
@@ -863,6 +867,185 @@ def find_initial_solution(model):
         print("No feasible solution found within the time limit.")
         return None, None
 
+def get_current_x_solution(model):
+    return {v.VarName: v.x for v in model.getVars() if v.VarName.startswith('x')}
+
+def add_cutoff_constraint(model, current_best_obj, cutoff_value):
+    # Prefix for cutoff constraint names
+    cutoff_prefix = "cutoff_constraint"
+    
+    # Remove all existing cutoff constraints
+    for constr in model.getConstrs():  # Iterate over all constraints in the model
+        if constr.ConstrName.startswith(cutoff_prefix):
+            model.remove(constr)
+    
+    # Ensure the model is updated after removals
+    model.update()
+    
+    # Add the new cutoff constraint with a unique name to avoid name conflicts
+    constraint_name = f"{cutoff_prefix}_{current_best_obj}_{cutoff_value}"
+    cutoff_constr = model.addConstr(model.getObjective() <= current_best_obj - cutoff_value, name=constraint_name)
+    
+    # Update the model to add the new constraint
+    model.update()
+    
+    return cutoff_constr
+
+def update_objective_to_minimize_hamming_distance(model, y, x_variables, current_solution):
+    #to_remove = [constr for constr in model.getConstrs() if 'force_flip_' in constr.ConstrName or 'no_flip_' in constr.ConstrName or constr.ConstrName == "ensure_at_least_one_flip"]
+    #for constr in to_remove:
+    #    model.remove(constr)
+    #model.update()
+    # Remove previous Hamming distance constraints
+    for constr in model.getConstrs():
+        if 'Hamming_distance' in constr.ConstrName:
+            model.remove(constr)
+    model.update()
+    
+    # Add new Hamming distance constraints
+    for var_name, var in x_variables.items():
+        initial_value = current_solution[var_name]
+        if initial_value == 0:
+            model.addConstr(y[var_name] >= var - initial_value, name=f'y_{var_name}_Hamming_distance')
+        else:
+            model.addConstr(y[var_name] >= initial_value - var, name=f'y_{var_name}_Hamming_distance')
+    model.setObjective(y.sum(), GRB.MINIMIZE)
+    model.update()
+
+def convert_key_to_varname(key):
+    inner = str(key[0])  # Convert the inner tuple to string and remove spaces
+    vessel = key[1]
+    return f"x[{inner},{vessel}]"
+
+def evaluate_solution_with_original_objective(model, ps_data):
+    print("Evaluating solution with original objective")
+    costs = ps_data['costs']
+    regularNodes = ps_data['regularNodes']
+    vessels = ps_data['vessels']
+    P = ps_data['P']
+    
+    # Directly calculate arc costs using comprehension
+    x = {v.VarName: v.X for v in model.getVars() if v.VarName.startswith('x')}
+    # Do the same fo alpha variables
+    alpha = {v.VarName: v.X for v in model.getVars() if v.VarName.startswith('a')}
+    
+    arc_costs = sum(costs[key] * x[convert_key_to_varname(key)] for key in costs)
+    
+    alpha_costs = 0
+    for node in regularNodes:
+        key = f'a[{node.port.number},{node.time}]'
+        alpha_val = alpha[key]
+        P_val = P[(node.port.number, node.time)]
+        alpha_costs += alpha_val * P_val
+        
+    print(f'Alpha_costs: {alpha_costs}')
+    # alpha_costs = sum(alpha[f'a[{node.port.number},{node.time}]'] * P[({node.port.number}, {node.time})] for node in regularNodes)
+    print(f'Arc costs: {arc_costs}')
+    
+    # print(alpha_costs)
+    
+    # Directly calculate operation costs using comprehension
+    # o = {v.VarName: v.X for v in model.getVars() if v.VarName.startswith('o')}
+    # operation_costs = sum(o[f'o[{node.port.number},{node.time},{vessel}]'] * OPERATING_COST for node in regularNodes for vessel in vessels)
+    # print(f'Operating costs: {operation_costs}')
+    
+    new_obj_value = arc_costs + alpha_costs
+    print('New objective value:', new_obj_value)
+    return new_obj_value
+
+def perform_proximity_search(ps_data):  # Add other parameters as needed
+    model = ps_data['model']
+    model.setParam(gp.GRB.Param.SolutionLimit, 1)
+    model.optimize()
+    original_objective_function = model.getObjective()
+    current_solution = get_current_x_solution(model)
+    current_best_obj = model.getObjective().getValue()
+    x_variables = {v.VarName: v for v in model.getVars() if v.VarName.startswith('x')}
+    initial_percentage_decrease = 0.0005
+    discount_factor = 0.9
+    cutoff_value = (initial_percentage_decrease * current_best_obj)
+    y = model.addVars(x_variables.keys(), vtype=GRB.BINARY, name="y")
+    tabu_list = {}
+    tabu_tenure = 10
+    t = time.time()
+    i = 1
+    
+    # Start loop here:
+    while time.time() - t < 300:
+        print(f'Proximity Search Iteration {i}')
+        
+        # Set the objective (back) to the original objective function
+        model.setObjective(original_objective_function, GRB.MINIMIZE)
+        model.update()
+
+        cutoff_value = (initial_percentage_decrease * current_best_obj)*discount_factor
+        
+        add_cutoff_constraint(model, current_best_obj, cutoff_value)
+
+        update_objective_to_minimize_hamming_distance(model, y, x_variables, current_solution)
+
+        model.setParam(gp.GRB.Param.SolutionLimit, 1)
+  
+        model.optimize()
+        i += 1
+
+        # Check if a new solution is found with the lowest amount of changes to the structure as possible
+        if model.Status ==  GRB.SOLUTION_LIMIT:
+            print("Hamming Distance from previous solution:", model.objVal)
+            
+            new_solution = {v.VarName: v.X for v in model.getVars()}
+
+            # # Assuming new_solution has been determined after an optimization run
+            # for var_name, new_value in new_solution.items():
+            #     if var_name.startswith('x') and current_solution.get(var_name, None) != new_value:
+            #         # Only update Tabu list for variables that have changed
+            #         # Ensure you're checking against a baseline where the variable exists
+            #         tabu_list[var_name] = tabu_tenure
+
+            new_obj_value = evaluate_solution_with_original_objective(model, ps_data)
+            print("Found a better solution.")
+            print(f'Previous objective value was {current_best_obj}. New objective value: {new_obj_value}')
+
+            current_solution = new_solution
+            current_best_obj = new_obj_value
+
+    solution = {v.VarName: v for v in model.getVars()}
+
+    return solution, new_obj_value
+
+def solve_model(model):
+    H = 3600
+    model.setParam(gp.GRB.Param.TimeLimit, 0.25*H)
+
+    try:
+        model.optimize()
+    except gp.GurobiError as e:
+        print(f"Gurobi Error: {e}")
+    # Run the optimization
+    # model.optimize()
+        
+    
+    # Check the status of the optimization
+    if model.status == gp.GRB.OPTIMAL:
+        print("Optimal solution found!")
+        # Save the optimal solution to file
+        # model.write("MIRPSO2.sol")
+        # Write the values of all variables
+        with open('MIRPSO2.sol', 'w') as file:
+            file.write("Variable Values:\n")
+            for var in model.getVars():
+                file.write(f"{var.varName}: {var.x}\n")
+        file.close()
+        
+        
+        
+        
+    if model.status == gp.GRB.INFEASIBLE:
+        model.computeIIS()
+        # Write the IIS to a .ilp file
+        model.write("MIRPSO.ilp")
+        print("Model is infeasible")
+
 def main():
     # INSTANCE = 'LR1_1_DR1_3_VC1_V7a'
     # INSTANCE = 'LR1_1_DR1_4_VC3_V8a'
@@ -875,8 +1058,8 @@ def main():
     # INSTANCE = 'LR2_11_DR2_22_VC3_V6a'
     # INSTANCE = 'LR2_11_DR2_33_VC4_V11a'
     # GROUP 2
-    # INSTANCE = 'LR1_DR02_VC01_V6a'
-    INSTANCE = 'LR1_DR02_VC02_V6a'
+    INSTANCE = 'LR1_DR02_VC01_V6a'
+    # INSTANCE = 'LR1_DR02_VC02_V6a'
     
 
     problem_data = build_problem(INSTANCE)
@@ -897,8 +1080,10 @@ def main():
     
     origin_node_arcs, destination_node_arcs, vessel_class_arcs = rearrange_arcs(arc_dict)
     
-    model, costs = build_model(vessels = vessels, arc_dict = arc_dict, regularNodes=regularNodes, ports=ports, TIME_PERIOD_RANGE = TIME_PERIOD_RANGE, sourceNode = sourceNode, sinkNode = sinkNode, waiting_arcs = waiting_arcs, vessel_classes = VESSEL_CLASSES, origin_node_arcs = origin_node_arcs, destination_node_arcs=destination_node_arcs, vessel_class_arcs=vessel_class_arcs, NODE_DICT = NODE_DICT, vessel_class_capacities=vessel_class_capacities)
+    model, costs, P = build_model(vessels = vessels, arc_dict = arc_dict, regularNodes=regularNodes, ports=ports, TIME_PERIOD_RANGE = TIME_PERIOD_RANGE, sourceNode = sourceNode, sinkNode = sinkNode, waiting_arcs = waiting_arcs, vessel_classes = VESSEL_CLASSES, origin_node_arcs = origin_node_arcs, destination_node_arcs=destination_node_arcs, vessel_class_arcs=vessel_class_arcs, NODE_DICT = NODE_DICT, vessel_class_capacities=vessel_class_capacities)
 
+    solve_model(model)
+    
     x_initial_solution, model = find_initial_solution(model)
     # Print the size of the initial solution
     print("Initial solution size:", len(x_initial_solution))
@@ -906,7 +1091,7 @@ def main():
     # Remove the solution limit
     model.setParam(gp.GRB.Param.SolutionLimit, 2000000)
     
-    ps_data = {'model': model, 'initial_solution':x_initial_solution, 'costs': costs, 'regularNodes': regularNodes, 'vessels': vessels, 'operating_cost':OPERATING_COST, 'vessel_arcs': vessel_arcs}
+    ps_data = {'model': model, 'initial_solution':x_initial_solution, 'costs': costs, 'P':P, 'regularNodes': regularNodes, 'vessels': vessels, 'vessel_arcs': vessel_arcs}
 
     # Perform the proximity search using the initial solution
     improved_solution, obj_value = perform_proximity_search(ps_data)
