@@ -1,7 +1,8 @@
 import re
+import time
+
 import gurobipy as gp
 from gurobipy import GRB
-import time
 
 
 class Port:
@@ -442,7 +443,7 @@ def generate_source_arc_info(sourceNode, vessels):
         # source_arcs_info_for_vessel = []
         speed = 0
         # speed, timesteps, departure, arrival, origin_port_number, destination_port_number, fuel_consumption, distance_nm, vessel, is_waiting_arc, is_source_or_sink_arc = tuple_data
-        arc_info = [speed, first_time_available, 0, first_time_available, sourceNode.port.number, initial_port.number, 0, 0, vessel, False, True]
+        arc_info = [speed, first_time_available, 0, first_time_available, sourceNode.port.number, initial_port.number, initial_port.port_fee, 0, vessel, False, True]
         # source_arcs_info_for_vessel.append(arc_info)
         source_arcs_info.append(arc_info)
     return [source_arcs_info]
@@ -528,6 +529,9 @@ def add_arcs_to_nodes(all_info, NODE_DICT, NUM_TIME_PERIODS):
             # Retrieve the origin and destination nodes
             origin_node_obj = NODE_DICT.get((origin_port_number, departure))
             destination_node_obj = NODE_DICT.get((destination_port_number, arrival))
+            
+            if origin_node_obj.tuple == (1,110) and destination_node_obj.tuple == (2,118):
+                print('here')
            
 
             if origin_node_obj and destination_node_obj and arrival <= NUM_TIME_PERIODS:
@@ -558,31 +562,33 @@ def add_arcs_to_nodes(all_info, NODE_DICT, NUM_TIME_PERIODS):
 
     return arc_dict, vessel_arcs, waiting_arcs, sink_and_source_arcs
 
-def add_arc_to_dict(origin, destination, vessel, arc_dict, vessel_arcs):
+def add_arc_to_dict(origin, sinkNode, vessel, arc_dict, vessel_arcs, perPeriodRewardForFinishingEarly):
     """Helper function to add arc to dictionaries and nodes."""
-    arc = Arc(origin_node=origin, destination_node=destination, distance=0, cost=0, travel_time=0, speed=0, is_waiting_arc=False, is_source_or_sink_arc=True, vessel_class=vessel.vessel_class)
+    # Calculate the reward for finishing early
+    origin_time = origin.time
+    time_diff = (sinkNode.time-1) - origin_time
+    reward = perPeriodRewardForFinishingEarly * time_diff
+    arc = Arc(origin_node=origin, destination_node=sinkNode, distance=0, cost=-reward, travel_time=0, speed=0, is_waiting_arc=False, is_source_or_sink_arc=True, vessel_class=vessel.vessel_class)
     origin.outgoing_arcs.setdefault(vessel.vessel_class, [])
-    destination.incoming_arcs.setdefault(vessel.vessel_class, [])
+    sinkNode.incoming_arcs.setdefault(vessel.vessel_class, [])
     origin.outgoing_arcs[vessel.vessel_class].append(arc)
-    destination.incoming_arcs[vessel.vessel_class].append(arc)
+    sinkNode.incoming_arcs[vessel.vessel_class].append(arc)
     
     arc_dict.setdefault(vessel.vessel_class, {})
-    arc_dict[vessel.vessel_class][(origin.tuple, destination.tuple)] = arc
+    arc_dict[vessel.vessel_class][(origin.tuple, sinkNode.tuple)] = arc
     # arc_dict[(origin.tuple, destination.tuple, vessel)] = arc
     vessel_arcs.setdefault(vessel, []).append(arc)
     return arc_dict, vessel_arcs
 
-def create_sink_arcs(vessels, sinkNode, arc_dict, vessel_arcs, sourceNode, NODE_DICT):
+def create_sink_arcs(vessels, sinkNode, arc_dict, vessel_arcs, sourceNode, NODE_DICT, perPeriodRewardForFinishingEarly):
 
-        # Arc from source node to sink node
-        # arc_dict, vessel_arcs = add_arc_to_dict(sourceNode, sinkNode, vessel, arc_dict, vessel_arcs)
     for vessel in vessels:
         sinkNode.incoming_arcs.setdefault(vessel.vessel_class, [])
         
         # Arcs from other nodes to sink node
         for node in NODE_DICT.values():
             if node.port.number != sinkNode.port.number and node.time >= vessel.first_time_available:
-                arc_dict, vessel_arcs = add_arc_to_dict(node, sinkNode, vessel, arc_dict, vessel_arcs)
+                arc_dict, vessel_arcs = add_arc_to_dict(node, sinkNode, vessel, arc_dict, vessel_arcs, perPeriodRewardForFinishingEarly)
         
     return arc_dict, vessel_arcs
 
@@ -631,14 +637,14 @@ def build_model(vessels, arc_dict, regularNodes, ports, TIME_PERIOD_RANGE, sourc
  
     x = m.addVars(((arc.tuple, vc) for vc, arcs in vessel_class_arcs.items() for arc in arcs), vtype=gp.GRB.BINARY, name="x")
 
-    s_bounds = {(node.port.number, node.time): node.port.capacity for node in regularNodes}
+    s_bounds = {(node.port.number, node.time): node.port.capacity for node in regularNodes if node.time > 1}
     s = m.addVars(s_bounds.keys(), lb=0, ub=s_bounds, vtype=gp.GRB.CONTINUOUS, name="s")
 
-    s_bounds_source = {(port.number, 0): port.capacity for port in ports}
+    s_bounds_source = {(port.number, 1): port.capacity for port in ports}
     s_source = m.addVars(s_bounds_source.keys(), lb=0, ub=s_bounds, vtype=gp.GRB.CONTINUOUS, name="s")
     s.update(s_source)
     
-    alpha_bounds = {(node.port.number, node.time): ((len(TIME_PERIOD_RANGE)*node.port.rate) - (node.port.capacity-node.port.inventory)) if node.port.isLoadingPort else (len(TIME_PERIOD_RANGE)*node.port.rate - node.port.initial_inventory) for node in regularNodes}
+    alpha_bounds = {(node.port.number, node.time): ((node.port.rate))for node in regularNodes}
     alpha = m.addVars(alpha_bounds.keys(), lb=0, ub=alpha_bounds, vtype=gp.GRB.CONTINUOUS, name="a")
     
     # Create a dict where the arc.tuple is the key and arc.cost is the value
@@ -647,7 +653,9 @@ def build_model(vessels, arc_dict, regularNodes, ports, TIME_PERIOD_RANGE, sourc
 
     #Parameters:
     P = {(node.port.number, node.time): node.port.spotMarketPricePerUnit * (node.port.spotMarketDiscountFactor ** (node.time)) for node in regularNodes}
-    original_obj = gp.quicksum(costs[key]*x[key] for key in costs) + gp.quicksum(alpha[node.port.number, node.time] * P[(node.port.number, node.time)] for node in regularNodes)
+    # original_obj = gp.quicksum(costs[key]*x[key] for key in costs) + gp.quicksum(alpha[node.port.number, node.time] * P[(node.port.number, node.time)] for node in regularNodes)
+    original_obj = gp.quicksum(alpha[node.port.number, node.time] * P[(node.port.number, node.time)] for node in regularNodes)
+    # original_obj = gp.quicksum(costs[key]*x[key] for key in costs)
 
     m.setObjective(original_obj, GRB.MINIMIZE)
     m.update()
@@ -693,31 +701,8 @@ def build_model(vessels, arc_dict, regularNodes, ports, TIME_PERIOD_RANGE, sourc
     # Constraint (5)
     '''Set correct initial inventory at each port'''
     for port in ports:
-        m.addConstr(s_source[port.number, 0] == port.inventory, name = 'InitialInventoryPort')
+        m.addConstr(s_source[port.number, 1] == port.initial_inventory, name = 'InitialInventoryPort')
     m.update()
-
-
-    # interegional_arcs = []
-    # for vc in vessel_classes:
-    #     for arc in vessel_class_arcs[vc]:
-    #             if not arc.is_waiting_arc and not arc.is_source_or_sink_arc:
-    #                 interegional_arcs.append(arc)
-    # for port in ports:
-    #     for t in TIME_PERIOD_RANGE:
-    #         # Check if 't' is the first period to handle the 't-1' index.
-    #         if t == 0:
-    #             continue  # Skip the constraint for the first time period, or handle it separately.
-                
-    #         # Find interregional arcs with origin at port 'port' and time 't'.
-    #         arcs_with_origin_t = [arc for arc in interegional_arcs if arc.origin_node.time == t and arc.origin_node.port == port]
-            
-    #         # Calculate the total capacity of vessels leaving port 'port' at time 't'.
-    #         total_vessel_capacity = gp.quicksum(x[arc.tuple, vc] * vessel_class_capacities[vc] for arc in arcs_with_origin_t for vc in vessel_classes)
-            
-    #         # Inventory balance constraint.
-    #         m.addConstr(s[port.number, t] == (s[port.number, t-1] + port.rate - total_vessel_capacity), name = f'PortBalance_Inter_regional_port:{port.number}_time:{t}_vc:{vc}')
-    # m.update()
-
 
     # Constraint (6)
     '''Inventory balance at ports'''
@@ -728,11 +713,10 @@ def build_model(vessels, arc_dict, regularNodes, ports, TIME_PERIOD_RANGE, sourc
                 if not arc.is_waiting_arc and not arc.is_source_or_sink_arc:
                     interegional_arcs.append(arc)
                     
-    # Check if we have an arc where the origin node is (1,315)
-    check_arcs = [arc for arc in interegional_arcs if arc.origin_node.port.number == 3 and arc.origin_node.time == 347]
-                    
     for port in ports:
         for t in TIME_PERIOD_RANGE:
+            if t == 1:
+                continue
             # interegional_arcs with origin_node.time = t and origin_node.port = port
             arcs_with_origin_t = [arc for arc in interegional_arcs if arc.origin_node.time == t and arc.origin_node.port == port]
             if arcs_with_origin_t:
@@ -755,6 +739,10 @@ def build_model(vessels, arc_dict, regularNodes, ports, TIME_PERIOD_RANGE, sourc
             m.addConstr((gp.quicksum((x[arc.tuple, vc]) for arc in interegional_arcs) <= node.port.berth_limit), name = 'Birth_limit_in_time_t')
     m.update()
     
+    for node in regularNodes:
+        port = node.port
+        m.addConstr(alpha[port.number, node.time] <= port.rate , name = f'AlphaSlackBound:{port.number}_time:{node.time}')
+        
     return m, costs, P
     
 def build_problem(INSTANCE):    
@@ -770,6 +758,7 @@ def build_problem(INSTANCE):
     metadata = extract_metadata(content)
     spotMarketPricePerUnit = metadata['spotMarketPricePerUnit']
     spotMarketDiscountFactor = metadata['spotMarketDiscountFactor']
+    perPeriodRewardForFinishingEarly = metadata['perPeriodRewardForFinishingEarly']
     vessel_data = get_vessels_data(VESSELINFO_PATH)
     regions_info, ports_info = extract_region_and_port_info(content)
     all_ports, loading_regions, discharging_regions, port_dict = create_ports_from_info_with_loading(ports_info, spotMarketPricePerUnit, spotMarketDiscountFactor)
@@ -806,7 +795,7 @@ def build_problem(INSTANCE):
     source_arcs_info = generate_source_arc_info(sourceNode, vessels)
     all_info = populate_all_info(source_arcs_info, vessels, ports, FULL_DISTANCE_MATRIX, NODE_DICT, NUM_TIME_PERIODS, full_travel_cost_matrices, full_travel_time_matrices, port_dict)
     arc_dict, vessel_arcs, waiting_arcs, sink_and_source_arcs = add_arcs_to_nodes(all_info, NODE_DICT, NUM_TIME_PERIODS)
-    arc_dict, vessel_arcs = create_sink_arcs(vessels=vessels, sinkNode=sinkNode, arc_dict=arc_dict, vessel_arcs=vessel_arcs, sourceNode=sourceNode, NODE_DICT=NODE_DICT)
+    arc_dict, vessel_arcs = create_sink_arcs(vessels=vessels, sinkNode=sinkNode, arc_dict=arc_dict, vessel_arcs=vessel_arcs, sourceNode=sourceNode, NODE_DICT=NODE_DICT, perPeriodRewardForFinishingEarly=perPeriodRewardForFinishingEarly)
     populate_vessel_arcs(vessels, vessel_arcs)
  
     problem_data = {
@@ -1013,9 +1002,9 @@ def perform_proximity_search(ps_data):  # Add other parameters as needed
 
     return solution, new_obj_value
 
-def solve_model(model):
+def solve_model(model, costs, P):
     H = 3600
-    model.setParam(gp.GRB.Param.TimeLimit, 0.25*H)
+    model.setParam(gp.GRB.Param.TimeLimit, 0.1*H)
 
     try:
         model.optimize()
@@ -1031,11 +1020,34 @@ def solve_model(model):
         # Save the optimal solution to file
         # model.write("MIRPSO2.sol")
         # Write the values of all variables
-        with open('MIRPSO2.sol', 'w') as file:
+        with open('MIRPSO2_w_a.sol', 'w') as file:
             file.write("Variable Values:\n")
             for var in model.getVars():
                 file.write(f"{var.varName}: {var.x}\n")
+            file.write("Costs:\n")
+            for key, value in costs.items():
+                file.write(f"{key}: {value}\n")
+            file.write("P:\n")
+            for key, value in P.items():
+                file.write(f"{key}: {value}\n")
         file.close()
+        
+    # If time limit was reached
+    elif model.status == gp.GRB.TIME_LIMIT:
+        print("Time limit reached")
+        with open('MIRPSO2_w_a.sol', 'w') as file:
+            file.write("Variable Values:\n")
+            for var in model.getVars():
+                file.write(f"{var.varName}: {var.x}\n")
+            for key, value in costs.items():
+                file.write("Costs:\n")
+                file.write(f"{key}: {value}\n")
+            file.write("P:\n")
+            for key, value in P.items():
+                file.write("P:\n")
+                file.write(f"{key}: {value}\n")
+        file.close()
+        
         
         
         
@@ -1082,7 +1094,7 @@ def main():
     
     model, costs, P = build_model(vessels = vessels, arc_dict = arc_dict, regularNodes=regularNodes, ports=ports, TIME_PERIOD_RANGE = TIME_PERIOD_RANGE, sourceNode = sourceNode, sinkNode = sinkNode, waiting_arcs = waiting_arcs, vessel_classes = VESSEL_CLASSES, origin_node_arcs = origin_node_arcs, destination_node_arcs=destination_node_arcs, vessel_class_arcs=vessel_class_arcs, NODE_DICT = NODE_DICT, vessel_class_capacities=vessel_class_capacities)
 
-    solve_model(model)
+    solve_model(model, costs, P)
     
     x_initial_solution, model = find_initial_solution(model)
     # Print the size of the initial solution
