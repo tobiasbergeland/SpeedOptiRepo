@@ -576,7 +576,6 @@ def add_arc_to_dict(origin, sinkNode, vessel, arc_dict, vessel_arcs, perPeriodRe
     
     arc_dict.setdefault(vessel.vessel_class, {})
     arc_dict[vessel.vessel_class][(origin.tuple, sinkNode.tuple)] = arc
-    # arc_dict[(origin.tuple, destination.tuple, vessel)] = arc
     vessel_arcs.setdefault(vessel, []).append(arc)
     return arc_dict, vessel_arcs
 
@@ -636,13 +635,17 @@ def build_model(vessels, arc_dict, regularNodes, ports, TIME_PERIOD_RANGE, sourc
     m = gp.Model('Maritime Inventory Routing Problem Speed Optimization')
  
     x = m.addVars(((arc.tuple, vc) for vc, arcs in vessel_class_arcs.items() for arc in arcs), vtype=gp.GRB.BINARY, name="x")
-
+    
     s_bounds = {(node.port.number, node.time): node.port.capacity for node in regularNodes if node.time > 1}
     s = m.addVars(s_bounds.keys(), lb=0, ub=s_bounds, vtype=gp.GRB.CONTINUOUS, name="s")
 
-    s_bounds_source = {(port.number, 1): port.capacity for port in ports}
+    s_bounds_source = {(port.number, 1): port.initial_inventory for port in ports}
     s_source = m.addVars(s_bounds_source.keys(), lb=0, ub=s_bounds, vtype=gp.GRB.CONTINUOUS, name="s")
     s.update(s_source)
+    
+    s_bound_sink = {(port.number, TIME_PERIOD_RANGE[-1] + 1): port.capacity for port in ports}
+    s_sink = m.addVars(s_bound_sink.keys(), lb=0, ub=s_bound_sink, vtype=gp.GRB.CONTINUOUS, name="s")
+    s.update(s_sink)
     
     alpha_bounds = {(node.port.number, node.time): ((node.port.rate))for node in regularNodes}
     alpha = m.addVars(alpha_bounds.keys(), lb=0, ub=alpha_bounds, vtype=gp.GRB.CONTINUOUS, name="a")
@@ -653,9 +656,7 @@ def build_model(vessels, arc_dict, regularNodes, ports, TIME_PERIOD_RANGE, sourc
 
     #Parameters:
     P = {(node.port.number, node.time): node.port.spotMarketPricePerUnit * (node.port.spotMarketDiscountFactor ** (node.time)) for node in regularNodes}
-    # original_obj = gp.quicksum(costs[key]*x[key] for key in costs) + gp.quicksum(alpha[node.port.number, node.time] * P[(node.port.number, node.time)] for node in regularNodes)
-    original_obj = gp.quicksum(alpha[node.port.number, node.time] * P[(node.port.number, node.time)] for node in regularNodes)
-    # original_obj = gp.quicksum(costs[key]*x[key] for key in costs)
+    original_obj = gp.quicksum(costs[key]*x[key] for key in costs) + gp.quicksum(alpha[node.port.number, node.time] * P[(node.port.number, node.time)] for node in regularNodes)
 
     m.setObjective(original_obj, GRB.MINIMIZE)
     m.update()
@@ -689,11 +690,6 @@ def build_model(vessels, arc_dict, regularNodes, ports, TIME_PERIOD_RANGE, sourc
             outgoing_from_node = origin_node_arcs[vc].get(node.tuple, [])
             if not incoming_to_node or not outgoing_from_node:
                 continue
-                # if incoming_to_node:
-                #     # Set all the x vars to 0
-                #     m.addConstr(gp.quicksum((x[in_arc.tuple, vc]) for in_arc in incoming_to_node) == 0, name = "ImpossibleFlow")
-                # elif outgoing_from_node:
-                #     m.addConstr(gp.quicksum((x[out_arc.tuple, vc]) for out_arc in outgoing_from_node) == 0, name = "ImpossibleFlow")
             else:
                 m.addConstr(gp.quicksum((x[in_arc.tuple, vc]) for in_arc in incoming_to_node) - gp.quicksum((x[out_arc.tuple, vc]) for out_arc in outgoing_from_node) == 0, name = "FlowBalance")
     m.update()
@@ -710,21 +706,29 @@ def build_model(vessels, arc_dict, regularNodes, ports, TIME_PERIOD_RANGE, sourc
     interegional_arcs = []
     for vc in vessel_classes:
         for arc in vessel_class_arcs[vc]:
-                if not arc.is_waiting_arc and not arc.is_source_or_sink_arc:
+                # if not arc.is_waiting_arc and not arc.is_source_or_sink_arc:
+                if not arc.is_waiting_arc:
                     interegional_arcs.append(arc)
-                    
+       
+    
+    # Create a new list with one additional time period at the end
+    TIME_PERIOD_RANGE_INCL_SINK = list(range(1, len(TIME_PERIOD_RANGE)+2))
     for port in ports:
-        for t in TIME_PERIOD_RANGE:
+        for t in TIME_PERIOD_RANGE_INCL_SINK:
             if t == 1:
                 continue
-            # interegional_arcs with origin_node.time = t and origin_node.port = port
-            arcs_with_origin_t = [arc for arc in interegional_arcs if arc.origin_node.time == t and arc.origin_node.port == port]
-            if arcs_with_origin_t:
-                m.addConstr(s[port.number, t] == (s[port.number, t-1] + (port.isLoadingPort * port.rate) - (port.isLoadingPort * gp.quicksum((x[arc.tuple, arc.vessel_class] * vessel_class_capacities[arc.vessel_class] for arc in arcs_with_origin_t)) - port.isLoadingPort*alpha[port.number, t])) , name = f'PortBalance_Inter_regional_port:{port.number}_time:{t}_vc:{vc}')
+            if t == len(TIME_PERIOD_RANGE)+1:
+                # continue
+                m.addConstr(s[port.number, t] == s[port.number, t-1] + (port.isLoadingPort * port.rate), name = f'PortBalance_Inter_regional_port:{port.number}_time:{t}_vc:{vc}')
             else:
-                m.addConstr(s[port.number, t] == s[port.number, t-1] + (port.isLoadingPort * port.rate) - port.isLoadingPort*alpha[port.number, t], name = f'PortBalance_Inter_regional_port:{port.number}_time:{t}_vc:{vc}')
+                # interegional_arcs with origin_node.time = t and origin_node.port = port
+                arcs_with_origin_t = [arc for arc in interegional_arcs if arc.origin_node.time == t and arc.origin_node.port == port]
+                if arcs_with_origin_t:
+                    m.addConstr(s[port.number, t] == (s[port.number, t-1] + (port.isLoadingPort * port.rate) - (port.isLoadingPort * gp.quicksum((x[arc.tuple, arc.vessel_class] * vessel_class_capacities[arc.vessel_class] for arc in arcs_with_origin_t)) - port.isLoadingPort*alpha[port.number, t])) , name = f'PortBalance_Inter_regional_port:{port.number}_time:{t}_vc:{vc}')
+                else:
+                    m.addConstr(s[port.number, t] == s[port.number, t-1] + (port.isLoadingPort * port.rate) - port.isLoadingPort*alpha[port.number, t], name = f'PortBalance_Inter_regional_port:{port.number}_time:{t}_vc:{vc}')
     m.update()
-
+    
     # Constraint (7)
     '''Berth limit'''
     for node in regularNodes:
@@ -732,7 +736,8 @@ def build_model(vessels, arc_dict, regularNodes, ports, TIME_PERIOD_RANGE, sourc
             interegional_arcs = []
             for vc in vessel_classes:
                 for arc in vessel_class_arcs[vc]:
-                    if not arc.is_waiting_arc and not arc.is_source_or_sink_arc:
+                    # if not arc.is_waiting_arc and not arc.is_source_or_sink_arc:
+                    if not arc.is_waiting_arc:
                         if arc.origin_node == node:
                             interegional_arcs.append(arc)
             # interegional_arcs = [arc for arc in vessel_class_arcs[vc] for vc in vessel_classes if arc.origin_node == node]
@@ -742,6 +747,7 @@ def build_model(vessels, arc_dict, regularNodes, ports, TIME_PERIOD_RANGE, sourc
     for node in regularNodes:
         port = node.port
         m.addConstr(alpha[port.number, node.time] <= port.rate , name = f'AlphaSlackBound:{port.number}_time:{node.time}')
+    m.update()
         
     return m, costs, P
     
@@ -1003,8 +1009,60 @@ def perform_proximity_search(ps_data):  # Add other parameters as needed
     return solution, new_obj_value
 
 def solve_model(model, costs, P):
+    
+    # Define the maximum RHS value you want
+    max_rhs_value = 72
+
+    # Dictionary to hold constraints with RHS greater than max_rhs_value
+    constraints_with_high_rhs = {}
+
+    # Iterate over all constraints and check their RHS
+    for constr in model.getConstrs():
+        # The RHS for each constraint is stored in the attribute "RHS"
+        rhs_value = constr.RHS
+        if rhs_value > max_rhs_value:
+            constraints_with_high_rhs[constr.ConstrName] = rhs_value
+
+    # Print out the constraints that exceed the maximum RHS value
+    for constr_name, rhs_value in constraints_with_high_rhs.items():
+        print(f"{constr_name}: RHS = {rhs_value}")
+        
+    
+    # x_vars_counter = 0
+    # for var in model.getVars():
+    #     if var.VarName.startswith("x"):
+    #         x_vars_counter += 1
+    # print(f"Number of x variables: {x_vars_counter}")
+    
+    # a_vars_counter = 0
+    # for var in model.getVars():
+    #     if var.VarName.startswith("a"):
+    #         a_vars_counter += 1
+    # print(f"Number of a variables: {a_vars_counter}")
+    
+    # s_vars_counter = 0
+    # for var in model.getVars():
+    #     if var.VarName.startswith("s"):
+    #         s_vars_counter += 1
+    # print(f"Number of s variables: {s_vars_counter}")
+    
+    model.printStats()
+    
+    # for con in model.getConstrs():
+    #     if con.ConstrName.startswith("Flow"):
+    #         continue
+    #     print(f"Constraint: {con.ConstrName}")
+    #     expr = model.getRow(con)  # Get the linear expression for the constraint
+    #     # The getVar method returns the variable associated with a particular coefficient
+    #     var_list = model.getVars()
+    #     # expr.getCoeff(i) will get the coefficient for the ith variable in the expression
+    #     for i in range(expr.size()):
+    #         var = var_list[expr.getVar(i).index]  # Get the variable object
+    #         coeff = expr.getCoeff(i)  # Get the coefficient for that variable
+    #         print(f"   {var.VarName} {coeff}")
+
     H = 3600
-    model.setParam(gp.GRB.Param.TimeLimit, 0.1*H)
+    model.setParam(gp.GRB.Param.TimeLimit, 1*H)
 
     try:
         model.optimize()
@@ -1047,10 +1105,6 @@ def solve_model(model, costs, P):
                 file.write("P:\n")
                 file.write(f"{key}: {value}\n")
         file.close()
-        
-        
-        
-        
         
     if model.status == gp.GRB.INFEASIBLE:
         model.computeIIS()
