@@ -627,7 +627,7 @@ def rearrange_arcs(arc_dict):
 
     return origin_node_arcs, destination_node_arcs, vessel_class_arcs
     
-def build_model(vessels, arc_dict, regularNodes, ports, TIME_PERIOD_RANGE, sourceNode, sinkNode, waiting_arcs, vessel_classes, origin_node_arcs, destination_node_arcs, vessel_class_arcs, NODE_DICT, vessel_class_capacities):
+def build_model(vessels, regularNodes, ports, TIME_PERIOD_RANGE, sourceNode, sinkNode, vessel_classes, origin_node_arcs, destination_node_arcs, vessel_class_arcs, NODE_DICT, vessel_class_capacities):
     
     m = gp.Model('Maritime Inventory Routing Problem Speed Optimization')
     
@@ -835,12 +835,9 @@ def build_problem(INSTANCE):
         'regularNodes': regularNodes,
         'ports': ports,
         'TIME_PERIOD_RANGE': TIME_PERIOD_RANGE,
-        # 'non_operational': non_operational,
         'sourceNode': sourceNode,
         'sinkNode': sinkNode,
         'waiting_arcs': waiting_arcs,
-        # 'OPERATING_COST': OPERATING_COST,
-        # 'OPERATING_SPEED': OPERATING_SPEED,
         'NODES' : NODES,
         'NODE_DICT' : NODE_DICT,
         'VESSEL_CLASSES': VESSEL_CLASSES,
@@ -1077,17 +1074,6 @@ def solve_model(model, costs, P):
             sink_flow_counter += 1
         if con.ConstrName.startswith("InitialInventoryPort"):
             InitialInventoryPort_counter += 1
-            
-        # # print(con.ConstrName)
-        # # print(f"Constraint: {con.ConstrName}")
-        # expr = model.getRow(con)  # Get the linear expression for the constraint
-        # # The getVar method returns the variable associated with a particular coefficient
-        # var_list = model.getVars()
-        # # expr.getCoeff(i) will get the coefficient for the ith variable in the expression
-        # for i in range(expr.size()):
-        #     var = var_list[expr.getVar(i).index]  # Get the variable object
-        #     coeff = expr.getCoeff(i)  # Get the coefficient for that variable
-        #     print(f"   {var.VarName} {coeff}")
 
     print(f"Number of flow constraints: {flow_counter}")
     print(f"Number of port balance constraints: {port_balance_counter}")
@@ -1108,9 +1094,6 @@ def solve_model(model, costs, P):
         model.optimize()
     except gp.GurobiError as e:
         print(f"Gurobi Error: {e}")
-    # Run the optimization
-    # model.optimize()
-        
     
     # Check the status of the optimization
     if model.status == gp.GRB.OPTIMAL:
@@ -1186,7 +1169,7 @@ def main():
     
     origin_node_arcs, destination_node_arcs, vessel_class_arcs = rearrange_arcs(arc_dict)
     
-    model, costs, P = build_model(vessels = vessels, arc_dict = arc_dict, regularNodes=regularNodes, ports=ports, TIME_PERIOD_RANGE = TIME_PERIOD_RANGE, sourceNode = sourceNode, sinkNode = sinkNode, waiting_arcs = waiting_arcs, vessel_classes = VESSEL_CLASSES, origin_node_arcs = origin_node_arcs, destination_node_arcs=destination_node_arcs, vessel_class_arcs=vessel_class_arcs, NODE_DICT = NODE_DICT, vessel_class_capacities=vessel_class_capacities)
+    model, costs, P = build_model(vessels = vessels, regularNodes=regularNodes, ports=ports, TIME_PERIOD_RANGE = TIME_PERIOD_RANGE, sourceNode = sourceNode, sinkNode = sinkNode, vessel_classes = VESSEL_CLASSES, origin_node_arcs = origin_node_arcs, destination_node_arcs=destination_node_arcs, vessel_class_arcs=vessel_class_arcs, NODE_DICT = NODE_DICT, vessel_class_capacities=vessel_class_capacities)
     
     model.write("Group2.lp")  # Export model to an LP file
 
