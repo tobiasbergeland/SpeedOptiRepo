@@ -336,7 +336,7 @@ def create_special_ports(vessels, ports):
 def create_special_nodes(sourcePort, sinkPort, NUM_TIME_PERIODS):
     # Create source and sink node
     sourceNode = Node(port=sourcePort, time=-1)
-    sinkNode = Node(port=sinkPort, time=NUM_TIME_PERIODS+1)
+    sinkNode = Node(port=sinkPort, time=NUM_TIME_PERIODS)
     return sourceNode, sinkNode
 
 def create_node_list_and_dict(sourceNode, regularNodes, sinkNode):
@@ -795,7 +795,7 @@ def build_problem(INSTANCE):
     ports = get_ports(all_ports)
     NUM_TIME_PERIODS = metadata['numPeriods']
     # SET NUM TIME PERIODS TO 120 FOR COMPARISON
-    NUM_TIME_PERIODS = 120
+    NUM_TIME_PERIODS = 60
     TIME_PERIOD_RANGE = list(range(0, NUM_TIME_PERIODS))
     # MAX_SPEED = 15
     # MIN_SPEED = 8
