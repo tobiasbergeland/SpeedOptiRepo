@@ -594,6 +594,30 @@ def populate_vessel_arcs(vessels, vessel_arcs):
             v.all_arcs_v[arc.tuple] = arc
             
     return vessels
+
+def add_special_sink_arcs(vessels, travel_times, NODE_DICT, ports, TIME_PERIOD_RANGE):
+    # Create new nodes for the special sink arcs
+    special_nodes_dict = {}
+    for port in ports:
+        special_sink = Node(port=port, time=TIME_PERIOD_RANGE[-1] + 1)
+        special_nodes_dict[port.number] = special_sink
+        
+    special_sink_arcs = {}
+    for vessel in vessels:
+        for node in NODE_DICT.values():
+            # Continue if node is the source or sink node
+            if node.port.number in [0, len(ports) + 1]:
+                continue
+            # Find the travel times from this node
+            travel_times_from_node = travel_times[vessel.vessel_class][node.port.number - 1]
+            for port, travel_time in enumerate(travel_times_from_node):
+                if node.time + travel_time > TIME_PERIOD_RANGE[-1]:
+                    # Create a special sink arc
+                    special_sink_arc = Arc(origin_node=node, destination_node=special_nodes_dict[port + 1], distance=0, cost=0, travel_time=travel_time, speed=0, is_waiting_arc=False, is_source_or_sink_arc=True, vessel_class=vessel.vessel_class) 
+                    special_sink_arcs.setdefault(vessel, []).append(special_sink_arc)
+                    
+    return special_sink_arcs, special_nodes_dict
+                
         
 def rearrange_arcs(arc_dict):
     # New dictionary structures
@@ -649,7 +673,13 @@ def build_model(vessels, regularNodes, ports, TIME_PERIOD_RANGE, sourceNode, sin
     all_arcs = [arc for vc, arcs in vessel_class_arcs.items() for arc in arcs]
     non_interregional_arcs = [arc for arc in all_arcs if arc not in interregional_arcs]
     
-    x_interregional = m.addVars(((arc.tuple, arc.vessel_class) for arc in interregional_arcs), vtype=gp.GRB.BINARY, name="x_interregional")
+    x_interregional = {}
+    for arc in interregional_arcs:
+        variable_name = f"x_interregional_{arc.tuple}_{arc.vessel_class}"
+        x_interregional[(arc.tuple, arc.vessel_class)] = m.addVar(vtype=gp.GRB.BINARY, name=variable_name)
+        # = m.addVars(((inter_arc.tuple, inter_arc.vessel_class) for inter_arc in interregional_arcs), vtype=gp.GRB.BINARY, name=f"x_interregional_{inter_arc.tuple}_{arc.vessel_class}")
+    m.update()  
+        
     
     x_non_interregional = {}
     for arc in non_interregional_arcs:
@@ -674,7 +704,7 @@ def build_model(vessels, regularNodes, ports, TIME_PERIOD_RANGE, sourceNode, sin
     
     # alpha_bounds = {(node.port.number, node.time): ((node.port.capacity))for node in regularNodes}
     alpha_bounds = {(node.port.number, node.time): (node.port.rate) for node in regularNodes}
-    alpha = m.addVars(alpha_bounds.keys(), lb=0, ub=alpha_bounds, vtype=gp.GRB.CONTINUOUS, name="a")
+    alpha = m.addVars(alpha_bounds.keys(), lb=0, ub=alpha_bounds, vtype=gp.GRB.CONTINUOUS, name="alpha")
     
     # Create a dict where the arc.tuple is the key and arc.cost is the value
     costs = {(arc.tuple, vc): arc.cost for vc in vessel_classes for arc in vessel_class_arcs[vc]}
@@ -795,7 +825,7 @@ def build_problem(INSTANCE):
     ports = get_ports(all_ports)
     NUM_TIME_PERIODS = metadata['numPeriods']
     # SET NUM TIME PERIODS TO 120 FOR COMPARISON
-    NUM_TIME_PERIODS = 60
+    NUM_TIME_PERIODS = 40
     TIME_PERIOD_RANGE = list(range(0, NUM_TIME_PERIODS))
     # MAX_SPEED = 15
     # MIN_SPEED = 8
@@ -826,6 +856,8 @@ def build_problem(INSTANCE):
     all_info = populate_all_info(source_arcs_info, vessels, ports, FULL_DISTANCE_MATRIX, NODE_DICT, NUM_TIME_PERIODS, full_travel_cost_matrices, full_travel_time_matrices, port_dict)
     arc_dict, vessel_arcs, waiting_arcs, sink_and_source_arcs = add_arcs_to_nodes(all_info, NODE_DICT, NUM_TIME_PERIODS)
     arc_dict, vessel_arcs = create_sink_arcs(vessels=vessels, sinkNode=sinkNode, arc_dict=arc_dict, vessel_arcs=vessel_arcs, sourceNode=sourceNode, NODE_DICT=NODE_DICT, perPeriodRewardForFinishingEarly=perPeriodRewardForFinishingEarly)
+    special_sink_arcs, special_nodes_dict = add_special_sink_arcs(vessels, full_travel_time_matrices, NODE_DICT, ports, TIME_PERIOD_RANGE)
+    
     populate_vessel_arcs(vessels, vessel_arcs)
  
     problem_data = {
@@ -841,7 +873,9 @@ def build_problem(INSTANCE):
         'NODES' : NODES,
         'NODE_DICT' : NODE_DICT,
         'VESSEL_CLASSES': VESSEL_CLASSES,
-        'vessel_class_capacities': vessel_class_capacities
+        'vessel_class_capacities': vessel_class_capacities,
+        'special_sink_arcs': special_sink_arcs,
+        'special_nodes_dict': special_nodes_dict
     }
     
     return problem_data
