@@ -55,7 +55,7 @@ def evaluate_solution_with_original_objective(model, ps_data):
     costs = ps_data['costs']
     regularNodes = ps_data['regularNodes']
     vessels = ps_data['vessels']
-    OPERATING_COST = ps_data['operating_cost']
+    # OPERATING_COST = ps_data['operating_cost']
     
     # Directly calculate arc costs using comprehension
     x = {v.VarName: v.X for v in model.getVars() if v.VarName.startswith('x')}

@@ -774,15 +774,18 @@ def build_model(vessels, regularNodes, ports, TIME_PERIOD_RANGE, sourceNode, sin
         for t in TIME_PERIOD_RANGE_INCL_SINK:
             if t == 0:
                 continue
+           
             # if t == len(TIME_PERIOD_RANGE)+1:
                 # m.addConstr(s[port.number, t] == s[port.number, t-1] + (port.isLoadingPort * port.rate), name = f'PortBalance_Inter_regional_port:{port.number}_time:{t}')
             else:
+                if t == 40:
+                    print('here')
                 # interegional_arcs with origin_node.time = t and origin_node.port = port
                 arcs_with_origin_t = [arc for arc in interregional_arcs if arc.origin_node.time == t-1 and arc.origin_node.port == port]
                 if arcs_with_origin_t:
-                    m.addConstr(s[port.number, t] == (s[port.number, t-1] + (port.isLoadingPort * port.rate) - port.isLoadingPort*alpha[port.number, t-1] - (port.isLoadingPort * gp.quicksum((x[arc.tuple, arc.vessel_class] * vessel_class_capacities[arc.vessel_class] for arc in arcs_with_origin_t)))) , name = f'PortBalance_Inter_regional_port:{port.number}_time:{t}')
+                    m.addConstr(s[port.number, t] == (s[port.number, t-1] + (port.isLoadingPort * port.rate) - port.isLoadingPort*alpha[port.number, t-1] - (port.isLoadingPort * gp.quicksum((x[arc.tuple, arc.vessel_class] * vessel_class_capacities[arc.vessel_class] for arc in arcs_with_origin_t)))) , name = f'PortBalance_1_Inter_regional_port:{port.number}_time:{t}')
                 else:
-                    m.addConstr(s[port.number, t] == (s[port.number, t-1] + (port.isLoadingPort * port.rate) - port.isLoadingPort*alpha[port.number, t-1]), name = f'PortBalance_Inter_regional_port:{port.number}_time:{t}')
+                    m.addConstr(s[port.number, t] == (s[port.number, t-1] + (port.isLoadingPort * port.rate) - port.isLoadingPort*alpha[port.number, t-1]), name = f'PortBalance_2_Inter_regional_port:{port.number}_time:{t}')
     m.update()
     
     
@@ -825,7 +828,7 @@ def build_problem(INSTANCE):
     ports = get_ports(all_ports)
     NUM_TIME_PERIODS = metadata['numPeriods']
     # SET NUM TIME PERIODS TO 120 FOR COMPARISON
-    NUM_TIME_PERIODS = 40
+    NUM_TIME_PERIODS = 30
     TIME_PERIOD_RANGE = list(range(0, NUM_TIME_PERIODS))
     # MAX_SPEED = 15
     # MIN_SPEED = 8
@@ -1132,6 +1135,7 @@ def solve_model(model, costs, P):
     # Check the status of the optimization
     if model.status == gp.GRB.OPTIMAL:
         print("Optimal solution found!")
+        print(f"Objective value: {model.objVal}")
         # Save the optimal solution to file
         # model.write("MIRPSO2.sol")
         # Write the values of all variables
@@ -1181,8 +1185,13 @@ def main():
     # INSTANCE = 'LR2_11_DR2_22_VC3_V6a'
     # INSTANCE = 'LR2_11_DR2_33_VC4_V11a'
     # GROUP 2
-    INSTANCE = 'LR1_DR02_VC01_V6a'
+    # INSTANCE = 'LR1_DR02_VC01_V6a'
     # INSTANCE = 'LR1_DR02_VC02_V6a'
+    INSTANCE = 'LR1_DR02_VC03_V7a'
+    # INSTANCE = 'LR1_DR02_VC03_V8a'
+    # INSTANCE = 'LR1_DR02_VC04_V8a'
+    # INSTANCE = 'LR1_DR02_VC05_V8a'
+    # INSTANCE = 'LR1_DR03_VC03_V10b'
     
 
     problem_data = build_problem(INSTANCE)
@@ -1210,21 +1219,22 @@ def main():
 
     solve_model(model, costs, P)
     
-    x_initial_solution, model = find_initial_solution(model)
+    # x_initial_solution, model = find_initial_solution(model)
     # Print the size of the initial solution
-    print("Initial solution size:", len(x_initial_solution))
+    # print("Initial solution size:", len(x_initial_solution))
     
     # Remove the solution limit
-    model.setParam(gp.GRB.Param.SolutionLimit, 2000000)
+    # model.setParam(gp.GRB.Param.SolutionLimit, 2000000)
     
-    ps_data = {'model': model, 'initial_solution':x_initial_solution, 'costs': costs, 'P':P, 'regularNodes': regularNodes, 'vessels': vessels, 'vessel_arcs': vessel_arcs}
+    # ps_data = {'model': model, 'initial_solution':x_initial_solution, 'costs': costs, 'P':P, 'regularNodes': regularNodes, 'vessels': vessels, 'vessel_arcs': vessel_arcs}
 
     # Perform the proximity search using the initial solution
-    improved_solution, obj_value = perform_proximity_search(ps_data)
+    # improved_solution, obj_value = perform_proximity_search(ps_data)
+    # model.optimize()
     #Perform proximity search with simulated annealing
     #improved_solution, obj_value = perform_proximity_search_with_simulated_annealing(ps_data)
     # print("Final solution:", improved_solution)
-    print("Objective value:", obj_value)
+    # print("Objective value:", model.objVal)
     
     
     
