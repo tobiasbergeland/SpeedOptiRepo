@@ -9,6 +9,8 @@ import sys
 import networkx as nx
 import numpy as np
 import torch.nn.functional as F
+import gurobipy as gp    
+from gurobipy import GRB
 
 # sys.path.append('/Users/tobiaskolstobergeland/Documents/IndØk/10.Semester/ProsjektOppgave/Repo/SpeedOptiRepo/MIRPSO_M.py')
 # from MIRPSO_M import (build_problem, build_simplified_RL_model, build_model, visualize_network_for_vessel, solve_model)
@@ -116,7 +118,8 @@ class MIRPSOEnv():
                 'inventory': port.inventory,
                 'number': port.number,
                 'isLoadingPort': port.isLoadingPort,
-                'rate': port.rate
+                'rate': port.rate,
+                'berthLimit': port.berth_limit
             }
         
         # Copy necessary vessel attributes
@@ -270,8 +273,8 @@ class MIRPSOEnv():
         return legal_actions
     
     
-    def sim_find_legal_actions_for_vessel(self, state, vessel):
-        legal_arcs = self.sim_get_legal_arcs(state=state, vessel=vessel, special_sink_arcs=self.SPECIAL_SINK_ARCS, special_node_dict=self.SPECIAL_NODES_DICT)
+    def sim_find_legal_actions_for_vessel(self, state, vessel, queued_actions):
+        legal_arcs = self.sim_get_legal_arcs(state=state, vessel=vessel, special_sink_arcs=self.SPECIAL_SINK_ARCS, special_node_dict=self.SPECIAL_NODES_DICT, queued_actions=queued_actions)
         if not legal_arcs:
             print('No legal arcs found')
         
@@ -310,7 +313,22 @@ class MIRPSOEnv():
             return True
         return False
     
-    def can_operate_at_port_now(self, vessel, port):
+    def can_operate_at_port_now(self, vessel, port, queued_actions):
+        # Have to check the berth limit for the port and the queue of actions. 
+        berth_limit = port['berthLimit']
+        
+        operating_vessels_in_queued_actions = 0
+        
+        for action in queued_actions.values():
+            arc = action[3]
+            # Check if arc is interregional arc
+            if arc.is_waiting_arc != 1 and arc.origin_node.port.number == port['number']:
+                operating_vessels_in_queued_actions += 1
+                
+        if operating_vessels_in_queued_actions >= berth_limit:
+            return False
+        
+        
         if port['isLoadingPort'] == 1:
             # Rate is added as to account for alpha slack
             if port['inventory'] >= vessel['capacity']:
@@ -322,7 +340,7 @@ class MIRPSOEnv():
         return False
         
         
-    def sim_get_legal_arcs(self, state, vessel, special_sink_arcs, special_node_dict):
+    def sim_get_legal_arcs(self, state, vessel, special_sink_arcs, special_node_dict, queued_actions):
             current_node_key = (vessel['position'], state['time'])
             current_node = self.NODE_DICT[current_node_key]
             current_port = state['port_dict'][vessel['position']]
@@ -349,7 +367,7 @@ class MIRPSOEnv():
             legal_arcs = [arc for arc in potential_arcs if arc.destination_node.port.number not in ports_that_must_be_avoided.keys() or arc.destination_node.time == self.TIME_PERIOD_RANGE[-1]+1]
             
             
-            if self.can_operate_at_port_now(vessel, current_port):
+            if self.can_operate_at_port_now(vessel, current_port, queued_actions):
                 # Check if the vessel can wait at the current port
                 if self.waiting_arc_is_legal(current_port):
                     if not legal_arcs:
@@ -587,10 +605,15 @@ class MIRPSOEnv():
         for exp in experience_path:
             current_state, action, _, _, next_state, _, _, fi_time, terminal_flag = exp
             current_state_is_infeasible, infeasible_ports = self.sim_is_infeasible(current_state)
+            next_state_is_infeasible, _ = self.sim_is_infeasible(next_state)
             if current_state_is_infeasible:
                 feasible_path = False
                 first_infeasible_time = current_state['time']
                 break  # Exit the loop early if any infeasible state is found
+            if next_state_is_infeasible:
+                feasible_path = False
+                first_infeasible_time = next_state['time']
+                break
             
             # if action is not None:
             #     arc = action[3]
@@ -677,7 +700,7 @@ class MIRPSOEnv():
                 current_time = current_state['time']
                 # time_until_terminal = horizon - current_time
                 # feasibility_reward = extra_reward_for_feasible_path * agent.gamma ** time_until_terminal
-                feasibility_reward = extra_reward_for_feasible_path
+                feasibility_reward = extra_reward_for_feasible_path * 10
                 if action is not None:
                     arc = action[3]
                     if arc.destination_node.port == self.SINK_NODE.port:
@@ -741,6 +764,12 @@ class MIRPSOEnv():
     def increment_time_and_produce(self, state):
         state['time'] += 1
         # 2. Ports consume/produce goods. Production happens before loading. Consumption happens after unloading.
+        for port in state['ports']:
+            if port.isLoadingPort == 1:
+                port.inventory += port.rate
+        return state
+    
+    def produce(self, state):
         for port in state['ports']:
             if port.isLoadingPort == 1:
                 port.inventory += port.rate
@@ -931,7 +960,7 @@ class DQNAgent:
         self.memory = replay
         self.gamma = 0.99    # discount rate feasible paths
         self.sigma = 0.5     # discount rate infeasible paths
-        self.epsilon = 0.75   # exploration rate
+        self.epsilon = 0.75 # exploration rate
         self.epsilon_min = 0.25
         self.epsilon_decay = 0.99
         self.main_model = DQN(state_size, action_size)
@@ -1027,7 +1056,7 @@ class DQNAgent:
         return replay_buffer
     
 def evaluate_agent_until_solution_is_found(env, agent):
-    agent.epsilon = 0.05
+    agent.epsilon = 0.1
     attempts = 1
     exploit = False
     
@@ -1038,26 +1067,36 @@ def evaluate_agent_until_solution_is_found(env, agent):
         done = False
         
         port_inventory_dict = {}
-        vessel_inventory_dict = {}
+        # vessel_inventory_dict = {}
+        
         decision_basis_states = {vessel.number: env.custom_deep_copy_of_state(state) for vessel in state['vessels']}
         
         actions = {vessel: env.find_legal_actions_for_vessel(state=state, vessel=vessel)[0] for vessel in state['vessels']}
         state = env.step(state=state, actions=actions, experience_path=experience_path, decision_basis_states=decision_basis_states)
+        # state['time'] = 0
         
         while not done:
-            if state['time'] >= env.TIME_PERIOD_RANGE[-1]*(3/4):
-                agent.epsilon = 0.25
+            # if state['time'] >= env.TIME_PERIOD_RANGE[-1]*(3/4):
+            #     agent.epsilon = 0.1
                 
-            # Increase time and make production ports produce.
-            if state['time'] in env.TIME_PERIOD_RANGE:
-                state = env.increment_time_and_produce(state=state)
-            else:
-                #Only increment the time
-                state['time'] += 1
-                 # Init port inventory is the inventory at this time. Time is 0 after the increment.
-                port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
+            # Increment time and log
+            state['time'] += 1
+            port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
+            
+            state = env.produce(state)
+            
+            # # Increase time and make production ports produce.
+            # if state['time'] in env.TIME_PERIOD_RANGE:
+            #     port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
+            #     # state = env.increment_time_and_produce(state=state)
+            # else:
+            #     #Only increment the time
+            #     state['time'] += 1
+                
+                # Init port inventory is the inventory at this time. Time is 0 after the increment.
+                # LOGGIN INIT VALUES FOR PORTS
                 # Init vessel inventory is the inventory at this time
-                vessel_inventory_dict[state['time']] = {vessel.number: vessel.inventory for vessel in state['vessels']}
+                # vessel_inventory_dict[state['time']] = {vessel.number: vessel.inventory for vessel in state['vessels']}
                     
             # Check if state is infeasible or terminal        
             state, total_reward_for_path, cum_q_vals_main_net, cum_q_vals_target_net = env.check_state(state=state, experience_path=experience_path, replay=agent.memory, agent=agent)
@@ -1065,14 +1104,14 @@ def evaluate_agent_until_solution_is_found(env, agent):
             if state['done']:
                 first_infeasible_time, infeasibility_counter = env.log_episode(attempts, total_reward_for_path, experience_path, state, cum_q_vals_main_net, cum_q_vals_target_net)
                 feasible_path = experience_path[0][6]
-                state = env.consumption(state)
+                # state = env.consumption(state)
                 
-                port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
-                vessel_inventory_dict[state['time']] = {vessel.number: vessel.inventory for vessel in state['vessels']}
+                # port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
+                # vessel_inventory_dict[state['time']] = {vessel.number: vessel.inventory for vessel in state['vessels']}
                 if not feasible_path:
                     break
                 else:
-                    return experience_path, port_inventory_dict, vessel_inventory_dict
+                    return experience_path, port_inventory_dict
                 
             # With the increased time, the vessels have moved and some of them have maybe reached their destination. Updating the vessel status based on this.
             env.update_vessel_status(state=state)
@@ -1086,7 +1125,7 @@ def evaluate_agent_until_solution_is_found(env, agent):
                     for vessel in available_vessels:
                         corresponding_vessel = decision_basis_state['vessel_dict'][vessel.number]
                         decision_basis_states[corresponding_vessel['number']] = decision_basis_state
-                        legal_actions = env.sim_find_legal_actions_for_vessel(state=decision_basis_state, vessel=corresponding_vessel)
+                        legal_actions = env.sim_find_legal_actions_for_vessel(state=decision_basis_state, vessel=corresponding_vessel, queued_actions=actions)
                         action, decision_basis_state = agent.select_action(state=copy.deepcopy(decision_basis_state), legal_actions=legal_actions, env=env, vessel_simp=corresponding_vessel, exploit=exploit)
                         _, _, _, _arc = action
                         actions[vessel] = action
@@ -1095,24 +1134,17 @@ def evaluate_agent_until_solution_is_found(env, agent):
             else:
                 # Should check the feasibility of the state, even though no actions were performed. 
                 state = env.simple_step(state, experience_path)
-            # Make consumption ports consume regardless if any actions were performed
+            
+            # if state['time'] != 0: # Do not consume in Time 0
+            #     # Make consumption ports consume regardless if any actions were performed
+            #     state = env.consumption(state)
             state = env.consumption(state)
             
-            # Save the inventory levels for the ports and vessels at this time
-            if state['time'] in env.TIME_PERIOD_RANGE and state['time'] != 0:
-                port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
-                vessel_inventory_dict[state['time']] = {vessel.number: vessel.inventory for vessel in state['vessels']}
+            # # Save the inventory levels for the ports and vessels at this time
+            # if state['time'] in env.TIME_PERIOD_RANGE and state['time'] != 0:
+            #     port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
+                # vessel_inventory_dict[state['time']] = {vessel.number: vessel.inventory for vessel in state['vessels']}
                 
-            # # Check if state is infeasible or terminal
-            # state, total_reward_for_path, cum_q_vals_main_net, cum_q_vals_target_net = env.check_state(state=state, experience_path=experience_path, replay=agent.memory, agent=agent)
-            # done = state['done']
-            
-            # feasible_path = experience_path[0][6]
-            # if not feasible_path:
-                
-            #     first_infeasible_time, infeasibility_counter = env.log_episode(attempts, total_reward_for_path, experience_path, state, None, None)
-            #     return first_infeasible_time,infeasibility_counter, experience_path, port_inventory_dict, vessel_inventory_dict
-            # else:
                 
         print(f"Attempt {attempts} failed. Retrying...")
         attempts += 1
@@ -1223,21 +1255,27 @@ def convert_path_to_MIRPSO_solution(env, experience_path, port_inventory_dict):
             
     S_values = {}
     alpha_values = {}
+    accumulated_alpha = {port.number : 0 for port in env.PORTS}
     for time, invs_at_time in port_inventory_dict.items():
         for port in env.PORTS:
             inventory = invs_at_time[port.number]
             if port.isLoadingPort == 1:
                 if inventory > port.capacity:
                     alpha = inventory - port.capacity
-                    alpha_values[(port.number, time)] = alpha
+                    alpha_values[(port.number, time-1)] = alpha
+                    accumulated_alpha[port.number] += alpha
+                S_values[(port.number, time)] = invs_at_time[port.number] - accumulated_alpha[port.number]
+                # else:
+                    # S_values[(port.number, time)] = invs_at_time[port.number]
             else:
                 if inventory < 0:
                     alpha = abs(inventory)
-                    alpha_values[(port.number, time)] = alpha
+                    alpha_values[(port.number, time-1)] = alpha
+                    accumulated_alpha[port.number] += alpha
                     
-                    
-                    
-            S_values[(port.number, time)] = invs_at_time[port.number]
+                S_values[(port.number, time)] = invs_at_time[port.number] + accumulated_alpha[port.number]
+                # else:    
+                    # S_values[(port.number, time)] = invs_at_time[port.number]
             
     # W_values = {}
     # for time, invs_at_time in vessel_inventory_dict.items():
@@ -1388,8 +1426,6 @@ def warm_start_model(m, active_X_keys, S_values, alpha_values):
         x_var = m.getVarByName(x_var_name)
         if x_var is not None:
             x_var.Start = 1
-        else:
-            print('Why')
     
     # For 's' and 'w' variables, since you believe all values are set already, we maintain your original logic
     for (port_number, time), s_value in S_values.items():
@@ -1419,8 +1455,16 @@ def warm_start_model(m, active_X_keys, S_values, alpha_values):
     #         print(f"{var.VarName}: {var.Start}")
     
     x_solution = {v.VarName: v.Start for v in m.getVars() if v.VarName.startswith('x')}
+    warm_start_sol = {v.VarName: v.Start for v in m.getVars()}
+    
+    # # Print the values of all the alpha variables
+    # for var in m.getVars():
+    #     if var.VarName.startswith('alpha'):
+    #         print(f"{var.VarName}: {var.Start}")
+            
+    
 
-    return x_solution, m
+    return x_solution, m, warm_start_sol
 
 
 
@@ -1428,7 +1472,7 @@ def warm_start_model(m, active_X_keys, S_values, alpha_values):
 def main(FULLSIM):
     # Set a higher recursion limit (be cautious with this)
     sys.setrecursionlimit(5000) 
-    random.seed(0)
+    # random.seed(1)
     gc.enable()
     
     # INSTANCE = 'LR1_1_DR1_3_VC1_V7a'
@@ -1442,14 +1486,19 @@ def main(FULLSIM):
     # INSTANCE = 'LR2_11_DR2_22_VC3_V6a'
     # INSTANCE = 'LR2_11_DR2_33_VC4_V11a'
     
-    INSTANCE = 'LR1_DR02_VC01_V6a'
+    # INSTANCE = 'LR1_DR02_VC01_V6a'
     # INSTANCE = 'LR1_DR02_VC02_V6a'
+    INSTANCE = 'LR1_DR02_VC03_V7a'
+    # INSTANCE = 'LR1_DR02_VC03_V8a'
+    # INSTANCE = 'LR1_DR02_VC04_V8a'
+    # INSTANCE = 'LR1_DR02_VC05_V8a'
+    # INSTANCE = 'LR1_DR03_VC03_V10b'
     
     TRAINING_FREQUENCY = 1
     TARGET_UPDATE_FREQUENCY = 300
     NON_RANDOM_ACTION_EPISODE_FREQUENCY = 25
     BATCH_SIZE = 256
-    BUFFER_SAVING_FREQUENCY = 1000
+    BUFFER_SAVING_FREQUENCY = 500
 
     problem_data = build_problem(INSTANCE)
     
@@ -1476,7 +1525,7 @@ def main(FULLSIM):
                         vessel_class_capacities = vessel_class_capacities)
     
     env = MIRPSOEnv(ports, vessels, vessel_arcs, NODES, TIME_PERIOD_RANGE, sourceNode, sinkNode, NODE_DICT, special_sink_arcs, special_nodes_dict)
-    replay = ReplayMemory(10000)
+    replay = ReplayMemory(5000)
     agent = DQNAgent(ports = ports, vessels=vessels, TRAINING_FREQUENCY = TRAINING_FREQUENCY, TARGET_UPDATE_FREQUENCY = TARGET_UPDATE_FREQUENCY, NON_RANDOM_ACTION_EPISODE_FREQUENCY = NON_RANDOM_ACTION_EPISODE_FREQUENCY, BATCH_SIZE = BATCH_SIZE, replay = replay)
     
     # '''Load main and target model.'''
@@ -1484,22 +1533,26 @@ def main(FULLSIM):
     # agent.target_model.load_state_dict(torch.load('target_model.pth'))
     
     if not FULLSIM:
-        replay = agent.load_replay_buffer(file_name= 'replay_buffer_40TP_1000.pkl')
-        replay.capacity = 10000
+        replay = agent.load_replay_buffer(file_name= 'replay_buffer_50TP_1000.pkl')
+        replay.capacity = 5000
         replay = replay.clean_up()
         # replay = agent.load_replay_buffer(file_name= 'replay_buffer_new_reward_policy_5000.pkl')
         agent.memory = replay
         
-        agent.main_model.load_state_dict(torch.load('main_model_40TP_2000.pth'))
-        agent.target_model.load_state_dict(torch.load('target_model_40TP_2000.pth'))
+        agent.main_model.load_state_dict(torch.load('main_model_50TP_1000.pth'))
+        agent.target_model.load_state_dict(torch.load('target_model_50TP_1000.pth'))
         # train_from_pre_populated_buffer(env, agent, 5000)
         
     else:
-        NUM_EPISODES = 2001
-        # replay = agent.load_replay_buffer(file_name= 'replay_buffer_40TP_1000.pkl')
-        # replay.capacity = 10000
+        NUM_EPISODES = 1001
+        # replay = agent.load_replay_buffer(file_name= 'replay_buffer_40TP_2000.pkl')
+        # replay.capacity = 5000
         # replay = replay.clean_up()
         # agent.memory = replay
+        
+        agent.main_model.load_state_dict(torch.load('main_model_50TP_500.pth'))
+        agent.target_model.load_state_dict(torch.load('target_model_50TP_500.pth'))
+        
         # profiler = cProfile.Profile()
         for episode in range(1, NUM_EPISODES):
             if episode % NON_RANDOM_ACTION_EPISODE_FREQUENCY == 0:
@@ -1520,24 +1573,24 @@ def main(FULLSIM):
                     replay.clean_up()
                         
             experience_path = []
-                
-            # Resetting the state of the environment
             state = env.reset()
             done = False
+            
             # Directly create and fill decision_basis_states with custom deep-copied states for each vessel
             decision_basis_states = {vessel.number: env.custom_deep_copy_of_state(state) for vessel in state['vessels']}
             # We know that each vessel have only one legal action in the initial state
             actions = {vessel: env.find_legal_actions_for_vessel(state=state, vessel=vessel)[0] for vessel in state['vessels']}
             state = env.step(state=state, actions=actions, experience_path=experience_path, decision_basis_states=decision_basis_states)
+            # state['time'] = 0
             
             # All vessels have made their initial action.
             while not done:
                 # Increase time and make production ports produce.
-                if state['time'] in TIME_PERIOD_RANGE:
-                    state = env.increment_time_and_produce(state=state)
-                else:
-                    #Only increment the time
-                    state['time'] += 1
+                # if state['time'] in TIME_PERIOD_RANGE:
+                state = env.increment_time_and_produce(state=state)
+                # else:
+                #     #Only increment the time
+                #     state['time'] += 1
                     
                 
                 # Check if state is infeasible or terminal        
@@ -1560,7 +1613,7 @@ def main(FULLSIM):
                     for vessel in available_vessels:
                         corresponding_vessel = decision_basis_state['vessel_dict'][vessel.number]
                         decision_basis_states[corresponding_vessel['number']] = decision_basis_state
-                        legal_actions = env.sim_find_legal_actions_for_vessel(state=decision_basis_state, vessel=corresponding_vessel)
+                        legal_actions = env.sim_find_legal_actions_for_vessel(state=decision_basis_state, vessel=corresponding_vessel, queued_actions=actions)
                         action, decision_basis_state = agent.select_action(state=copy.deepcopy(decision_basis_state), legal_actions=legal_actions, env=env, vessel_simp=corresponding_vessel, exploit=exploit)
                         _, _, _, _arc = action
                         actions[vessel] = action
@@ -1576,20 +1629,20 @@ def main(FULLSIM):
                 
             
             if episode % BUFFER_SAVING_FREQUENCY == 0:
-                agent.save_replay_buffer(file_name=f"replay_buffer_40TP_{episode}.pkl")
-                torch.save(agent.main_model.state_dict(), f'main_model_40TP_{episode}.pth')
-                torch.save(agent.target_model.state_dict(), f'target_model_40TP_{episode}.pth')
+                agent.save_replay_buffer(file_name=f"replay_buffer_50TP_{episode}.pkl")
+                torch.save(agent.main_model.state_dict(), f'main_model_50TP_{episode}.pth')
+                torch.save(agent.target_model.state_dict(), f'target_model_50TP_{episode}.pth')
             
     # When agent is done training. Let the agent solve the problem, and return the solution
     # first_infeasible_time, infeasibility_counter, experience_path, port_inventory_dict, vessel_inventory_dict  = evaluate_agent(env, agent)
-    experience_path, port_inventory_dict, vessel_inventory_dict  = evaluate_agent_until_solution_is_found(env, agent)
+    experience_path, port_inventory_dict  = evaluate_agent_until_solution_is_found(env, agent)
     active_X_keys, S_values, alpha_values = convert_path_to_MIRPSO_solution(env, experience_path, port_inventory_dict)
     env.reset()
     
     # main_model, costs = build_model(vessels, all_vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, non_operational, sourceNode, sinkNode, waiting_arcs, OPERATING_COST)
     # main_model, costs = build_model(vessels, regularNodes, ports, TIME_PERIOD_RANGE, sourceNode, sinkNode, vessel_classes, origin_node_arcs, destination_node_arcs, vessel_class_arcs, NODE_DICT, vessel_class_capacities):
     
-    x_initial_solution, model = warm_start_model(model, active_X_keys, S_values, alpha_values)
+    x_initial_solution, model, warm_start_sol = warm_start_model(model, active_X_keys, S_values, alpha_values)
 
     #print the initial solution
     #print("Initial solution:", x_initial_solution)
@@ -1597,20 +1650,62 @@ def main(FULLSIM):
     ps_data = {'model': model, 'initial_solution':x_initial_solution,'costs': costs, 'regularNodes': regularNodes, 'vessels': vessels, 'vessel_arcs': vessel_arcs}
 
     # Perform the proximity search using the initial solution
-    improved_solution, obj_value = perform_proximity_search(ps_data)
+    # improved_solution, obj_value = perform_proximity_search(ps_data)
     #Perform proximity search with simulated annealing
     #improved_solution, obj_value = perform_proximity_search_with_simulated_annealing(ps_data)
     # print("Final solution:", improved_solution)
-    print("Objective value:", obj_value)
+    # print("Objective value:", obj_value)
     #solve_model(main_model)
+    
+    violated_constraints = []
+    for constr in model.getConstrs():
+        expr = model.getRow(constr)  # This gives you the LinExpr of the constraint
+        constr_value = 0
+
+        # Iterating directly over the LinExpr to get variables and coefficients
+        for i in range(expr.size()):
+            var = expr.getVar(i)  # Get variable at position i
+            coeff = expr.getCoeff(i)  # Get coefficient at position i
+            constr_value += coeff * warm_start_sol[var.VarName]
+
+        # Now, compare constr_value with the constraint's RHS, considering its sense (<, >, =)
+        if constr.Sense == '<':
+            if constr_value > constr.RHS + model.Params.FeasibilityTol:  # Considering feasibility tolerance
+                violated_constraints.append(constr.ConstrName)
+        elif constr.Sense == '>':
+            if constr_value < constr.RHS - model.Params.FeasibilityTol:
+                violated_constraints.append(constr.ConstrName)
+        elif constr.Sense == '=':
+            if abs(constr_value - constr.RHS) > model.Params.FeasibilityTol:
+                violated_constraints.append(constr.ConstrName)
+
+    if violated_constraints:
+        print("Violated Constraints:", violated_constraints)
+    else:
+        print("No violated constraints identified with the warm start solution.")
+        
+        
+    # Print the values of all the alpha variables
+    for var in model.getVars():
+        # if value is not 0, print the value
+        if var.Start > 0:
+            print(f"{var.VarName}: {var.Start}")
+
+
+    
+    # model.setParam(gp.GRB.Param.SolutionLimit, 1)
+    model.optimize()
+    
+    print('Solution found')
+    print('Objective value:', model.objVal)
     
     
     
 import sys
 
 if __name__ == "__main__":
-    # FULL_SIM = True
-    FULL_SIM = False
+    FULL_SIM = True
+    # FULL_SIM = False
     
     main(FULL_SIM)
     
