@@ -955,10 +955,10 @@ def build_problem(INSTANCE, RUNNING_MIRPSO):
     all_ports, loading_regions, discharging_regions, port_dict = create_ports_from_info_with_loading(ports_info, spotMarketPricePerUnit, spotMarketDiscountFactor)
     ports = get_ports(all_ports)
     NUM_TIME_PERIODS = metadata['numPeriods']
-    NUM_TIME_PERIODS = 40
+    NUM_TIME_PERIODS = 120
     TIME_PERIOD_RANGE = list(range(0, NUM_TIME_PERIODS))
-    MAX_SPEED = 18
-    MIN_SPEED = 10
+    MAX_SPEED = 19
+    MIN_SPEED = 13
     FUEL_PRICE = 500
     ORIGINAL_NUM_PORTS = len(ports)
     
@@ -1248,7 +1248,8 @@ def solve_model(model, costs, P, RUNNING_MIRPSO, INSTANCE, HORIZON):
     print("Number of constraints in model:", len(model.getConstrs()))
     
     H = 3600
-    # model.setParam(gp.GRB.Param.TimeLimit, 60)
+    time_limit = 3*H
+    model.setParam(gp.GRB.Param.TimeLimit, time_limit)
 
     try:
         print(f'Running {INSTANCE} with {HORIZON} time periods')
@@ -1290,6 +1291,37 @@ def solve_model(model, costs, P, RUNNING_MIRPSO, INSTANCE, HORIZON):
                 for key, value in P.items():
                     file.write(f"{key}: {value}\n")
             file.close()
+            
+    if model.status == gp.GRB.TIME_LIMIT:
+        print("Time limit reached")
+        if RUNNING_MIRPSO:
+            with open(f'MIRPSO_GROUP_2_{INSTANCE}_{HORIZON}.sol', 'w') as file:
+                file.write(f'Objective function for {INSTANCE} with {HORIZON} time periods: {model.objVal}\n')
+                file.write(f'Time limit reached after {time_limit} seconds\n')
+                file.write("Variable Values:\n")
+                for var in model.getVars():
+                    file.write(f"{var.varName}: {var.x}\n")
+                file.write("Costs:\n")
+                for key, value in costs.items():
+                    file.write(f"{key}: {value}\n")
+                file.write("P:\n")
+                for key, value in P.items():
+                    file.write(f"{key}: {value}\n")
+            file.close()
+        else:
+            with open(f'MIRP_GROUP_2_{INSTANCE}_{HORIZON}.sol', 'w') as file:
+                file.write(f'Objective function for {INSTANCE} with {HORIZON} time periods: {model.objVal}\n')
+                file.write(f'Time limit reached after {time_limit} seconds\n')
+                file.write("Variable Values:\n")
+                for var in model.getVars():
+                    file.write(f"{var.varName}: {var.x}\n")
+                file.write("Costs:\n")
+                for key, value in costs.items():
+                    file.write(f"{key}: {value}\n")
+                file.write("P:\n")
+                for key, value in P.items():
+                    file.write(f"{key}: {value}\n")
+            file.close()
         
     if model.status == gp.GRB.INFEASIBLE:
         model.computeIIS()
@@ -1311,8 +1343,8 @@ def main():
     # INSTANCE = 'LR2_11_DR2_22_VC3_V6a'
     # INSTANCE = 'LR2_11_DR2_33_VC4_V11a'
     # GROUP 2
-    # INSTANCE = 'LR1_DR02_VC01_V6a'
-    INSTANCE = 'LR1_DR02_VC02_V6a'
+    INSTANCE = 'LR1_DR02_VC01_V6a'
+    # INSTANCE = 'LR1_DR02_VC02_V6a'
     # INSTANCE = 'LR1_DR02_VC03_V7a'
     # INSTANCE = 'LR1_DR02_VC03_V8a'
     # INSTANCE = 'LR1_DR02_VC04_V8a'
