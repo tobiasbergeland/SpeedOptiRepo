@@ -1,0 +1,383 @@
+Date generated: 13-06-2013 (Day-Month-Year)
+This file contains a summary of the data describing an instance.
+If there is any discrepancy between the data shown here and the
+data appearing in LP, MPS, or data_only_format files, the data
+in the latter files should be used.
+
+----- MetaData -----
+numPeriods                           : 360 
+numSeasons                           :  1 
+numCommodities                       :  1 
+numLoadingRegions                    :  1 
+numDischargeRegions                  :  5 
+numLoadingPortsInRegion              : [ 1]
+numDischargePortsInRegion            : [ 1,  1,  1,  1,  1]
+numVesselClasses                     :  5 
+numTermVesselsInClass                : [ 5,  5,  5,  5,  5]
+hoursPerPeriod                       : 24 
+periodsPerMonth                      : 30 
+spotMarketPricePerUnit               :   100 
+spotMarketDiscountFactor             : 0.999 
+perPeriodRewardForFinishingEarly     :  0.01 
+attemptCost                          :  0.00 
+constantForSinglePeriodAlphaSlack    :  1.00 
+constantForCumulativeAlphaSlack      :  0.00 
+
+All values in the region and port tables are averages. Some values may change over time.
+
+----- Region Table ----
+            LR0r0  DR0r1  DR1r2  DR2r3  DR3r4  DR4r5
+  Capacity   1216    578    612    600    320    336
+ Inventory    912    390    306    360    160    168
+      Rate    171    -45    -23    -50    -13    -29
+     Price             0      0      0      0      0
+  NumPorts      1      1      1      1      1      1
+BerthLimit      3      1      1      1      1      1
+Max#Visits    369     81     82     96     48     57
+Min#Visits    181     39     40     47     23     28
+ C2R ratio      7     12     26     12     24     11
+----- Port Table For Region 0 ----
+            Port0
+  Capacity   1216
+ Inventory    912
+      Rate    171
+     Price       
+BerthLimit      3
+   PortFee     61
+Min#Visits    181
+    maxAmt    300
+    minAmt    100
+ C2R ratio      7
+----- Port Table For Region 1 ----
+            Port0
+  Capacity    578
+ Inventory    390
+      Rate    -45
+     Price      0
+BerthLimit      1
+   PortFee     59
+Min#Visits     39
+    maxAmt    300
+    minAmt     65
+ C2R ratio     12
+----- Port Table For Region 2 ----
+            Port0
+  Capacity    612
+ Inventory    306
+      Rate    -23
+     Price      0
+BerthLimit      1
+   PortFee     26
+Min#Visits     40
+    maxAmt    300
+    minAmt     55
+ C2R ratio     26
+----- Port Table For Region 3 ----
+            Port0
+  Capacity    600
+ Inventory    360
+      Rate    -50
+     Price      0
+BerthLimit      1
+   PortFee     97
+Min#Visits     47
+    maxAmt    300
+    minAmt     45
+ C2R ratio     12
+----- Port Table For Region 4 ----
+            Port0
+  Capacity    320
+ Inventory    160
+      Rate    -13
+     Price      0
+BerthLimit      1
+   PortFee     12
+Min#Visits     23
+    maxAmt    300
+    minAmt     45
+ C2R ratio     24
+----- Port Table For Region 5 ----
+            Port0
+  Capacity    336
+ Inventory    168
+      Rate    -29
+     Price      0
+BerthLimit      1
+   PortFee     90
+Min#Visits     28
+    maxAmt    300
+    minAmt     45
+ C2R ratio     11
+----- MinDurationInRegionTable ----
+            LR0r0  DR0r1  DR1r2  DR2r3  DR3r4  DR4r5
+       VC0      0      0      0      0      0      0
+       VC1      0      0      0      0      0      0
+       VC2      0      0      0      0      0      0
+       VC3      0      0      0      0      0      0
+       VC4      0      0      0      0      0      0
+
+----- Vessel Table ----
+                      Vessel_0  Vessel_1  Vessel_2  Vessel_3  Vessel_4  Vessel_5  Vessel_6  Vessel_7  Vessel_8  Vessel_9 Vessel_10 Vessel_11 Vessel_12 Vessel_13 Vessel_14 Vessel_15 Vessel_16 Vessel_17 Vessel_18 Vessel_19 Vessel_20 Vessel_21 Vessel_22 Vessel_23 Vessel_24
+                Type      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term
+               Class         0         0         0         0         0         1         1         1         1         1         2         2         2         2         2         3         3         3         3         3         4         4         4         4         4
+            Capacity       300       300       300       300       300       260       260       260       260       260       220       220       220       220       220       180       180       180       180       180       150       150       150       150       150
+       InitInventory       300         0       300       300       300         0         0       260         0         0         0         0       220         0         0       180         0       180         0       180       150       150         0         0       150
+       InitPortIndex         5         0         2         2         3         0         0         3         0         0         0         0         4         0         0         2         0         1         0         2         3         1         0         0         3
+  FirstTimeAvailable         1         0        22         0        12         0         0        10         0         0         0         0         1         0         0         8         0         8         0         4         6         4         0         0        11
+----- FullDistanceMatrix -----
+          0        1        2        3        4        5 
+ 0     0.00 10181.63 15545.12 14057.44  8003.59  5236.56 
+ 1 10181.63     0.00 25153.14 16533.82 14695.95 11596.50 
+ 2 15545.12 25153.14     0.00 25697.70 11796.30 18237.82 
+ 3 14057.44 16533.82 25697.70     0.00 21956.17  8890.45 
+ 4  8003.59 14695.95 11796.30 21956.17     0.00 13065.78 
+ 5  5236.56 11596.50 18237.82  8890.45 13065.78     0.00 
+FullDistanceMatrix(i,j) = distance (km) between port i to port j.
+
+----- Min-Max Inter-Regional Travel Times -----
+Vessel_Class_0
+          DR0     DR1     DR2     DR3     DR4 
+  LR0 (16,16) (24,24) (22,22) (13,13) ( 8, 8) 
+Vessel_Class_1
+          DR0     DR1     DR2     DR3     DR4 
+  LR0 (16,16) (24,24) (22,22) (13,13) ( 8, 8) 
+Vessel_Class_2
+          DR0     DR1     DR2     DR3     DR4 
+  LR0 (16,16) (24,24) (22,22) (13,13) ( 8, 8) 
+Vessel_Class_3
+          DR0     DR1     DR2     DR3     DR4 
+  LR0 (16,16) (24,24) (22,22) (13,13) ( 8, 8) 
+Vessel_Class_4
+          DR0     DR1     DR2     DR3     DR4 
+  LR0 (16,16) (24,24) (22,22) (13,13) ( 8, 8) 
+entry(vc,i,j) = (minT,maxT) where minT (maxT) is the minimum (maximum) number of time periods required for a vessel in vessel class vc to travel from loading region i to discharging region j.
+
+----- FullTravelTimeMatrixForClass -----
+Vessel_Class_0
+    0  1  2  3  4  5 
+ 0  0 16 24 22 13  8 
+ 1 16  0 38 25 23 18 
+ 2 24 38  0 39 18 28 
+ 3 22 25 39  0 33 14 
+ 4 13 23 18 33  0 20 
+ 5  8 18 28 14 20  0 
+Vessel_Class_1
+    0  1  2  3  4  5 
+ 0  0 16 24 22 13  8 
+ 1 16  0 38 25 23 18 
+ 2 24 38  0 39 18 28 
+ 3 22 25 39  0 33 14 
+ 4 13 23 18 33  0 20 
+ 5  8 18 28 14 20  0 
+Vessel_Class_2
+    0  1  2  3  4  5 
+ 0  0 16 24 22 13  8 
+ 1 16  0 38 25 23 18 
+ 2 24 38  0 39 18 28 
+ 3 22 25 39  0 33 14 
+ 4 13 23 18 33  0 20 
+ 5  8 18 28 14 20  0 
+Vessel_Class_3
+    0  1  2  3  4  5 
+ 0  0 16 24 22 13  8 
+ 1 16  0 38 25 23 18 
+ 2 24 38  0 39 18 28 
+ 3 22 25 39  0 33 14 
+ 4 13 23 18 33  0 20 
+ 5  8 18 28 14 20  0 
+Vessel_Class_4
+    0  1  2  3  4  5 
+ 0  0 16 24 22 13  8 
+ 1 16  0 38 25 23 18 
+ 2 24 38  0 39 18 28 
+ 3 22 25 39  0 33 14 
+ 4 13 23 18 33  0 20 
+ 5  8 18 28 14 20  0 
+FullTravelTimeMatrixForClass(vc,i,j) = number of time periods for a vessel in vessel class vc to travel from port i to port j.
+
+----- FullTravelCostMatrixForClass ----- 
+Vessel_Class_0
+              0          1          2          3          4          5 
+    0    0.0000   985.5285  1440.6062  1376.2267   740.3268   566.5266 
+    1  987.5285     0.0000  2314.9353  1601.5778  1349.3312  1145.2815 
+    2 1475.6062  2347.9353     0.0000  2435.4910  1085.4635  1749.6416 
+    3 1340.2267  1563.5778  2364.4910     0.0000  2010.0119   899.0309 
+    4  789.3268  1396.3312  1099.4635  2095.0119     0.0000  1278.9856 
+    5  537.5266  1114.2815  1685.6416   906.0309  1200.9856     0.0000 
+Vessel_Class_1
+              0          1          2          3          4          5 
+    0    0.0000   904.0755  1316.2452  1263.7672   676.2980   524.6341 
+    1  906.0755     0.0000  2113.7102  1469.3072  1231.7636  1052.5095 
+    2 1351.2452  2146.7102     0.0000  2229.9093   991.0931  1603.7391 
+    3 1227.7672  1431.3072  2158.9093     0.0000  1834.3625   827.9073 
+    4  725.2980  1278.7636  1005.0931  1919.3625     0.0000  1174.4594 
+    5  495.6341  1021.5095  1539.7391   834.9073  1096.4594     0.0000 
+Vessel_Class_2
+              0          1          2          3          4          5 
+    0    0.0000   822.6224  1191.8842  1151.3077   612.2693   482.7417 
+    1  824.6224     0.0000  1912.4852  1337.0366  1114.1960   959.7375 
+    2 1226.8842  1945.4852     0.0000  2024.3277   896.7227  1457.8365 
+    3 1115.3077  1299.0366  1953.3277     0.0000  1658.7131   756.7837 
+    4  661.2693  1161.1960   910.7227  1743.7131     0.0000  1069.9332 
+    5  453.7417   928.7375  1393.8365   763.7837   991.9332     0.0000 
+Vessel_Class_3
+              0          1          2          3          4          5 
+    0    0.0000   741.1693  1067.5233  1038.8482   548.2406   440.8492 
+    1  743.1693     0.0000  1711.2601  1204.7661   996.6284   866.9655 
+    2 1102.5233  1744.2601     0.0000  1818.7461   802.3523  1311.9339 
+    3 1002.8482  1166.7661  1747.7461     0.0000  1483.0637   685.6601 
+    4  597.2406  1043.6284   816.3523  1568.0637     0.0000   965.4070 
+    5  411.8492   835.9655  1247.9339   692.6601   887.4070     0.0000 
+Vessel_Class_4
+              0          1          2          3          4          5 
+    0    0.0000   659.7163   943.1623   926.3888   484.2119   398.9568 
+    1  661.7163     0.0000  1510.0350  1072.4955   879.0609   774.1935 
+    2  978.1623  1543.0350     0.0000  1613.1645   707.9818  1166.0314 
+    3  890.3888  1034.4955  1542.1645     0.0000  1307.4143   614.5365 
+    4  533.2119   926.0609   721.9818  1392.4143     0.0000   860.8808 
+    5  369.9568   743.1935  1102.0314   621.5365   782.8808     0.0000 
+FullTravelCostMatrixForClass(vc,i,j) = (approximate) travel cost for a vessel in vessel class vc to travel from port i to port j.
+This cost is approximate since the value is shown up to 4 decimal places.
+This cost includes the port fee at the destination port and assumes a vessel is traveling
+(A) at capacity if traveling from:
+   (A1) a loading port to a discharging port;
+   (A2) a loading port to a loading port (although this should never happen);
+   (A3) a discharging port to a discharging port (although this should never happen);
+(B) empty if traveling from a discharging port to a loading port.
+
+----- Intra Regional Arc Costs -----
+(Note that arc costs are not symmetric since the port fee is incurred at the tail port)
+>LoadingRegion_0
+>>Vessel_Class_0
+   0
+>>Vessel_Class_1
+   0
+>>Vessel_Class_2
+   0
+>>Vessel_Class_3
+   0
+>>Vessel_Class_4
+   0
+>DischargeRegion_0
+>>Vessel_Class_0
+   0
+>>Vessel_Class_1
+   0
+>>Vessel_Class_2
+   0
+>>Vessel_Class_3
+   0
+>>Vessel_Class_4
+   0
+>DischargeRegion_1
+>>Vessel_Class_0
+   0
+>>Vessel_Class_1
+   0
+>>Vessel_Class_2
+   0
+>>Vessel_Class_3
+   0
+>>Vessel_Class_4
+   0
+>DischargeRegion_2
+>>Vessel_Class_0
+   0
+>>Vessel_Class_1
+   0
+>>Vessel_Class_2
+   0
+>>Vessel_Class_3
+   0
+>>Vessel_Class_4
+   0
+>DischargeRegion_3
+>>Vessel_Class_0
+   0
+>>Vessel_Class_1
+   0
+>>Vessel_Class_2
+   0
+>>Vessel_Class_3
+   0
+>>Vessel_Class_4
+   0
+>DischargeRegion_4
+>>Vessel_Class_0
+   0
+>>Vessel_Class_1
+   0
+>>Vessel_Class_2
+   0
+>>Vessel_Class_3
+   0
+>>Vessel_Class_4
+   0
+----- IntraRegionalTravelTimes -----
+LoadingRegion_0
+>Vessel_Class_0
+   0
+>Vessel_Class_1
+   0
+>Vessel_Class_2
+   0
+>Vessel_Class_3
+   0
+>Vessel_Class_4
+   0
+DischargeRegion_0
+>Vessel_Class_0
+   0
+>Vessel_Class_1
+   0
+>Vessel_Class_2
+   0
+>Vessel_Class_3
+   0
+>Vessel_Class_4
+   0
+DischargeRegion_1
+>Vessel_Class_0
+   0
+>Vessel_Class_1
+   0
+>Vessel_Class_2
+   0
+>Vessel_Class_3
+   0
+>Vessel_Class_4
+   0
+DischargeRegion_2
+>Vessel_Class_0
+   0
+>Vessel_Class_1
+   0
+>Vessel_Class_2
+   0
+>Vessel_Class_3
+   0
+>Vessel_Class_4
+   0
+DischargeRegion_3
+>Vessel_Class_0
+   0
+>Vessel_Class_1
+   0
+>Vessel_Class_2
+   0
+>Vessel_Class_3
+   0
+>Vessel_Class_4
+   0
+DischargeRegion_4
+>Vessel_Class_0
+   0
+>Vessel_Class_1
+   0
+>Vessel_Class_2
+   0
+>Vessel_Class_3
+   0
+>Vessel_Class_4
+   0
+entry(r,vc,i,j) = travel time (number of periods) from port i to port j in region r using a vessel in vessel class vc.
