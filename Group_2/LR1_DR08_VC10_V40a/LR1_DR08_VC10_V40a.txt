@@ -1,0 +1,828 @@
+Date generated: 13-06-2013 (Day-Month-Year)
+This file contains a summary of the data describing an instance.
+If there is any discrepancy between the data shown here and the
+data appearing in LP, MPS, or data_only_format files, the data
+in the latter files should be used.
+
+----- MetaData -----
+numPeriods                           : 360 
+numSeasons                           :  1 
+numCommodities                       :  1 
+numLoadingRegions                    :  1 
+numDischargeRegions                  :  8 
+numLoadingPortsInRegion              : [ 1]
+numDischargePortsInRegion            : [ 1,  1,  1,  1,  1,  1,  1,  1]
+numVesselClasses                     : 10 
+numTermVesselsInClass                : [ 4,  4,  4,  4,  4,  4,  4,  4,  4,  4]
+hoursPerPeriod                       : 24 
+periodsPerMonth                      : 30 
+spotMarketPricePerUnit               :   100 
+spotMarketDiscountFactor             : 0.999 
+perPeriodRewardForFinishingEarly     :  0.01 
+attemptCost                          :  0.00 
+constantForSinglePeriodAlphaSlack    :  1.00 
+constantForCumulativeAlphaSlack      :  0.00 
+
+All values in the region and port tables are averages. Some values may change over time.
+
+----- Region Table ----
+            LR0r0  DR0r1  DR1r2  DR2r3  DR3r4  DR4r5  DR5r6  DR6r7  DR7r8
+  Capacity   2104    384    442    300    396    416    630    396    588
+ Inventory   1841    192    221    150    198    208    315    198    294
+      Rate    263    -32    -34    -39    -22    -26    -35    -33    -42
+     Price             0      0      0      0      0      0      0      0
+  NumPorts      1      1      1      1      1      1      1      1      1
+BerthLimit      3      1      1      1      1      1      1      1      1
+Max#Visits    643     78     83     94     54     63     86     80    102
+Min#Visits    315     38     41     47     26     31     41     39     50
+ C2R ratio      8     12     13      7     18     16     18     12     14
+----- Port Table For Region 0 ----
+            Port0
+  Capacity   2104
+ Inventory   1841
+      Rate    263
+     Price       
+BerthLimit      3
+   PortFee     75
+Min#Visits    315
+    maxAmt    300
+    minAmt    100
+ C2R ratio      8
+----- Port Table For Region 1 ----
+            Port0
+  Capacity    384
+ Inventory    192
+      Rate    -32
+     Price      0
+BerthLimit      1
+   PortFee     85
+Min#Visits     38
+    maxAmt    300
+    minAmt     65
+ C2R ratio     12
+----- Port Table For Region 2 ----
+            Port0
+  Capacity    442
+ Inventory    221
+      Rate    -34
+     Price      0
+BerthLimit      1
+   PortFee     74
+Min#Visits     41
+    maxAmt    300
+    minAmt     55
+ C2R ratio     13
+----- Port Table For Region 3 ----
+            Port0
+  Capacity    300
+ Inventory    150
+      Rate    -39
+     Price      0
+BerthLimit      1
+   PortFee     39
+Min#Visits     47
+    maxAmt    300
+    minAmt     45
+ C2R ratio      7
+----- Port Table For Region 4 ----
+            Port0
+  Capacity    396
+ Inventory    198
+      Rate    -22
+     Price      0
+BerthLimit      1
+   PortFee     21
+Min#Visits     26
+    maxAmt    300
+    minAmt     55
+ C2R ratio     18
+----- Port Table For Region 5 ----
+            Port0
+  Capacity    416
+ Inventory    208
+      Rate    -26
+     Price      0
+BerthLimit      1
+   PortFee     59
+Min#Visits     31
+    maxAmt    300
+    minAmt     45
+ C2R ratio     16
+----- Port Table For Region 6 ----
+            Port0
+  Capacity    630
+ Inventory    315
+      Rate    -35
+     Price      0
+BerthLimit      1
+   PortFee     69
+Min#Visits     41
+    maxAmt    300
+    minAmt     65
+ C2R ratio     18
+----- Port Table For Region 7 ----
+            Port0
+  Capacity    396
+ Inventory    198
+      Rate    -33
+     Price      0
+BerthLimit      1
+   PortFee     26
+Min#Visits     39
+    maxAmt    300
+    minAmt     45
+ C2R ratio     12
+----- Port Table For Region 8 ----
+            Port0
+  Capacity    588
+ Inventory    294
+      Rate    -42
+     Price      0
+BerthLimit      1
+   PortFee     61
+Min#Visits     50
+    maxAmt    300
+    minAmt     65
+ C2R ratio     14
+----- MinDurationInRegionTable ----
+            LR0r0  DR0r1  DR1r2  DR2r3  DR3r4  DR4r5  DR5r6  DR6r7  DR7r8
+       VC0      0      0      0      0      0      0      0      0      0
+       VC1      0      0      0      0      0      0      0      0      0
+       VC2      0      0      0      0      0      0      0      0      0
+       VC3      0      0      0      0      0      0      0      0      0
+       VC4      0      0      0      0      0      0      0      0      0
+       VC5      0      0      0      0      0      0      0      0      0
+       VC6      0      0      0      0      0      0      0      0      0
+       VC7      0      0      0      0      0      0      0      0      0
+       VC8      0      0      0      0      0      0      0      0      0
+       VC9      0      0      0      0      0      0      0      0      0
+
+----- Vessel Table ----
+                      Vessel_0  Vessel_1  Vessel_2  Vessel_3  Vessel_4  Vessel_5  Vessel_6  Vessel_7  Vessel_8  Vessel_9 Vessel_10 Vessel_11 Vessel_12 Vessel_13 Vessel_14 Vessel_15 Vessel_16 Vessel_17 Vessel_18 Vessel_19 Vessel_20 Vessel_21 Vessel_22 Vessel_23 Vessel_24 Vessel_25 Vessel_26 Vessel_27 Vessel_28 Vessel_29 Vessel_30 Vessel_31 Vessel_32 Vessel_33 Vessel_34 Vessel_35 Vessel_36 Vessel_37 Vessel_38 Vessel_39
+                Type      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term      Term
+               Class         0         0         0         0         1         1         1         1         2         2         2         2         3         3         3         3         4         4         4         4         5         5         5         5         6         6         6         6         7         7         7         7         8         8         8         8         9         9         9         9
+            Capacity       300       300       300       300       280       280       280       280       260       260       260       260       250       250       250       250       240       240       240       240       220       220       220       220       200       200       200       200       180       180       180       180       160       160       160       160       150       150       150       150
+       InitInventory         0         0         0       300       280         0       280         0       260         0         0       260       250       250       250       250       240         0         0       240       220         0         0       220         0         0       200         0         0         0         0         0       160       160         0         0       150       150       150         0
+       InitPortIndex         0         0         0         7         8         0         1         0         4         0         0         3         1         2         1         2         6         0         0         2         8         0         0         7         0         0         1         0         0         0         0         0         8         8         0         0         5         3         1         0
+  FirstTimeAvailable         0         0         0         7        10         0        20         0         1         0         0         6         1         0        19         4         7         0         0        18        10         0         0         0         0         0        13         0         0         0         0         0         6         9         0         0         1         2        21         0
+----- FullDistanceMatrix -----
+          0        1        2        3        4        5        6        7        8 
+ 0     0.00 24228.31 15384.06 10182.32  7697.28  5265.12  2745.70  8243.28 14082.82 
+ 1 24228.31     0.00 36949.62 14920.22 25579.62 26436.26 23750.35 18761.69 30489.02 
+ 2 15384.06 36949.62     0.00 24987.21 11379.89 18184.09 14204.15 18187.93 25680.06 
+ 3 10182.32 14920.22 24987.21     0.00 14686.78 11529.83 10783.47  9243.42 16458.02 
+ 4  7697.28 25579.62 11379.89 14686.78     0.00 12762.96  5085.30  6826.02 21643.35 
+ 5  5265.12 26436.26 18184.09 11529.83 12762.96     0.00  8000.87 13068.77  8881.12 
+ 6  2745.70 23750.35 14204.15 10783.47  5085.30  8000.87     0.00  6237.81 16828.15 
+ 7  8243.28 18761.69 18187.93  9243.42  6826.02 13068.77  6237.81     0.00 21246.05 
+ 8 14082.82 30489.02 25680.06 16458.02 21643.35  8881.12 16828.15 21246.05     0.00 
+FullDistanceMatrix(i,j) = distance (km) between port i to port j.
+
+----- Min-Max Inter-Regional Travel Times -----
+Vessel_Class_0
+          DR0     DR1     DR2     DR3     DR4     DR5     DR6     DR7 
+  LR0 (33,33) (21,21) (14,14) (11,11) ( 7, 7) ( 4, 4) (11,11) (19,19) 
+Vessel_Class_1
+          DR0     DR1     DR2     DR3     DR4     DR5     DR6     DR7 
+  LR0 (33,33) (21,21) (14,14) (11,11) ( 7, 7) ( 4, 4) (11,11) (19,19) 
+Vessel_Class_2
+          DR0     DR1     DR2     DR3     DR4     DR5     DR6     DR7 
+  LR0 (33,33) (21,21) (14,14) (11,11) ( 7, 7) ( 4, 4) (11,11) (19,19) 
+Vessel_Class_3
+          DR0     DR1     DR2     DR3     DR4     DR5     DR6     DR7 
+  LR0 (33,33) (21,21) (14,14) (11,11) ( 7, 7) ( 4, 4) (11,11) (19,19) 
+Vessel_Class_4
+          DR0     DR1     DR2     DR3     DR4     DR5     DR6     DR7 
+  LR0 (33,33) (21,21) (14,14) (11,11) ( 7, 7) ( 4, 4) (11,11) (19,19) 
+Vessel_Class_5
+          DR0     DR1     DR2     DR3     DR4     DR5     DR6     DR7 
+  LR0 (33,33) (21,21) (14,14) (11,11) ( 7, 7) ( 4, 4) (11,11) (19,19) 
+Vessel_Class_6
+          DR0     DR1     DR2     DR3     DR4     DR5     DR6     DR7 
+  LR0 (33,33) (21,21) (14,14) (11,11) ( 7, 7) ( 4, 4) (11,11) (19,19) 
+Vessel_Class_7
+          DR0     DR1     DR2     DR3     DR4     DR5     DR6     DR7 
+  LR0 (33,33) (21,21) (14,14) (11,11) ( 7, 7) ( 4, 4) (11,11) (19,19) 
+Vessel_Class_8
+          DR0     DR1     DR2     DR3     DR4     DR5     DR6     DR7 
+  LR0 (33,33) (21,21) (14,14) (11,11) ( 7, 7) ( 4, 4) (11,11) (19,19) 
+Vessel_Class_9
+          DR0     DR1     DR2     DR3     DR4     DR5     DR6     DR7 
+  LR0 (33,33) (21,21) (14,14) (11,11) ( 7, 7) ( 4, 4) (11,11) (19,19) 
+entry(vc,i,j) = (minT,maxT) where minT (maxT) is the minimum (maximum) number of time periods required for a vessel in vessel class vc to travel from loading region i to discharging region j.
+
+----- FullTravelTimeMatrixForClass -----
+Vessel_Class_0
+    0  1  2  3  4  5  6  7  8 
+ 0  0 33 21 14 11  7  4 11 19 
+ 1 33  0 49 20 34 35 32 25 41 
+ 2 21 49  0 34 16 25 19 25 34 
+ 3 14 20 34  0 20 16 15 13 22 
+ 4 11 34 16 20  0 17  7 10 29 
+ 5  7 35 25 16 17  0 11 18 12 
+ 6  4 32 19 15  7 11  0  9 23 
+ 7 11 25 25 13 10 18  9  0 29 
+ 8 19 41 34 22 29 12 23 29  0 
+Vessel_Class_1
+    0  1  2  3  4  5  6  7  8 
+ 0  0 33 21 14 11  7  4 11 19 
+ 1 33  0 49 20 34 35 32 25 41 
+ 2 21 49  0 34 16 25 19 25 34 
+ 3 14 20 34  0 20 16 15 13 22 
+ 4 11 34 16 20  0 17  7 10 29 
+ 5  7 35 25 16 17  0 11 18 12 
+ 6  4 32 19 15  7 11  0  9 23 
+ 7 11 25 25 13 10 18  9  0 29 
+ 8 19 41 34 22 29 12 23 29  0 
+Vessel_Class_2
+    0  1  2  3  4  5  6  7  8 
+ 0  0 33 21 14 11  7  4 11 19 
+ 1 33  0 49 20 34 35 32 25 41 
+ 2 21 49  0 34 16 25 19 25 34 
+ 3 14 20 34  0 20 16 15 13 22 
+ 4 11 34 16 20  0 17  7 10 29 
+ 5  7 35 25 16 17  0 11 18 12 
+ 6  4 32 19 15  7 11  0  9 23 
+ 7 11 25 25 13 10 18  9  0 29 
+ 8 19 41 34 22 29 12 23 29  0 
+Vessel_Class_3
+    0  1  2  3  4  5  6  7  8 
+ 0  0 33 21 14 11  7  4 11 19 
+ 1 33  0 49 20 34 35 32 25 41 
+ 2 21 49  0 34 16 25 19 25 34 
+ 3 14 20 34  0 20 16 15 13 22 
+ 4 11 34 16 20  0 17  7 10 29 
+ 5  7 35 25 16 17  0 11 18 12 
+ 6  4 32 19 15  7 11  0  9 23 
+ 7 11 25 25 13 10 18  9  0 29 
+ 8 19 41 34 22 29 12 23 29  0 
+Vessel_Class_4
+    0  1  2  3  4  5  6  7  8 
+ 0  0 33 21 14 11  7  4 11 19 
+ 1 33  0 49 20 34 35 32 25 41 
+ 2 21 49  0 34 16 25 19 25 34 
+ 3 14 20 34  0 20 16 15 13 22 
+ 4 11 34 16 20  0 17  7 10 29 
+ 5  7 35 25 16 17  0 11 18 12 
+ 6  4 32 19 15  7 11  0  9 23 
+ 7 11 25 25 13 10 18  9  0 29 
+ 8 19 41 34 22 29 12 23 29  0 
+Vessel_Class_5
+    0  1  2  3  4  5  6  7  8 
+ 0  0 33 21 14 11  7  4 11 19 
+ 1 33  0 49 20 34 35 32 25 41 
+ 2 21 49  0 34 16 25 19 25 34 
+ 3 14 20 34  0 20 16 15 13 22 
+ 4 11 34 16 20  0 17  7 10 29 
+ 5  7 35 25 16 17  0 11 18 12 
+ 6  4 32 19 15  7 11  0  9 23 
+ 7 11 25 25 13 10 18  9  0 29 
+ 8 19 41 34 22 29 12 23 29  0 
+Vessel_Class_6
+    0  1  2  3  4  5  6  7  8 
+ 0  0 33 21 14 11  7  4 11 19 
+ 1 33  0 49 20 34 35 32 25 41 
+ 2 21 49  0 34 16 25 19 25 34 
+ 3 14 20 34  0 20 16 15 13 22 
+ 4 11 34 16 20  0 17  7 10 29 
+ 5  7 35 25 16 17  0 11 18 12 
+ 6  4 32 19 15  7 11  0  9 23 
+ 7 11 25 25 13 10 18  9  0 29 
+ 8 19 41 34 22 29 12 23 29  0 
+Vessel_Class_7
+    0  1  2  3  4  5  6  7  8 
+ 0  0 33 21 14 11  7  4 11 19 
+ 1 33  0 49 20 34 35 32 25 41 
+ 2 21 49  0 34 16 25 19 25 34 
+ 3 14 20 34  0 20 16 15 13 22 
+ 4 11 34 16 20  0 17  7 10 29 
+ 5  7 35 25 16 17  0 11 18 12 
+ 6  4 32 19 15  7 11  0  9 23 
+ 7 11 25 25 13 10 18  9  0 29 
+ 8 19 41 34 22 29 12 23 29  0 
+Vessel_Class_8
+    0  1  2  3  4  5  6  7  8 
+ 0  0 33 21 14 11  7  4 11 19 
+ 1 33  0 49 20 34 35 32 25 41 
+ 2 21 49  0 34 16 25 19 25 34 
+ 3 14 20 34  0 20 16 15 13 22 
+ 4 11 34 16 20  0 17  7 10 29 
+ 5  7 35 25 16 17  0 11 18 12 
+ 6  4 32 19 15  7 11  0  9 23 
+ 7 11 25 25 13 10 18  9  0 29 
+ 8 19 41 34 22 29 12 23 29  0 
+Vessel_Class_9
+    0  1  2  3  4  5  6  7  8 
+ 0  0 33 21 14 11  7  4 11 19 
+ 1 33  0 49 20 34 35 32 25 41 
+ 2 21 49  0 34 16 25 19 25 34 
+ 3 14 20 34  0 20 16 15 13 22 
+ 4 11 34 16 20  0 17  7 10 29 
+ 5  7 35 25 16 17  0 11 18 12 
+ 6  4 32 19 15  7 11  0  9 23 
+ 7 11 25 25 13 10 18  9  0 29 
+ 8 19 41 34 22 29 12 23 29  0 
+FullTravelTimeMatrixForClass(vc,i,j) = number of time periods for a vessel in vessel class vc to travel from port i to port j.
+
+----- FullTravelCostMatrixForClass ----- 
+Vessel_Class_0
+              0          1          2          3          4          5          6          7          8 
+    0    0.0000  2507.8306  1612.4060  1057.2317   790.7277   585.5116   343.5703   850.3278  1469.2819 
+    1 2497.8306     0.0000  3768.9619  1531.0221  2578.9617  2702.6257  2444.0353  1902.1691  3109.9019 
+    2 1613.4060  3779.9619     0.0000  2537.7208  1158.9894  1877.4090  1489.4146  1844.7928  2629.0057 
+    3 1093.2317  1577.0221  2572.7208     0.0000  1489.6777  1211.9831  1147.3467   950.3421  1706.8023 
+    4  844.7277  2642.9617  1211.9894  1507.6777     0.0000  1335.2961   577.5297   708.6020  2225.3349 
+    5  601.5116  2728.6257  1892.4090  1191.9831  1297.2961     0.0000   869.0869  1332.8770   949.1125 
+    6  349.5703  2460.0353  1494.4146  1117.3467   529.5297   859.0869     0.0000   649.7805  1743.8146 
+    7  899.3278  1961.1691  1892.7928   963.3421   703.6020  1365.8770   692.7805     0.0000  2185.6055 
+    8 1483.2819  3133.9019  2642.0057  1684.8023  2185.3349   947.1125  1751.8146  2150.6055     0.0000 
+Vessel_Class_1
+              0          1          2          3          4          5          6          7          8 
+    0    0.0000  2362.4608  1520.1016   996.1378   744.5440   553.9209   327.0961   800.8681  1384.7850 
+    1 2352.4608     0.0000  3547.2641  1441.5007  2425.4840  2544.0082  2301.5332  1789.5990  2926.9678 
+    2 1521.1016  3558.2641     0.0000  2387.7976  1090.7101  1768.3045  1404.1897  1735.6653  2474.9254 
+    3 1032.1378  1487.5007  2422.7976     0.0000  1401.5571  1142.8041  1082.6459   894.8816  1608.0542 
+    4  798.5440  2489.4840  1143.7101  1419.5571     0.0000  1258.7183   547.0180   667.6459  2095.4748 
+    5  569.9209  2570.0082  1783.3045  1122.8041  1220.7183     0.0000   821.0817  1254.4644   895.8257 
+    6  333.0961  2317.5332  1409.1897  1052.6459   499.0180   811.0817     0.0000   612.3537  1642.8457 
+    7  849.8681  1848.5990  1783.6653   907.8816   662.6459  1287.4644   655.3537     0.0000  2058.1292 
+    8 1398.7850  2950.9678  2487.9254  1586.0542  2055.4748   893.8257  1650.8457  2023.1292     0.0000 
+Vessel_Class_2
+              0          1          2          3          4          5          6          7          8 
+    0    0.0000  2217.0910  1427.7972   935.0439   698.3604   522.3302   310.6219   751.4085  1300.2881 
+    1 2207.0910     0.0000  3325.5664  1351.9794  2272.0063  2385.3906  2159.0311  1677.0288  2744.0337 
+    2 1428.7972  3336.5664     0.0000  2237.8743  1022.4307  1659.1999  1318.9648  1626.5377  2320.8450 
+    3  971.0439  1397.9794  2272.8743     0.0000  1313.4364  1073.6251  1017.9451   839.4210  1509.3061 
+    4  752.3604  2336.0063  1075.4307  1331.4364     0.0000  1182.1406   516.5062   626.6897  1965.6147 
+    5  538.3302  2411.3906  1674.1999  1053.6251  1144.1406     0.0000   773.0765  1176.0518   842.5390 
+    6  316.6219  2175.0311  1323.9648   987.9451   468.5062   763.0765     0.0000   574.9268  1541.8769 
+    7  800.4085  1736.0288  1674.5377   852.4210   621.6897  1209.0518   617.9268     0.0000  1930.6528 
+    8 1314.2881  2768.0337  2333.8450  1487.3061  1925.6147   840.5390  1549.8769  1895.6528     0.0000 
+Vessel_Class_3
+              0          1          2          3          4          5          6          7          8 
+    0    0.0000  2144.4060  1381.6451   904.4969   675.2685   506.5349   302.3848   726.6786  1258.0396 
+    1 2134.4060     0.0000  3214.7176  1307.2188  2195.2674  2306.0818  2087.7800  1620.7438  2652.5666 
+    2 1382.6451  3225.7176     0.0000  2162.9127   988.2910  1604.6477  1276.3524  1571.9739  2243.8049 
+    3  940.4969  1353.2188  2197.9127     0.0000  1269.3761  1039.0356   985.5947   811.6908  1459.9320 
+    4  729.2685  2259.2674  1041.2910  1287.3761     0.0000  1143.8517   501.2503   606.2117  1900.6846 
+    5  522.5349  2332.0818  1619.6477  1019.0356  1105.8517     0.0000   749.0739  1136.8455   815.8956 
+    6  308.3848  2103.7800  1281.3524   955.5947   453.2503   739.0739     0.0000   556.2134  1491.3924 
+    7  775.6786  1679.7438  1619.9739   824.6908   601.2117  1169.8455   599.2134     0.0000  1866.9147 
+    8 1272.0396  2676.5666  2256.8049  1437.9320  1860.6846   813.8956  1499.3924  1831.9147     0.0000 
+Vessel_Class_4
+              0          1          2          3          4          5          6          7          8 
+    0    0.0000  2071.7211  1335.4929   873.9500   652.1767   490.7395   294.1476   701.9488  1215.7912 
+    1 2061.7211     0.0000  3103.8687  1262.4581  2118.5286  2226.7731  2016.5289  1564.4587  2561.0995 
+    2 1336.4929  3114.8687     0.0000  2087.9511   954.1513  1550.0954  1233.7400  1517.4101  2166.7647 
+    3  909.9500  1308.4581  2122.9511     0.0000  1225.3157  1004.4461   953.2443   783.9605  1410.5579 
+    4  706.1767  2182.5286  1007.1513  1243.3157     0.0000  1105.5628   485.9944   585.7336  1835.7546 
+    5  506.7395  2252.7731  1565.0954   984.4461  1067.5628     0.0000   725.0713  1097.6392   789.2522 
+    6  300.1476  2032.5289  1238.7400   923.2443   437.9944   715.0713     0.0000   537.5000  1440.9080 
+    7  750.9488  1623.4587  1565.4101   796.9605   580.7336  1130.6392   580.5000     0.0000  1803.1765 
+    8 1229.7912  2585.0995  2179.7647  1388.5579  1795.7546   787.2522  1448.9080  1768.1765     0.0000 
+Vessel_Class_5
+              0          1          2          3          4          5          6          7          8 
+    0    0.0000  1926.3513  1243.1885   812.8561   605.9931   459.1488   277.6734   652.4891  1131.2942 
+    1 1916.3513     0.0000  2882.1710  1172.9368  1965.0509  2068.1555  1874.0268  1451.8885  2378.1654 
+    2 1244.1885  2893.1710     0.0000  1938.0278   885.8720  1440.9909  1148.5151  1408.2826  2012.6844 
+    3  848.8561  1218.9368  1973.0278     0.0000  1137.1951   935.2671   888.5435   728.5000  1311.8098 
+    4  659.9931  2029.0509   938.8720  1155.1951     0.0000  1028.9850   455.4826   544.7775  1705.8945 
+    5  475.1488  2094.1555  1455.9909   915.2671   990.9850     0.0000   677.0660  1019.2265   735.9655 
+    6  283.6734  1890.0268  1153.5151   858.5435   407.4826   667.0660     0.0000   500.0732  1339.9391 
+    7  701.4891  1510.8885  1456.2826   741.5000   539.7775  1052.2265   543.0732     0.0000  1675.7002 
+    8 1145.2942  2402.1654  2025.6844  1289.8098  1665.8945   733.9655  1347.9391  1640.7002     0.0000 
+Vessel_Class_6
+              0          1          2          3          4          5          6          7          8 
+    0    0.0000  1780.9814  1150.8842   751.7622   559.8094   427.5581   261.1992   603.0295  1046.7973 
+    1 1770.9814     0.0000  2660.4733  1083.4154  1811.5732  1909.5380  1731.5247  1339.3184  2195.2313 
+    2 1151.8842  2671.4733     0.0000  1788.1046   817.5926  1331.8863  1063.2902  1299.1550  1858.6040 
+    3  787.7622  1129.4154  1823.1046     0.0000  1049.0744   866.0882   823.8427   673.0395  1213.0616 
+    4  613.8094  1875.5732   870.5926  1067.0744     0.0000   952.4073   424.9708   503.8214  1576.0344 
+    5  443.5581  1935.5380  1346.8863   846.0882   914.4073     0.0000   629.0608   940.8139   682.6787 
+    6  267.1992  1747.5247  1068.2902   793.8427   376.9708   619.0608     0.0000   462.6464  1238.9702 
+    7  652.0295  1398.3184  1347.1550   686.0395   498.8214   973.8139   505.6464     0.0000  1548.2238 
+    8 1060.7973  2219.2313  1871.6040  1191.0616  1536.0344   680.6787  1246.9702  1513.2238     0.0000 
+Vessel_Class_7
+              0          1          2          3          4          5          6          7          8 
+    0    0.0000  1635.6116  1058.5798   690.6683   513.6257   395.9674   244.7250   553.5698   962.3004 
+    1 1625.6116     0.0000  2438.7756   993.8941  1658.0955  1750.9204  1589.0226  1226.7483  2012.2972 
+    2 1059.5798  2449.7756     0.0000  1638.1813   749.3132  1222.7818   978.0653  1190.0274  1704.5237 
+    3  726.6683  1039.8941  1673.1813     0.0000   960.9537   796.9092   759.1419   617.5789  1114.3135 
+    4  567.6257  1722.0955   802.3132   978.9537     0.0000   875.8295   394.4590   462.8653  1446.1743 
+    5  411.9674  1776.9204  1237.7818   776.9092   837.8295     0.0000   581.0556   862.4013   629.3920 
+    6  250.7250  1605.0226   983.0653   729.1419   346.4590   571.0556     0.0000   425.2195  1138.0014 
+    7  602.5698  1285.7483  1238.0274   630.5789   457.8653   895.4013   468.2195     0.0000  1420.7475 
+    8  976.3004  2036.2972  1717.5237  1092.3135  1406.1743   627.3920  1146.0014  1385.7475     0.0000 
+Vessel_Class_8
+              0          1          2          3          4          5          6          7          8 
+    0    0.0000  1490.2418   966.2755   629.5744   467.4421   364.3767   228.2508   504.1101   877.8035 
+    1 1480.2418     0.0000  2217.0779   904.3728  1504.6178  1592.3029  1446.5205  1114.1781  1829.3631 
+    2  967.2755  2228.0779     0.0000  1488.2581   681.0339  1113.6772   892.8405  1080.8998  1550.4433 
+    3  665.5744   950.3728  1523.2581     0.0000   872.8331   727.7302   694.4411   562.1184  1015.5654 
+    4  521.4421  1568.6178   734.0339   890.8331     0.0000   799.2517   363.9473   421.9091  1316.3142 
+    5  380.3767  1618.3029  1128.6772   707.7302   761.2517     0.0000   533.0504   783.9887   576.1052 
+    6  234.2508  1462.5205   897.8405   664.4411   315.9473   523.0504     0.0000   387.7927  1037.0325 
+    7  553.1101  1173.1781  1128.8998   575.1184   416.9091   816.9887   430.7927     0.0000  1293.2712 
+    8  891.8035  1853.3631  1563.4433   993.5654  1276.3142   574.1052  1045.0325  1258.2712     0.0000 
+Vessel_Class_9
+              0          1          2          3          4          5          6          7          8 
+    0    0.0000  1417.5569   920.1233   599.0274   444.3502   348.5814   220.0137   479.3803   835.5550 
+    1 1407.5569     0.0000  2106.2290   859.6121  1427.8789  1512.9941  1375.2694  1057.8930  1737.8960 
+    2  921.1233  2117.2290     0.0000  1413.2965   646.8942  1059.1250   850.2280  1026.3361  1473.4031 
+    3  635.0274   905.6121  1448.2965     0.0000   828.7727   693.1407   662.0907   534.3881   966.1913 
+    4  498.3502  1491.8789   699.8942   846.7727     0.0000   760.9629   348.6914   401.4311  1251.3842 
+    5  364.5814  1538.9941  1074.1250   673.1407   722.9629     0.0000   509.0478   744.7824   549.4618 
+    6  226.0137  1391.2694   855.2280   632.0907   300.6914   499.0478     0.0000   369.0793   986.5480 
+    7  528.3803  1116.8930  1074.3361   547.3881   396.4311   777.7824   412.0793     0.0000  1229.5330 
+    8  849.5550  1761.8960  1486.4031   944.1913  1211.3842   547.4618   994.5480  1194.5330     0.0000 
+FullTravelCostMatrixForClass(vc,i,j) = (approximate) travel cost for a vessel in vessel class vc to travel from port i to port j.
+This cost is approximate since the value is shown up to 4 decimal places.
+This cost includes the port fee at the destination port and assumes a vessel is traveling
+(A) at capacity if traveling from:
+   (A1) a loading port to a discharging port;
+   (A2) a loading port to a loading port (although this should never happen);
+   (A3) a discharging port to a discharging port (although this should never happen);
+(B) empty if traveling from a discharging port to a loading port.
+
+----- Intra Regional Arc Costs -----
+(Note that arc costs are not symmetric since the port fee is incurred at the tail port)
+>LoadingRegion_0
+>>Vessel_Class_0
+   0
+>>Vessel_Class_1
+   0
+>>Vessel_Class_2
+   0
+>>Vessel_Class_3
+   0
+>>Vessel_Class_4
+   0
+>>Vessel_Class_5
+   0
+>>Vessel_Class_6
+   0
+>>Vessel_Class_7
+   0
+>>Vessel_Class_8
+   0
+>>Vessel_Class_9
+   0
+>DischargeRegion_0
+>>Vessel_Class_0
+   0
+>>Vessel_Class_1
+   0
+>>Vessel_Class_2
+   0
+>>Vessel_Class_3
+   0
+>>Vessel_Class_4
+   0
+>>Vessel_Class_5
+   0
+>>Vessel_Class_6
+   0
+>>Vessel_Class_7
+   0
+>>Vessel_Class_8
+   0
+>>Vessel_Class_9
+   0
+>DischargeRegion_1
+>>Vessel_Class_0
+   0
+>>Vessel_Class_1
+   0
+>>Vessel_Class_2
+   0
+>>Vessel_Class_3
+   0
+>>Vessel_Class_4
+   0
+>>Vessel_Class_5
+   0
+>>Vessel_Class_6
+   0
+>>Vessel_Class_7
+   0
+>>Vessel_Class_8
+   0
+>>Vessel_Class_9
+   0
+>DischargeRegion_2
+>>Vessel_Class_0
+   0
+>>Vessel_Class_1
+   0
+>>Vessel_Class_2
+   0
+>>Vessel_Class_3
+   0
+>>Vessel_Class_4
+   0
+>>Vessel_Class_5
+   0
+>>Vessel_Class_6
+   0
+>>Vessel_Class_7
+   0
+>>Vessel_Class_8
+   0
+>>Vessel_Class_9
+   0
+>DischargeRegion_3
+>>Vessel_Class_0
+   0
+>>Vessel_Class_1
+   0
+>>Vessel_Class_2
+   0
+>>Vessel_Class_3
+   0
+>>Vessel_Class_4
+   0
+>>Vessel_Class_5
+   0
+>>Vessel_Class_6
+   0
+>>Vessel_Class_7
+   0
+>>Vessel_Class_8
+   0
+>>Vessel_Class_9
+   0
+>DischargeRegion_4
+>>Vessel_Class_0
+   0
+>>Vessel_Class_1
+   0
+>>Vessel_Class_2
+   0
+>>Vessel_Class_3
+   0
+>>Vessel_Class_4
+   0
+>>Vessel_Class_5
+   0
+>>Vessel_Class_6
+   0
+>>Vessel_Class_7
+   0
+>>Vessel_Class_8
+   0
+>>Vessel_Class_9
+   0
+>DischargeRegion_5
+>>Vessel_Class_0
+   0
+>>Vessel_Class_1
+   0
+>>Vessel_Class_2
+   0
+>>Vessel_Class_3
+   0
+>>Vessel_Class_4
+   0
+>>Vessel_Class_5
+   0
+>>Vessel_Class_6
+   0
+>>Vessel_Class_7
+   0
+>>Vessel_Class_8
+   0
+>>Vessel_Class_9
+   0
+>DischargeRegion_6
+>>Vessel_Class_0
+   0
+>>Vessel_Class_1
+   0
+>>Vessel_Class_2
+   0
+>>Vessel_Class_3
+   0
+>>Vessel_Class_4
+   0
+>>Vessel_Class_5
+   0
+>>Vessel_Class_6
+   0
+>>Vessel_Class_7
+   0
+>>Vessel_Class_8
+   0
+>>Vessel_Class_9
+   0
+>DischargeRegion_7
+>>Vessel_Class_0
+   0
+>>Vessel_Class_1
+   0
+>>Vessel_Class_2
+   0
+>>Vessel_Class_3
+   0
+>>Vessel_Class_4
+   0
+>>Vessel_Class_5
+   0
+>>Vessel_Class_6
+   0
+>>Vessel_Class_7
+   0
+>>Vessel_Class_8
+   0
+>>Vessel_Class_9
+   0
+----- IntraRegionalTravelTimes -----
+LoadingRegion_0
+>Vessel_Class_0
+   0
+>Vessel_Class_1
+   0
+>Vessel_Class_2
+   0
+>Vessel_Class_3
+   0
+>Vessel_Class_4
+   0
+>Vessel_Class_5
+   0
+>Vessel_Class_6
+   0
+>Vessel_Class_7
+   0
+>Vessel_Class_8
+   0
+>Vessel_Class_9
+   0
+DischargeRegion_0
+>Vessel_Class_0
+   0
+>Vessel_Class_1
+   0
+>Vessel_Class_2
+   0
+>Vessel_Class_3
+   0
+>Vessel_Class_4
+   0
+>Vessel_Class_5
+   0
+>Vessel_Class_6
+   0
+>Vessel_Class_7
+   0
+>Vessel_Class_8
+   0
+>Vessel_Class_9
+   0
+DischargeRegion_1
+>Vessel_Class_0
+   0
+>Vessel_Class_1
+   0
+>Vessel_Class_2
+   0
+>Vessel_Class_3
+   0
+>Vessel_Class_4
+   0
+>Vessel_Class_5
+   0
+>Vessel_Class_6
+   0
+>Vessel_Class_7
+   0
+>Vessel_Class_8
+   0
+>Vessel_Class_9
+   0
+DischargeRegion_2
+>Vessel_Class_0
+   0
+>Vessel_Class_1
+   0
+>Vessel_Class_2
+   0
+>Vessel_Class_3
+   0
+>Vessel_Class_4
+   0
+>Vessel_Class_5
+   0
+>Vessel_Class_6
+   0
+>Vessel_Class_7
+   0
+>Vessel_Class_8
+   0
+>Vessel_Class_9
+   0
+DischargeRegion_3
+>Vessel_Class_0
+   0
+>Vessel_Class_1
+   0
+>Vessel_Class_2
+   0
+>Vessel_Class_3
+   0
+>Vessel_Class_4
+   0
+>Vessel_Class_5
+   0
+>Vessel_Class_6
+   0
+>Vessel_Class_7
+   0
+>Vessel_Class_8
+   0
+>Vessel_Class_9
+   0
+DischargeRegion_4
+>Vessel_Class_0
+   0
+>Vessel_Class_1
+   0
+>Vessel_Class_2
+   0
+>Vessel_Class_3
+   0
+>Vessel_Class_4
+   0
+>Vessel_Class_5
+   0
+>Vessel_Class_6
+   0
+>Vessel_Class_7
+   0
+>Vessel_Class_8
+   0
+>Vessel_Class_9
+   0
+DischargeRegion_5
+>Vessel_Class_0
+   0
+>Vessel_Class_1
+   0
+>Vessel_Class_2
+   0
+>Vessel_Class_3
+   0
+>Vessel_Class_4
+   0
+>Vessel_Class_5
+   0
+>Vessel_Class_6
+   0
+>Vessel_Class_7
+   0
+>Vessel_Class_8
+   0
+>Vessel_Class_9
+   0
+DischargeRegion_6
+>Vessel_Class_0
+   0
+>Vessel_Class_1
+   0
+>Vessel_Class_2
+   0
+>Vessel_Class_3
+   0
+>Vessel_Class_4
+   0
+>Vessel_Class_5
+   0
+>Vessel_Class_6
+   0
+>Vessel_Class_7
+   0
+>Vessel_Class_8
+   0
+>Vessel_Class_9
+   0
+DischargeRegion_7
+>Vessel_Class_0
+   0
+>Vessel_Class_1
+   0
+>Vessel_Class_2
+   0
+>Vessel_Class_3
+   0
+>Vessel_Class_4
+   0
+>Vessel_Class_5
+   0
+>Vessel_Class_6
+   0
+>Vessel_Class_7
+   0
+>Vessel_Class_8
+   0
+>Vessel_Class_9
+   0
+entry(r,vc,i,j) = travel time (number of periods) from port i to port j in region r using a vessel in vessel class vc.

@@ -1,6 +1,6 @@
 import re
 import time
-
+import math
 import gurobipy as gp
 from gurobipy import GRB
 
@@ -348,6 +348,7 @@ def create_node_list_and_dict(sourceNode, regularNodes, sinkNode):
     return NODES, NODE_DICT
 
 def parse_full_distance_matrix(INSTANCE_PATH):
+    '''KILOMETERS'''
     with open(INSTANCE_PATH, 'r') as file:
         content = file.read()
     # Extract the full distance matrix section
@@ -436,35 +437,30 @@ def parse_full_travel_time_matrices(file_path):
 
 def generate_source_arc_info(sourceNode, vessels):
     source_arcs_info = []
-    
     for vessel in vessels:
         initial_port = vessel.initial_port
         first_time_available = vessel.first_time_available
-        # source_arcs_info_for_vessel = []
         speed = 0
-        # speed, timesteps, departure, arrival, origin_port_number, destination_port_number, fuel_consumption, distance_nm, vessel, is_waiting_arc, is_source_or_sink_arc = tuple_data
-        arc_info = [speed, first_time_available, -1, first_time_available, sourceNode.port.number, initial_port.number, initial_port.port_fee, 0, vessel, False, True]
-        # source_arcs_info_for_vessel.append(arc_info)
+        arc_info = [speed, first_time_available +1, -1, first_time_available, sourceNode.port.number, initial_port.number, initial_port.port_fee, 0, vessel, False, True]
         source_arcs_info.append(arc_info)
     return [source_arcs_info]
 
-def populate_all_info(source_arcs_info, vessels, ports, full_distance_matrix_nm, NODE_DICT, NUM_TIME_PERIODS, full_travel_cost_matrices, full_travel_time_matrices, port_dict):     
+def populate_all_info(source_arcs_info, vessels, ports, source_times, full_distance_matrix_km, full_distance_matrix_nm, NODE_DICT, MAX_SPEED, MIN_SPEED, NUM_TIME_PERIODS, full_travel_cost_matrices, full_travel_time_matrices, port_dict, FUEL_PRICE, MIRPSO):     
     # Initialize the all_info list with the source arcs info
     all_info = source_arcs_info.copy()
-    
     # Append the all_info list with the arcs for each node
     for vessel in vessels:
         travel_cost_matrix = full_travel_cost_matrices[vessel.vessel_class]
         travel_time_matrix = full_travel_time_matrices[vessel.vessel_class]
-        # For each node, create the outgoing arcs
-        arcs_for_current_vessel = [create_arcs_for_node(node, vessel, [port.number for port in ports], full_distance_matrix_nm, ports, NUM_TIME_PERIODS, travel_cost_matrix, travel_time_matrix, port_dict) for node in NODE_DICT.values()]
+        
+        if MIRPSO:
+            arcs_for_current_vessel = [create_arcs_for_node_MIRPSO(node=node, vessels=vessels, all_port_numbers = [port.number for port in ports], source_times=source_times, full_distance_matrix_nm = full_distance_matrix_nm, MAX_SPEED=MAX_SPEED, MIN_SPEED=MIN_SPEED, ports=ports, NUM_TIME_PERIODS=NUM_TIME_PERIODS, port_dict=port_dict, FUEL_PRICE=FUEL_PRICE) for node in NODE_DICT.values()]
+        else:
+            # For each node, create the outgoing arcs
+            arcs_for_current_vessel = [create_arcs_for_node(node, vessel, [port.number for port in ports], full_distance_matrix_km, ports, NUM_TIME_PERIODS, travel_cost_matrix, travel_time_matrix, port_dict) for node in NODE_DICT.values()]
+            
         # Remove all empty lists from the arcs_for_current_vessel list
         arcs_for_current_vessel = [arc for arc in arcs_for_current_vessel if arc]
-        # Flatten the two-level list and count all arcs
-        num_arcs = len([arc for sublist in arcs_for_current_vessel for arc in sublist])
-        print(f"Vessel {vessel.number} has {num_arcs} arcs")
-        
-
         if arcs_for_current_vessel:
             all_info.extend(arcs_for_current_vessel)
     return all_info
@@ -473,14 +469,11 @@ def create_arcs_for_node(node, vessel, all_port_numbers, full_distance_matrix_km
     node_arcs = []
     if node.port.number in [0, len(ports) + 1]:
         return node_arcs
-    # if node.time < vessel.first_time_available:
-        # return node_arcs
 
     for destination_port_number in all_port_numbers:
         destination_port = port_dict[destination_port_number]
         if destination_port_number == node.port.number:
             # Create waiting_arc
-            # arc_info_matrix = create_arc_info(speed=0, minimum_timesteps=1, departure=node.time, origin_port=node.port.number, destination_port=destination_port_number, lowest_speed=0, distance_to_port=0, vessel=vessel, is_waiting_arc=True, NUM_TIME_PERIODS = NUM_TIME_PERIODS)
             arc_info = [0, 1, node.time, node.time+1, node.port.number, destination_port_number, 0, 0, vessel, True, False]
             node_arcs.append(arc_info)
         else:
@@ -510,6 +503,165 @@ def create_arcs_for_node(node, vessel, all_port_numbers, full_distance_matrix_km
 
     return node_arcs
 
+def create_arcs_for_node_MIRPSO(node, vessels, all_port_numbers, source_times, full_distance_matrix_nm,  MAX_SPEED, MIN_SPEED, ports, NUM_TIME_PERIODS, port_dict, FUEL_PRICE):
+    node_arcs = []
+    
+    for vessel in vessels:
+        if node.port.number in [0, len(ports) + 1]:
+            continue
+        start_time = source_times[vessel]
+        if node.time < start_time:
+            continue
+
+        for destination_port_number in all_port_numbers:
+            
+            if destination_port_number == node.port.number:
+                # Create waiting_arc
+                arc_info_matrix = create_arc_info(speed=0, minimum_timesteps=1, departure=node.time, origin_port=node.port, destination_port=node.port, lowest_speed=MIN_SPEED, distance_to_port=0, vessel=vessel, is_waiting_arc=True, NUM_TIME_PERIODS=NUM_TIME_PERIODS, FUEL_PRICE=FUEL_PRICE)
+                node_arcs.append(arc_info_matrix)
+            else:
+                destination_port = port_dict[destination_port_number]
+                origin_is_loading = node.port.isLoadingPort == 1
+                destination_is_loading = destination_port.isLoadingPort == 1
+                # If both are loading or both are discharging, skip
+                if origin_is_loading == destination_is_loading:
+                    continue
+                # Only create the arcs from a loading to a discharging port and vice versa
+                distance_nm = full_distance_matrix_nm[node.port.number - 1][destination_port_number - 1]
+                minimum_timesteps, speed = calculate_minimum_timesteps_and_speed(distance_nm=distance_nm, MAX_SPEED=MAX_SPEED, MIN_SPEED=MIN_SPEED)
+                arrival_time = node.time + minimum_timesteps
+                if arrival_time < source_times[vessel] or arrival_time > NUM_TIME_PERIODS:
+                    continue
+                
+                arc_info_matrix = create_arc_info(speed=speed, minimum_timesteps=minimum_timesteps, departure=node.time, origin_port=node.port, destination_port=destination_port, lowest_speed=MIN_SPEED, distance_to_port=distance_nm, vessel=vessel, is_waiting_arc=False, NUM_TIME_PERIODS = NUM_TIME_PERIODS, FUEL_PRICE=FUEL_PRICE)
+                for arc in arc_info_matrix:
+                    if arc:
+                        node_arcs.append(arc)
+    return node_arcs
+
+def calc_cost(fuel_consumption, FUEL_PRICE):
+    """
+    Calculate the cost based on fuel consumption.
+
+    Args:
+    - fuel_consumption (float): Fuel consumption in tons.
+
+    Returns:
+    - float: Cost in USD.
+    """
+    return fuel_consumption * FUEL_PRICE
+
+def create_arc_info(speed, minimum_timesteps, departure, origin_port, destination_port, lowest_speed, distance_to_port, vessel, is_waiting_arc, NUM_TIME_PERIODS, FUEL_PRICE):
+    # Create a list of tuples with the speed and the time period
+    arc_info = []
+    
+    arrival_time = departure + minimum_timesteps
+    
+    if arrival_time > NUM_TIME_PERIODS:
+        return None
+    if is_waiting_arc:
+        arc_info = [speed, 1, departure, departure + minimum_timesteps, origin_port.number, destination_port.number, 0, distance_to_port, vessel, is_waiting_arc, False]
+    else:
+    # Create the info for all the speed alternatives
+        if origin_port.isLoadingPort == 1:
+            empty = False
+        else:
+            empty = True
+        
+        travel_cost = calculate_cost(vessel=vessel, speed=speed, nautical_miles=distance_to_port, empty=empty)
+        # Add port fee at destination
+        travel_cost += destination_port.port_fee
+        
+        arc_tuple = [speed, minimum_timesteps, departure, arrival_time, origin_port.number, destination_port.number, travel_cost, distance_to_port, vessel, False, False]
+        arc_info.append(arc_tuple)
+        
+        timesteps = minimum_timesteps+1
+        while True:
+            # Calculate the next speed
+            speed = distance_to_port / ((timesteps)*24)
+            # If the speed is lower than the lowest speed, break the loop
+            if speed < lowest_speed:
+                break
+            travel_cost = calculate_cost(vessel=vessel, speed=speed, nautical_miles=distance_to_port, empty=empty)
+            # Add port fee at destination
+            travel_cost += destination_port.port_fee
+            
+            arrival_time = departure + timesteps
+            arc_tuple = [speed, minimum_timesteps, departure, arrival_time, origin_port.number, destination_port.number, travel_cost, distance_to_port, vessel, False, False]
+            arc_info.append(arc_tuple)
+            
+            # Increment the time period
+            timesteps += 1
+            arrival_time = departure + timesteps
+            
+            if arrival_time > NUM_TIME_PERIODS:
+                break
+    return arc_info
+
+def fuel_consumption_speed_nm(speed, nautical_miles):
+    """
+    Calculate the fuel consumption based on speed and nautical miles.
+
+    Args:
+    - speed (float): Speed of the vessel in knots.
+    - nautical miles (float): .
+
+    Returns:
+    - float: Fuel consumption in tons.
+    """
+    return  (0.15*14 * (speed / 14) ** 3) * nautical_miles/speed
+
+def calculate_cost(vessel, speed, nautical_miles, empty):
+    """
+    Calculate the fuel cost for a vessel class traveling at a given speed over a certain distance.
+
+    Args:
+    - vessel
+    - speed (float): Vessel speed in knots.
+    - nautical_miles (float): Distance to be traveled in nautical miles.
+    - empty (bool): Whether the vessel is traveling empty.
+
+    Returns:
+    - float: Total fuel cost for the trip.
+    """
+    base_speed = vessel.avg_speed
+    cost_per_km_at_base_speed = vessel.travel_cost_as_term_per_km
+    discount = vessel.discount_traveling_empty if empty else 0
+    
+    # Adjust cost per km based on actual speed vs base speed, using cubic relationship
+    cost_per_km = cost_per_km_at_base_speed * (speed / base_speed) ** 3
+
+    # Apply discount if vessel is traveling empty
+    cost_per_km *= (1 - discount) 
+    
+    # Convert nautical miles to km (1 nautical mile = 1.852 km)
+    distance_km = nautical_miles * 1.852
+    
+    # Calculate total cost based on distance
+    total_cost = cost_per_km * distance_km
+    
+    return total_cost
+
+def convert_matrix_to_nautical_miles(matrix):
+    return [[km_to_nautical_miles(distance) for distance in row] for row in matrix]
+
+def calculate_minimum_timesteps_and_speed(distance_nm, MAX_SPEED, MIN_SPEED):
+    """
+    Determine the minimum timesteps and speed based on distance and max speed.
+
+    Args:
+    - distance_nm (float): Distance in nautical miles.
+    - MAX_SPEED (float): Maximum speed in knots.
+    - MIN_SPEED (float): Minimum speed in knots.
+
+    Returns:
+    - tuple: Minimum timesteps and speed.
+    """
+    hours = distance_nm / MAX_SPEED
+    minimum_timesteps = math.ceil(hours / 24)
+    speed = distance_nm / (minimum_timesteps * 24)
+    return minimum_timesteps, max(speed, MIN_SPEED)
+
 def add_arcs_to_nodes(all_info, NODE_DICT, NUM_TIME_PERIODS):
     arc_dict = {}
     vessel_arcs = {}
@@ -521,7 +673,6 @@ def add_arcs_to_nodes(all_info, NODE_DICT, NUM_TIME_PERIODS):
             if not arc:
                 continue
 
-            # for tuple_data in arc:
             # Unpack the tuple data
             speed, travel_time, departure, arrival, origin_port_number, destination_port_number, travel_cost, distance_nm, vessel, is_waiting_arc, is_source_or_sink_arc= arc
             vessel_class = vessel.vessel_class
@@ -592,7 +743,6 @@ def populate_vessel_arcs(vessels, vessel_arcs):
         v.arcs = vessel_arcs[v]
         for arc in vessel_arcs[v]:
             v.all_arcs_v[arc.tuple] = arc
-            
     return vessels
 
 def add_special_sink_arcs(vessels, travel_times, NODE_DICT, ports, TIME_PERIOD_RANGE):
@@ -618,7 +768,6 @@ def add_special_sink_arcs(vessels, travel_times, NODE_DICT, ports, TIME_PERIOD_R
                     
     return special_sink_arcs, special_nodes_dict
                 
-        
 def rearrange_arcs(arc_dict):
     # New dictionary structures
     origin_node_arcs = {}
@@ -660,7 +809,6 @@ def build_model(vessels, regularNodes, ports, TIME_PERIOD_RANGE, sourceNode, sin
     interregional_arcs = []
     for vc in vessel_classes:
         for arc in vessel_class_arcs[vc]:
-                # if not arc.is_waiting_arc and not arc.is_source_or_sink_arc:
                 if not arc.is_waiting_arc:
                     interregional_arcs.append(arc)
     
@@ -677,7 +825,6 @@ def build_model(vessels, regularNodes, ports, TIME_PERIOD_RANGE, sourceNode, sin
     for arc in interregional_arcs:
         variable_name = f"x_interregional_{arc.tuple}_{arc.vessel_class}"
         x_interregional[(arc.tuple, arc.vessel_class)] = m.addVar(vtype=gp.GRB.BINARY, name=variable_name)
-        # = m.addVars(((inter_arc.tuple, inter_arc.vessel_class) for inter_arc in interregional_arcs), vtype=gp.GRB.BINARY, name=f"x_interregional_{inter_arc.tuple}_{arc.vessel_class}")
     m.update()  
         
     
@@ -689,8 +836,6 @@ def build_model(vessels, regularNodes, ports, TIME_PERIOD_RANGE, sourceNode, sin
 
     x = {**x_interregional, **x_non_interregional}
                     
-    # x = m.addVars(((arc.tuple, vc) for vc, arcs in vessel_class_arcs.items() for arc in arcs), vtype=gp.GRB.BINARY, name="x")
-    
     s_bounds = {(node.port.number, node.time): node.port.capacity for node in regularNodes if node.time > 0}
     s = m.addVars(s_bounds.keys(), lb=0, ub=s_bounds, vtype=gp.GRB.CONTINUOUS, name="s")
 
@@ -743,11 +888,9 @@ def build_model(vessels, regularNodes, ports, TIME_PERIOD_RANGE, sourceNode, sin
             incoming_to_node = destination_node_arcs[vc].get(node.tuple, [])
             outgoing_from_node = origin_node_arcs[vc].get(node.tuple, [])
             if not incoming_to_node and outgoing_from_node:
-                # continue
                 m.addConstr(gp.quicksum((x[out_arc.tuple, out_arc.vessel_class]) for out_arc in outgoing_from_node) == 0, name = f"FlowBalance_No_Incoming_to_{node.tuple}")
                 
             elif incoming_to_node and not outgoing_from_node:
-                # continue
                 m.addConstr(gp.quicksum((x[in_arc.tuple, in_arc.vessel_class]) for in_arc in incoming_to_node) == 0, name = f"FlowBalance_No_Outgoing_from_{node.tuple}")
                 
             elif not incoming_to_node and not outgoing_from_node:
@@ -764,7 +907,6 @@ def build_model(vessels, regularNodes, ports, TIME_PERIOD_RANGE, sourceNode, sin
     m.update()
 
    
-                    
     # Constraint (6)
     '''Inventory balance at ports'''
     # Inventory balance for ports at the end of each time period t
@@ -774,13 +916,7 @@ def build_model(vessels, regularNodes, ports, TIME_PERIOD_RANGE, sourceNode, sin
         for t in TIME_PERIOD_RANGE_INCL_SINK:
             if t == 0:
                 continue
-           
-            # if t == len(TIME_PERIOD_RANGE)+1:
-                # m.addConstr(s[port.number, t] == s[port.number, t-1] + (port.isLoadingPort * port.rate), name = f'PortBalance_Inter_regional_port:{port.number}_time:{t}')
             else:
-                if t == 40:
-                    print('here')
-                # interegional_arcs with origin_node.time = t and origin_node.port = port
                 arcs_with_origin_t = [arc for arc in interregional_arcs if arc.origin_node.time == t-1 and arc.origin_node.port == port]
                 if arcs_with_origin_t:
                     m.addConstr(s[port.number, t] == (s[port.number, t-1] + (port.isLoadingPort * port.rate) - port.isLoadingPort*alpha[port.number, t-1] - (port.isLoadingPort * gp.quicksum((x[arc.tuple, arc.vessel_class] * vessel_class_capacities[arc.vessel_class] for arc in arcs_with_origin_t)))) , name = f'PortBalance_1_Inter_regional_port:{port.number}_time:{t}')
@@ -788,27 +924,19 @@ def build_model(vessels, regularNodes, ports, TIME_PERIOD_RANGE, sourceNode, sin
                     m.addConstr(s[port.number, t] == (s[port.number, t-1] + (port.isLoadingPort * port.rate) - port.isLoadingPort*alpha[port.number, t-1]), name = f'PortBalance_2_Inter_regional_port:{port.number}_time:{t}')
     m.update()
     
-    
-    
     # Constraint (7)
     '''Berth limit'''
     for node in regularNodes:
         interregional_arcs_for_node = []
-        # for vc in vessel_classes:
         for arc in interregional_arcs:
             if arc.origin_node == node:
                 interregional_arcs_for_node.append(arc)
         m.addConstr((gp.quicksum((x[arc.tuple, arc.vessel_class]) for arc in interregional_arcs_for_node) <= node.port.berth_limit), name = f'Berth_limit_for_node{node.tuple}')
     m.update()
     
-    # for node in regularNodes:
-    #     port = node.port
-    #     m.addConstr(alpha[port.number, node.time] <= port.rate , name = f'AlphaSlackBound:{port.number}_time:{node.time}')
-    # m.update()
-        
     return m, costs, P
     
-def build_problem(INSTANCE):    
+def build_problem(INSTANCE, RUNNING_MIRPSO):    
     INSTANCE_PATH = 'GROUP_2/'+INSTANCE+'/'+INSTANCE+'.txt'
     VESSELINFO_PATH = 'GROUP_2/'+INSTANCE+'/vessel_data.txt'
     VESSEL_CLASS_DATA_PATH = 'GROUP_2/'+INSTANCE+'/vessel_class_data.txt'
@@ -823,21 +951,16 @@ def build_problem(INSTANCE):
     spotMarketDiscountFactor = metadata['spotMarketDiscountFactor']
     perPeriodRewardForFinishingEarly = metadata['perPeriodRewardForFinishingEarly']
     vessel_data = get_vessels_data(VESSELINFO_PATH)
-    regions_info, ports_info = extract_region_and_port_info(content)
+    _, ports_info = extract_region_and_port_info(content)
     all_ports, loading_regions, discharging_regions, port_dict = create_ports_from_info_with_loading(ports_info, spotMarketPricePerUnit, spotMarketDiscountFactor)
     ports = get_ports(all_ports)
     NUM_TIME_PERIODS = metadata['numPeriods']
-    # SET NUM TIME PERIODS TO 120 FOR COMPARISON
-    NUM_TIME_PERIODS = 30
+    NUM_TIME_PERIODS = 40
     TIME_PERIOD_RANGE = list(range(0, NUM_TIME_PERIODS))
-    # MAX_SPEED = 15
-    # MIN_SPEED = 8
-    # OPERATING_SPEED = 14
-    # OPERATING_COST = 200
-    # WAITING_COST = 50
-    # FUEL_PRICE = 500
+    MAX_SPEED = 18
+    MIN_SPEED = 10
+    FUEL_PRICE = 500
     ORIGINAL_NUM_PORTS = len(ports)
-    # EBS = 0.01
     
     # Extracting the vessel dictionary and the capacity for Class 0 vessels
     vessel_class_data = parse_vessel_table(VESSEL_CLASS_DATA_PATH)
@@ -850,17 +973,18 @@ def build_problem(INSTANCE):
     NODES, NODE_DICT = create_node_list_and_dict(sourceNode, regularNodes, sinkNode)
     # Extracting the full distance matrix from the file content
     full_distance_matrix = parse_full_distance_matrix(INSTANCE_PATH)
-    FULL_DISTANCE_MATRIX = full_distance_matrix
+    FULL_DISTANCE_MATRIX_KM = full_distance_matrix
+    FULL_DISTANCE_MATRIX_NM = convert_matrix_to_nautical_miles(FULL_DISTANCE_MATRIX_KM)
     # full_distance_matrix_nm = convert_matrix_to_nautical_miles(FULL_DISTANCE_MATRIX)
     full_travel_cost_matrices = parse_full_travel_cost_matrices(INSTANCE_PATH)
     full_travel_time_matrices = parse_full_travel_time_matrices(INSTANCE_PATH)
+    source_times = {vessel: vessel_data['Vessel_'+str(vessel.number-1)]['First Time Available'] for vessel in vessels}
     
     source_arcs_info = generate_source_arc_info(sourceNode, vessels)
-    all_info = populate_all_info(source_arcs_info, vessels, ports, FULL_DISTANCE_MATRIX, NODE_DICT, NUM_TIME_PERIODS, full_travel_cost_matrices, full_travel_time_matrices, port_dict)
+    all_info = populate_all_info(source_arcs_info = source_arcs_info, vessels = vessels, ports = ports, source_times = source_times, full_distance_matrix_km = FULL_DISTANCE_MATRIX_KM, full_distance_matrix_nm= FULL_DISTANCE_MATRIX_NM, NODE_DICT=NODE_DICT, MAX_SPEED=MAX_SPEED, MIN_SPEED=MIN_SPEED, NUM_TIME_PERIODS=NUM_TIME_PERIODS, full_travel_cost_matrices=full_travel_cost_matrices, full_travel_time_matrices=full_travel_time_matrices, port_dict = port_dict, FUEL_PRICE=FUEL_PRICE, MIRPSO=RUNNING_MIRPSO)
     arc_dict, vessel_arcs, waiting_arcs, sink_and_source_arcs = add_arcs_to_nodes(all_info, NODE_DICT, NUM_TIME_PERIODS)
     arc_dict, vessel_arcs = create_sink_arcs(vessels=vessels, sinkNode=sinkNode, arc_dict=arc_dict, vessel_arcs=vessel_arcs, sourceNode=sourceNode, NODE_DICT=NODE_DICT, perPeriodRewardForFinishingEarly=perPeriodRewardForFinishingEarly)
     special_sink_arcs, special_nodes_dict = add_special_sink_arcs(vessels, full_travel_time_matrices, NODE_DICT, ports, TIME_PERIOD_RANGE)
-    
     populate_vessel_arcs(vessels, vessel_arcs)
  
     problem_data = {
@@ -896,7 +1020,6 @@ def find_initial_solution(model):
     model.setParam(gp.GRB.Param.Heuristics, 0.5)  # Range is 0 to 1; higher values increase heuristic efforts
     
     model.setParam(gp.GRB.Param.MIPFocus, 1)
-
     
     # Run the optimization
     model.optimize()
@@ -1066,7 +1189,7 @@ def perform_proximity_search(ps_data):  # Add other parameters as needed
 
     return solution, new_obj_value
 
-def solve_model(model, costs, P):
+def solve_model(model, costs, P, RUNNING_MIRPSO, INSTANCE, HORIZON):
 
     x_vars_counter = 0
     for var in model.getVars():
@@ -1128,6 +1251,7 @@ def solve_model(model, costs, P):
     # model.setParam(gp.GRB.Param.TimeLimit, 60)
 
     try:
+        print(f'Running {INSTANCE} with {HORIZON} time periods')
         model.optimize()
     except gp.GurobiError as e:
         print(f"Gurobi Error: {e}")
@@ -1139,33 +1263,33 @@ def solve_model(model, costs, P):
         # Save the optimal solution to file
         # model.write("MIRPSO2.sol")
         # Write the values of all variables
-        with open('MIRPSO2_w_a.sol', 'w') as file:
-            file.write("Variable Values:\n")
-            for var in model.getVars():
-                file.write(f"{var.varName}: {var.x}\n")
-            file.write("Costs:\n")
-            for key, value in costs.items():
-                file.write(f"{key}: {value}\n")
-            file.write("P:\n")
-            for key, value in P.items():
-                file.write(f"{key}: {value}\n")
-        file.close()
-        
-    # If time limit was reached
-    elif model.status == gp.GRB.TIME_LIMIT:
-        print("Time limit reached")
-        with open('MIRPSO2_w_a.sol', 'w') as file:
-            file.write("Variable Values:\n")
-            for var in model.getVars():
-                file.write(f"{var.varName}: {var.x}\n")
-            for key, value in costs.items():
+        if RUNNING_MIRPSO:
+            with open(f'MIRPSO_GROUP_2_{INSTANCE}_{HORIZON}.sol', 'w') as file:
+                file.write(f'Objective function for {INSTANCE} with {HORIZON} time periods: {model.objVal}\n')
+                file.write("Variable Values:\n")
+                for var in model.getVars():
+                    file.write(f"{var.varName}: {var.x}\n")
                 file.write("Costs:\n")
-                file.write(f"{key}: {value}\n")
-            file.write("P:\n")
-            for key, value in P.items():
+                for key, value in costs.items():
+                    file.write(f"{key}: {value}\n")
                 file.write("P:\n")
-                file.write(f"{key}: {value}\n")
-        file.close()
+                for key, value in P.items():
+                    file.write(f"{key}: {value}\n")
+            file.close()
+        else:
+            
+            with open(f'MIRP_GROUP_2_{INSTANCE}_{HORIZON}.sol', 'w') as file:
+                file.write(f'Objective function for {INSTANCE} with {HORIZON} time periods: {model.objVal}\n')
+                file.write("Variable Values:\n")
+                for var in model.getVars():
+                    file.write(f"{var.varName}: {var.x}\n")
+                file.write("Costs:\n")
+                for key, value in costs.items():
+                    file.write(f"{key}: {value}\n")
+                file.write("P:\n")
+                for key, value in P.items():
+                    file.write(f"{key}: {value}\n")
+            file.close()
         
     if model.status == gp.GRB.INFEASIBLE:
         model.computeIIS()
@@ -1174,6 +1298,8 @@ def solve_model(model, costs, P):
         print("Model is infeasible")
 
 def main():
+    RUNNING_MIRPSO = True
+    # RUNNING_MIRPSO = False
     # INSTANCE = 'LR1_1_DR1_3_VC1_V7a'
     # INSTANCE = 'LR1_1_DR1_4_VC3_V8a'
     # INSTANCE = 'LR1_1_DR1_4_VC3_V9¨a'
@@ -1186,15 +1312,14 @@ def main():
     # INSTANCE = 'LR2_11_DR2_33_VC4_V11a'
     # GROUP 2
     # INSTANCE = 'LR1_DR02_VC01_V6a'
-    # INSTANCE = 'LR1_DR02_VC02_V6a'
-    INSTANCE = 'LR1_DR02_VC03_V7a'
+    INSTANCE = 'LR1_DR02_VC02_V6a'
+    # INSTANCE = 'LR1_DR02_VC03_V7a'
     # INSTANCE = 'LR1_DR02_VC03_V8a'
     # INSTANCE = 'LR1_DR02_VC04_V8a'
     # INSTANCE = 'LR1_DR02_VC05_V8a'
     # INSTANCE = 'LR1_DR03_VC03_V10b'
     
-
-    problem_data = build_problem(INSTANCE)
+    problem_data = build_problem(INSTANCE, RUNNING_MIRPSO)
     
     # Unpack the problem data
     vessels = problem_data['vessels']
@@ -1203,6 +1328,7 @@ def main():
     regularNodes = problem_data['regularNodes']
     ports = problem_data['ports']
     TIME_PERIOD_RANGE = problem_data['TIME_PERIOD_RANGE']
+    HORIZON = len(TIME_PERIOD_RANGE)
     sourceNode = problem_data['sourceNode']
     sinkNode = problem_data['sinkNode']
     waiting_arcs = problem_data['waiting_arcs']
@@ -1217,7 +1343,7 @@ def main():
     model.write("Group2.lp")  # Export model to an LP file
 
 
-    solve_model(model, costs, P)
+    solve_model(model, costs, P, RUNNING_MIRPSO, INSTANCE, HORIZON)
     
     # x_initial_solution, model = find_initial_solution(model)
     # Print the size of the initial solution
@@ -1235,7 +1361,6 @@ def main():
     #improved_solution, obj_value = perform_proximity_search_with_simulated_annealing(ps_data)
     # print("Final solution:", improved_solution)
     # print("Objective value:", model.objVal)
-    
     
     
 if __name__ == "__main__":
