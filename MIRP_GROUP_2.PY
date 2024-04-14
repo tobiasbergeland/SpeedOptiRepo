@@ -1248,7 +1248,7 @@ def solve_model(model, costs, P, RUNNING_MIRPSO, INSTANCE, HORIZON):
     print("Number of constraints in model:", len(model.getConstrs()))
     
     H = 3600
-    time_limit = 3*H
+    time_limit = 1*H
     model.setParam(gp.GRB.Param.TimeLimit, time_limit)
 
     try:
@@ -1329,6 +1329,62 @@ def solve_model(model, costs, P, RUNNING_MIRPSO, INSTANCE, HORIZON):
         model.write("MIRPSO.ilp")
         print("Model is infeasible")
 
+
+def solve_model_RHH(model, costs, P, RUNNING_MIRPSO, INSTANCE, start_period, end_period, warm_start_solution=None, arc_time_periods=None):
+    if warm_start_solution is None:
+        warm_start_solution = {}
+
+    else:
+        # Apply warm start: load previous solution into model
+        for var in model.getVars():
+            if var.VarName in warm_start_solution:
+                var.start = warm_start_solution[var.VarName]
+
+    
+    # Fix variables as needed, including x variables spanning the fixed boundary
+    for var in model.getVars():
+        if var.VarName.startswith('x'):
+            if arc_time_periods and var.VarName in arc_time_periods:
+                dep_time, arr_time = arc_time_periods[var.VarName]
+                if dep_time < start_period + 30:  # Check if the sailing starts before the fixed period ends
+                    var.lb = var.ub = warm_start_solution.get(var.VarName, var.x)
+        else:
+            time_period = extract_time_period_from_var_name(var.VarName)
+            if time_period != -1 and time_period < start_period + 30:
+                if var.VarName in warm_start_solution:
+                    var.lb = var.ub = warm_start_solution[var.VarName]
+
+    model.optimize()
+
+    # After solving, save the new solution to use as the next warm start
+    new_solution = {var.VarName: var.x for var in model.getVars()}
+
+    return new_solution
+
+def extract_time_period_from_var_name(var_name):
+    # First try to extract time period for variables like 's[i,t]' or 'alpha[i,t]'
+    simple_match = re.search(r'\[(\d+),(\d+)\]', var_name)
+    if simple_match:
+        return int(simple_match.group(2))  # Returns the second number as an integer, representing the time period
+
+    # If the first pattern fails, then try to extract for variables like 'x_interregional_((i1, t1), (i2, t2))'
+    complex_matches = re.findall(r'\((\d+), (\d+)\)', var_name)
+    if complex_matches and len(complex_matches) == 2:
+        dep_time = int(complex_matches[0][1])  # Extract departure time from the first tuple
+        arr_time = int(complex_matches[1][1])  # Extract arrival time from the second tuple
+        return (dep_time, arr_time)
+
+    # Return a default value if no pattern matches
+    return (-1, -1)
+
+def get_current_s_solution(model):
+    # Extracts inventory levels
+    return {v.VarName: v.x for v in model.getVars() if v.VarName.startswith('s')}
+
+def get_current_alpha_solution(model):
+    # Extracts spot market transaction levels
+    return {v.VarName: v.x for v in model.getVars() if v.VarName.startswith('alpha')}
+
 def main():
     RUNNING_MIRPSO = True
     # RUNNING_MIRPSO = False
@@ -1373,9 +1429,41 @@ def main():
     model, costs, P = build_model(vessels = vessels, regularNodes=regularNodes, ports=ports, TIME_PERIOD_RANGE = TIME_PERIOD_RANGE, sourceNode = sourceNode, sinkNode = sinkNode, vessel_classes = VESSEL_CLASSES, origin_node_arcs = origin_node_arcs, destination_node_arcs=destination_node_arcs, vessel_class_arcs=vessel_class_arcs, NODE_DICT = NODE_DICT, vessel_class_capacities=vessel_class_capacities)
     
     model.write("Group2.lp")  # Export model to an LP file
+    """
+    new_sol = None
 
+    roll = 30
+    for i in range(0, HORIZON, roll):
+        print(f"Solving model for time periods {i} to {i+roll}")
+        if i == 0:
+            warm_start_solution = None
+            arc_time_periods = None
+        else:
+            warm_start_solution = new_sol
+            arc_time_periods = {v.VarName: extract_time_period_from_var_name(v.VarName) for v in model.getVars() if v.VarName.startswith('x')}
+        new_sol = solve_model_RHH(model, costs, P, RUNNING_MIRPSO, INSTANCE, i, i+roll, warm_start_solution, arc_time_periods)
+        #for var_name, value in new_sol.items():
+        #    print(f"{var_name}: {value}")
+    """
 
-    solve_model(model, costs, P, RUNNING_MIRPSO, INSTANCE, HORIZON)
+    roll = 60  # Solve for 60 days at a time
+    fix_period = 30  # Fix the first 30 days from the last window
+
+    for i in range(0, TIME_PERIOD_RANGE, roll - fix_period):  # Notice the step size
+        start_period = i
+        end_period = i + roll
+
+        if start_period == 0:
+            new_sol = None
+            arc_time_periods = None
+        else:
+            arc_time_periods = {v.VarName: extract_time_period_from_var_name(v.VarName) for v in model.getVars() if v.VarName.startswith('x')}
+
+        print(f"Solving model for time periods {start_period} to {end_period}")
+        new_sol = solve_model_RHH(model, costs, P, RUNNING_MIRPSO, INSTANCE, start_period, end_period, new_sol, arc_time_periods)
+
+    #solve_model(model, costs, P, RUNNING_MIRPSO, INSTANCE, HORIZON)
+
     
     # x_initial_solution, model = find_initial_solution(model)
     # Print the size of the initial solution
