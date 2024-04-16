@@ -6,6 +6,7 @@ import math
 import gurobipy as gp
 from gurobipy import GRB
 from common_definitions import MIRPSOEnv, DQNAgent, ReplayMemory, DQNAgent
+from rolling_horizon import rolling_horizon_optimization
 
 class Port:
     def __init__(self, capacity, inventory, rate, price, berth_limit, port_fee, max_amount, min_amount, number, isLoadingPort, name, spotMarketPricePerUnit, spotMarketDiscountFactor):
@@ -851,10 +852,14 @@ def build_model(vessels, regularNodes, ports, TIME_PERIOD_RANGE, sourceNode, sin
     
     # alpha_bounds = {(node.port.number, node.time): ((node.port.capacity))for node in regularNodes}
     alpha_bounds = {(node.port.number, node.time): (node.port.rate) for node in regularNodes}
-    alpha = m.addVars(alpha_bounds.keys(), lb=0, ub=alpha_bounds, vtype=gp.GRB.CONTINUOUS, name="alpha")
+    # alpha = m.addVars(alpha_bounds.keys(), lb=0, ub=alpha_bounds, vtype=gp.GRB.CONTINUOUS, name="alpha")
+    alpha = m.addVars(alpha_bounds.keys(), lb=0, ub=[alpha_bounds[key] for key in alpha_bounds], vtype=gp.GRB.CONTINUOUS, name=[f'alpha[{key[0]},{key[1]}]' for key in alpha_bounds]) 
+    
+    m.update()
     
     
     costs = {}
+    costs_namekey = {}
 
     # Loop through each vessel class
     for vc in vessel_classes:
@@ -871,6 +876,7 @@ def build_model(vessels, regularNodes, ports, TIME_PERIOD_RANGE, sourceNode, sin
             
             # Assuming arc.cost is accessible and applicable for both arc types
             costs[key] = arc.cost
+            costs_namekey[variable_name] = arc.cost
 
     # Now, costs dictionary keys should match the keys used in x_interregional and x_non_interregional
     m.update()  # Update the model after creating the costs dictionary
@@ -921,7 +927,7 @@ def build_model(vessels, regularNodes, ports, TIME_PERIOD_RANGE, sourceNode, sin
                 continue
                 
             else:
-                m.addConstr(gp.quicksum((x[in_arc.tuple, in_arc.vessel_class]) for in_arc in incoming_to_node) - gp.quicksum((x[out_arc.tuple, out_arc.vessel_class]) for out_arc in outgoing_from_node) == 0, name = f"FlowBalance_{node.tuple}")
+                m.addConstr(gp.quicksum((x[in_arc.tuple, in_arc.vessel_class]) for in_arc in incoming_to_node) - gp.quicksum((x[out_arc.tuple, out_arc.vessel_class]) for out_arc in outgoing_from_node) == 0, name = f'FlowBalance_{node.port.number}_{node.time}')
     m.update()
 
     # Constraint (5)
@@ -941,11 +947,11 @@ def build_model(vessels, regularNodes, ports, TIME_PERIOD_RANGE, sourceNode, sin
             if t == 0:
                 continue
             else:
-                arcs_with_origin_t = [arc for arc in interregional_arcs if arc.origin_node.time == t-1 and arc.origin_node.port == port]
-                if arcs_with_origin_t:
-                    m.addConstr(s[port.number, t] == (s[port.number, t-1] + (port.isLoadingPort * port.rate) - port.isLoadingPort*alpha[port.number, t-1] - (port.isLoadingPort * gp.quicksum((x[arc.tuple, arc.vessel_class] * vessel_class_capacities[arc.vessel_class] for arc in arcs_with_origin_t)))) , name = f'PortBalance_1_Inter_regional_port:{port.number}_time:{t}')
+                arcs_with_origin_t_minus_1 = [arc for arc in interregional_arcs if arc.origin_node.time == t-1 and arc.origin_node.port == port]
+                if arcs_with_origin_t_minus_1:
+                    m.addConstr(s[port.number, t] == (s[port.number, t-1] + (port.isLoadingPort * port.rate) - port.isLoadingPort*alpha[port.number, t-1] - (port.isLoadingPort * gp.quicksum((x[arc.tuple, arc.vessel_class] * vessel_class_capacities[arc.vessel_class] for arc in arcs_with_origin_t_minus_1)))) , name = f'PortBalance_1_Inter_regional_Port{port.number}_Time{t}')
                 else:
-                    m.addConstr(s[port.number, t] == (s[port.number, t-1] + (port.isLoadingPort * port.rate) - port.isLoadingPort*alpha[port.number, t-1]), name = f'PortBalance_2_Inter_regional_port:{port.number}_time:{t}')
+                    m.addConstr(s[port.number, t] == (s[port.number, t-1] + (port.isLoadingPort * port.rate) - port.isLoadingPort*alpha[port.number, t-1]), name = f'PortBalance_2_Inter_regional_Port{port.number}_Time{t}')
     m.update()
     
     # Constraint (7)
@@ -955,10 +961,10 @@ def build_model(vessels, regularNodes, ports, TIME_PERIOD_RANGE, sourceNode, sin
         for arc in interregional_arcs:
             if arc.origin_node == node:
                 interregional_arcs_for_node.append(arc)
-        m.addConstr((gp.quicksum((x[arc.tuple, arc.vessel_class]) for arc in interregional_arcs_for_node) <= node.port.berth_limit), name = f'Berth_limit_for_node{node.tuple}')
+        m.addConstr((gp.quicksum((x[arc.tuple, arc.vessel_class]) for arc in interregional_arcs_for_node) <= node.port.berth_limit), name = f'BerthLimit_Port{node.port.number}_Time{node.time}')
     m.update()
     
-    return m, costs, P
+    return m, costs, P, costs_namekey
     
 def build_problem(INSTANCE, RUNNING_MIRPSO):    
     INSTANCE_PATH = 'GROUP_2/'+INSTANCE+'/'+INSTANCE+'.txt'
@@ -979,7 +985,7 @@ def build_problem(INSTANCE, RUNNING_MIRPSO):
     all_ports, loading_regions, discharging_regions, port_dict = create_ports_from_info_with_loading(ports_info, spotMarketPricePerUnit, spotMarketDiscountFactor)
     ports = get_ports(all_ports)
     NUM_TIME_PERIODS = metadata['numPeriods']
-    NUM_TIME_PERIODS = 120
+    NUM_TIME_PERIODS = 90
     TIME_PERIOD_RANGE = list(range(0, NUM_TIME_PERIODS))
     MAX_SPEED = 19
     MIN_SPEED = 13
@@ -1067,14 +1073,18 @@ def find_initial_solution(model):
         print("No feasible solution found within the time limit.")
         return None, None
 
-def get_current_x_solution(model):
+def get_current_x_solution_vals(model):
     return {v.varName : v.x for v in model.getVars() if v.VarName.startswith('x')}
 
-def get_current_alpha_solution(model):
+def get_current_alpha_solution_vals(model):
     return {v.varName: v.x for v in model.getVars() if v.VarName.startswith('a')}
 
-def get_current_s_solution(model):
+def get_current_s_solution_vals(model):
     return {v.varName: v.x for v in model.getVars() if v.VarName.startswith('s')}
+
+
+
+
 
 
 def add_cutoff_constraint(model, current_best_obj, cutoff_value):
@@ -1194,7 +1204,7 @@ def perform_proximity_search(ps_data):  # Add other parameters as needed
     original_objective_function = model.getObjective()
     
     # Current solution is a dict with the varname and the actual values only.
-    current_solution = get_current_x_solution(model)
+    current_solution = get_current_x_solution_vals(model)
     current_best_obj = model.getObjective().getValue()
     
     # x_variables is a dict with varname and the actual variables.
@@ -1541,7 +1551,7 @@ def proximity_search_using_agent(ps_data, agent, env, vessel_class_arcs):
     original_objective_function = model.getObjective()
     
     # Current solution is a dict with the varname and the actual values only.
-    current_solution_x = get_current_x_solution(model)
+    current_solution_x = get_current_x_solution_vals(model)
     active_arcs = find_corresponding_arcs(current_solution_x, vessel_class_arcs)
     current_solution_alpha = get_current_alpha_solution(model)
     current_solution_s = get_current_s_solution(model)
@@ -1598,7 +1608,7 @@ def proximity_search_using_agent(ps_data, agent, env, vessel_class_arcs):
             
             
             # Current solution is a dict with the varname and the actual values only.
-            current_solution_x = get_current_x_solution(model)
+            current_solution_x = get_current_x_solution_vals(model)
             active_arcs = find_corresponding_arcs(current_solution_x, vessel_class_arcs)
             current_solution_alpha = get_current_alpha_solution(model)
             current_solution_s = get_current_s_solution(model)
@@ -1623,52 +1633,8 @@ def proximity_search_using_agent(ps_data, agent, env, vessel_class_arcs):
 
 
 
-def solve_model_RHH(model, costs, P, RUNNING_MIRPSO, INSTANCE, start_period, end_period, warm_start_solution=None, arc_time_periods=None):
-    if warm_start_solution is None:
-        warm_start_solution = {}
 
-    else:
-        # Apply warm start: load previous solution into model
-        for var in model.getVars():
-            if var.VarName in warm_start_solution:
-                var.start = warm_start_solution[var.VarName]
 
-    
-    # Fix variables as needed, including x variables spanning the fixed boundary
-    for var in model.getVars():
-        if var.VarName.startswith('x'):
-            if arc_time_periods and var.VarName in arc_time_periods:
-                dep_time, arr_time = arc_time_periods[var.VarName]
-                if dep_time < start_period + 30:  # Check if the sailing starts before the fixed period ends
-                    var.lb = var.ub = warm_start_solution.get(var.VarName, var.x)
-        else:
-            time_period = extract_time_period_from_var_name(var.VarName)
-            if time_period != -1 and time_period < start_period + 30:
-                if var.VarName in warm_start_solution:
-                    var.lb = var.ub = warm_start_solution[var.VarName]
-
-    model.optimize()
-
-    # After solving, save the new solution to use as the next warm start
-    new_solution = {var.VarName: var.x for var in model.getVars()}
-
-    return new_solution
-
-def extract_time_period_from_var_name(var_name):
-    # First try to extract time period for variables like 's[i,t]' or 'alpha[i,t]'
-    simple_match = re.search(r'\[(\d+),(\d+)\]', var_name)
-    if simple_match:
-        return int(simple_match.group(2))  # Returns the second number as an integer, representing the time period
-
-    # If the first pattern fails, then try to extract for variables like 'x_interregional_((i1, t1), (i2, t2))'
-    complex_matches = re.findall(r'\((\d+), (\d+)\)', var_name)
-    if complex_matches and len(complex_matches) == 2:
-        dep_time = int(complex_matches[0][1])  # Extract departure time from the first tuple
-        arr_time = int(complex_matches[1][1])  # Extract arrival time from the second tuple
-        return (dep_time, arr_time)
-
-    # Return a default value if no pattern matches
-    return (-1, -1)
 
 def get_current_s_solution(model):
     # Extracts inventory levels
@@ -1680,10 +1646,15 @@ def get_current_alpha_solution(model):
   
 
 def main():
-    # RUNNING_MIRPSO = True
     RUNNING_MIRPSO = False
-    RUNNING_WEIGHTED_PS = True
-    # RUNNING_WEIGHTED_PS = False
+    RUNNING_WEIGHTED_PS = False
+    RUNNING_NORMAL_PS = False
+    RUNNING_RH = False
+    
+    # RUNNING_MIRPSO = True
+    # RUNNING_WEIGHTED_PS = True
+    # RUNNING_NORMAL_PS = True
+    RUNNING_RH = True
     # INSTANCE = 'LR1_1_DR1_3_VC1_V7a'
     # INSTANCE = 'LR1_1_DR1_4_VC3_V8a'
     # INSTANCE = 'LR1_1_DR1_4_VC3_V9¨a'
@@ -1726,64 +1697,42 @@ def main():
     
     origin_node_arcs, destination_node_arcs, vessel_class_arcs = rearrange_arcs(arc_dict)
     
-    model, costs, P = build_model(vessels = vessels, regularNodes=regularNodes, ports=ports, TIME_PERIOD_RANGE = TIME_PERIOD_RANGE, sourceNode = sourceNode, sinkNode = sinkNode, vessel_classes = VESSEL_CLASSES, origin_node_arcs = origin_node_arcs, destination_node_arcs=destination_node_arcs, vessel_class_arcs=vessel_class_arcs, NODE_DICT = NODE_DICT, vessel_class_capacities=vessel_class_capacities)
+    model, costs, P, costs_namekey = build_model(vessels = vessels, regularNodes=regularNodes, ports=ports, TIME_PERIOD_RANGE = TIME_PERIOD_RANGE, sourceNode = sourceNode, sinkNode = sinkNode, vessel_classes = VESSEL_CLASSES, origin_node_arcs = origin_node_arcs, destination_node_arcs=destination_node_arcs, vessel_class_arcs=vessel_class_arcs, NODE_DICT = NODE_DICT, vessel_class_capacities=vessel_class_capacities)
     
-    env = MIRPSOEnv(ports, vessels, vessel_arcs, NODES, TIME_PERIOD_RANGE, sourceNode, sinkNode, NODE_DICT, special_sink_arcs, special_nodes_dict)
-    replay = ReplayMemory(3000)
-    
-    agent = DQNAgent(ports = ports, vessels=vessels, TRAINING_FREQUENCY = None, TARGET_UPDATE_FREQUENCY = None, NON_RANDOM_ACTION_EPISODE_FREQUENCY = None, BATCH_SIZE = None, replay = replay)
-    replay = agent.load_replay_buffer(file_name= 'replay_buffer_8apr_nt3_50_1664.pkl')
-    agent.memory = replay
-    
-    agent.main_model.load_state_dict(torch.load('main_model_8apr_nt3_50_1664.pth'))
-    agent.target_model.load_state_dict(torch.load('target_model_8_apr_nt3_50_1664.pth'))
+ 
     
     
     model.write("Group2.lp")  # Export model to an LP file
-    """
-    new_sol = None
-
-    roll = 30
-    for i in range(0, HORIZON, roll):
-        print(f"Solving model for time periods {i} to {i+roll}")
-        if i == 0:
-            warm_start_solution = None
-            arc_time_periods = None
-        else:
-            warm_start_solution = new_sol
-            arc_time_periods = {v.VarName: extract_time_period_from_var_name(v.VarName) for v in model.getVars() if v.VarName.startswith('x')}
-        new_sol = solve_model_RHH(model, costs, P, RUNNING_MIRPSO, INSTANCE, i, i+roll, warm_start_solution, arc_time_periods)
-        #for var_name, value in new_sol.items():
-        #    print(f"{var_name}: {value}")
-    """
-
-    roll = 60  # Solve for 60 days at a time
-    fix_period = 30  # Fix the first 30 days from the last window
-
-    for i in range(0, TIME_PERIOD_RANGE, roll - fix_period):  # Notice the step size
-        start_period = i
-        end_period = i + roll
-
-        if start_period == 0:
-            new_sol = None
-            arc_time_periods = None
-        else:
-            arc_time_periods = {v.VarName: extract_time_period_from_var_name(v.VarName) for v in model.getVars() if v.VarName.startswith('x')}
-
-        print(f"Solving model for time periods {start_period} to {end_period}")
-        new_sol = solve_model_RHH(model, costs, P, RUNNING_MIRPSO, INSTANCE, start_period, end_period, new_sol, arc_time_periods)
+    
 
     #solve_model(model, costs, P, RUNNING_MIRPSO, INSTANCE, HORIZON)
     
-    ps_data = {'model': model, 'costs': costs, 'P':P, 'regularNodes': regularNodes, 'vessels': vessels, 'vessel_arcs': vessel_arcs}
+    ps_data = {'model': model, 'costs': costs, 'P':P, 'regularNodes': regularNodes, 'vessels': vessels, 'vessel_arcs': vessel_arcs, 'costs_namekey':costs_namekey}
     
     # Take the time of solving the model
     start_time = time.time()
     if RUNNING_WEIGHTED_PS:
+        env = MIRPSOEnv(ports, vessels, vessel_arcs, NODES, TIME_PERIOD_RANGE, sourceNode, sinkNode, NODE_DICT, special_sink_arcs, special_nodes_dict)
+        replay = ReplayMemory(3000)
+        
+        agent = DQNAgent(ports = ports, vessels=vessels, TRAINING_FREQUENCY = None, TARGET_UPDATE_FREQUENCY = None, NON_RANDOM_ACTION_EPISODE_FREQUENCY = None, BATCH_SIZE = None, replay = replay)
+        replay = agent.load_replay_buffer(file_name= 'replay_buffer_8apr_nt3_50_1664.pkl')
+        agent.memory = replay
+        
+        agent.main_model.load_state_dict(torch.load('main_model_8apr_nt3_50_1664.pth'))
+        agent.target_model.load_state_dict(torch.load('target_model_8_apr_nt3_50_1664.pth'))
         solution, new_obj_value = proximity_search_using_agent(ps_data, agent, env, vessel_class_arcs)
-    else:
+        
+    elif RUNNING_NORMAL_PS:
         # Perform the proximity search using the initial solution
         improved_solution, obj_value = perform_proximity_search(ps_data)
+        
+    elif RUNNING_RH:
+            
+        # Define your window size and execute rolling horizon optimization
+        window_size = 46  # example window size
+        step_size = 23
+        rolling_horizon_optimization(model, HORIZON, window_size, step_size, ps_data)
         
     end_time = time.time()
     elapsed_time = end_time - start_time
