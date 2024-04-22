@@ -933,7 +933,7 @@ def build_model(vessels, regularNodes, ports, TIME_PERIOD_RANGE, sourceNode, sin
     # Constraint (5)
     '''Set correct initial inventory at each port'''
     for port in ports:
-        m.addConstr(s[port.number, 0] == port.initial_inventory, name = 'InitialInventoryPort')
+        m.addConstr(s[port.number, 0] == port.initial_inventory, name = f'InitialInventoryPort{port.number}_Time{0}')
     m.update()
 
    
@@ -1705,7 +1705,7 @@ def main():
     model.write("Group2.lp")  # Export model to an LP file
     
 
-    solve_model(model, costs, P, RUNNING_MIRPSO, INSTANCE, HORIZON)
+    # solve_model(model, costs, P, RUNNING_MIRPSO, INSTANCE, HORIZON)
     
     ps_data = {'model': model, 'costs': costs, 'P':P, 'regularNodes': regularNodes, 'vessels': vessels, 'vessel_arcs': vessel_arcs, 'costs_namekey':costs_namekey}
     
@@ -1728,11 +1728,12 @@ def main():
         improved_solution, obj_value = perform_proximity_search(ps_data)
         
     elif RUNNING_RH:
-            
         # Define your window size and execute rolling horizon optimization
-        window_size = 46  # example window size
-        step_size = 23
+        window_size = 60  # example window size
+        step_size = 30
         rolling_horizon_optimization(model, HORIZON, window_size, step_size, ps_data)
+        # Print objective function value
+        print(f'Objective function value: {model.objVal}')
         
     end_time = time.time()
     elapsed_time = end_time - start_time
