@@ -79,6 +79,8 @@ class Vessel:
         self.action_path = []
         # Position is which port it is located at. If it is in transit, position is None
         self.position = None
+        self.min_speed = avg_speed - 4
+        self.max_speed = avg_speed + 4
         
     def __repr__(self):
         return f'Vessel {self.number}'
@@ -448,7 +450,7 @@ def generate_source_arc_info(sourceNode, vessels):
         source_arcs_info.append(arc_info)
     return [source_arcs_info]
 
-def populate_all_info(source_arcs_info, vessels, ports, source_times, full_distance_matrix_km, full_distance_matrix_nm, NODE_DICT, MAX_SPEED, MIN_SPEED, NUM_TIME_PERIODS, full_travel_cost_matrices, full_travel_time_matrices, port_dict, FUEL_PRICE, MIRPSO):     
+def populate_all_info(source_arcs_info, vessels, ports, source_times, full_distance_matrix_km, full_distance_matrix_nm, NODE_DICT, NUM_TIME_PERIODS, full_travel_cost_matrices, full_travel_time_matrices, port_dict, FUEL_PRICE, MIRPSO):     
     # Initialize the all_info list with the source arcs info
     all_info = source_arcs_info.copy()
     # Append the all_info list with the arcs for each node
@@ -457,7 +459,7 @@ def populate_all_info(source_arcs_info, vessels, ports, source_times, full_dista
         travel_time_matrix = full_travel_time_matrices[vessel.vessel_class]
         
         if MIRPSO:
-            arcs_for_current_vessel = [create_arcs_for_node_MIRPSO(node=node, vessels=vessels, all_port_numbers = [port.number for port in ports], source_times=source_times, full_distance_matrix_nm = full_distance_matrix_nm, MAX_SPEED=MAX_SPEED, MIN_SPEED=MIN_SPEED, ports=ports, NUM_TIME_PERIODS=NUM_TIME_PERIODS, port_dict=port_dict, FUEL_PRICE=FUEL_PRICE) for node in NODE_DICT.values()]
+            arcs_for_current_vessel = [create_arcs_for_node_MIRPSO(node=node, vessels=vessels, all_port_numbers = [port.number for port in ports], source_times=source_times, full_distance_matrix_nm = full_distance_matrix_nm, MAX_SPEED=vessel.max_speed, MIN_SPEED=vessel.min_speed, ports=ports, NUM_TIME_PERIODS=NUM_TIME_PERIODS, port_dict=port_dict, FUEL_PRICE=FUEL_PRICE) for node in NODE_DICT.values()]
         else:
             # For each node, create the outgoing arcs
             arcs_for_current_vessel = [create_arcs_for_node(node, vessel, [port.number for port in ports], full_distance_matrix_km, ports, NUM_TIME_PERIODS, travel_cost_matrix, travel_time_matrix, port_dict) for node in NODE_DICT.values()]
@@ -987,8 +989,8 @@ def build_problem(INSTANCE, RUNNING_MIRPSO):
     NUM_TIME_PERIODS = metadata['numPeriods']
     NUM_TIME_PERIODS = 120
     TIME_PERIOD_RANGE = list(range(0, NUM_TIME_PERIODS))
-    MAX_SPEED = 19
-    MIN_SPEED = 13
+    # MAX_SPEED = 19
+    # MIN_SPEED = 13
     FUEL_PRICE = 500
     ORIGINAL_NUM_PORTS = len(ports)
     
@@ -1011,7 +1013,7 @@ def build_problem(INSTANCE, RUNNING_MIRPSO):
     source_times = {vessel: vessel_data['Vessel_'+str(vessel.number-1)]['First Time Available'] for vessel in vessels}
     
     source_arcs_info = generate_source_arc_info(sourceNode, vessels)
-    all_info = populate_all_info(source_arcs_info = source_arcs_info, vessels = vessels, ports = ports, source_times = source_times, full_distance_matrix_km = FULL_DISTANCE_MATRIX_KM, full_distance_matrix_nm= FULL_DISTANCE_MATRIX_NM, NODE_DICT=NODE_DICT, MAX_SPEED=MAX_SPEED, MIN_SPEED=MIN_SPEED, NUM_TIME_PERIODS=NUM_TIME_PERIODS, full_travel_cost_matrices=full_travel_cost_matrices, full_travel_time_matrices=full_travel_time_matrices, port_dict = port_dict, FUEL_PRICE=FUEL_PRICE, MIRPSO=RUNNING_MIRPSO)
+    all_info = populate_all_info(source_arcs_info = source_arcs_info, vessels = vessels, ports = ports, source_times = source_times, full_distance_matrix_km = FULL_DISTANCE_MATRIX_KM, full_distance_matrix_nm= FULL_DISTANCE_MATRIX_NM, NODE_DICT=NODE_DICT, NUM_TIME_PERIODS=NUM_TIME_PERIODS, full_travel_cost_matrices=full_travel_cost_matrices, full_travel_time_matrices=full_travel_time_matrices, port_dict = port_dict, FUEL_PRICE=FUEL_PRICE, MIRPSO=RUNNING_MIRPSO)
     arc_dict, vessel_arcs, waiting_arcs, sink_and_source_arcs = add_arcs_to_nodes(all_info, NODE_DICT, NUM_TIME_PERIODS)
     arc_dict, vessel_arcs = create_sink_arcs(vessels=vessels, sinkNode=sinkNode, arc_dict=arc_dict, vessel_arcs=vessel_arcs, sourceNode=sourceNode, NODE_DICT=NODE_DICT, perPeriodRewardForFinishingEarly=perPeriodRewardForFinishingEarly)
     special_sink_arcs, special_nodes_dict = add_special_sink_arcs(vessels, full_travel_time_matrices, NODE_DICT, ports, TIME_PERIOD_RANGE)
@@ -1651,7 +1653,7 @@ def main():
     RUNNING_NORMAL_PS = False
     RUNNING_RH = False
     
-    # RUNNING_MIRPSO = True
+    RUNNING_MIRPSO = True
     # RUNNING_WEIGHTED_PS = True
     # RUNNING_NORMAL_PS = True
     RUNNING_RH = True
@@ -1666,8 +1668,8 @@ def main():
     # INSTANCE = 'LR2_11_DR2_22_VC3_V6a'
     # INSTANCE = 'LR2_11_DR2_33_VC4_V11a'
     # GROUP 2
-    INSTANCE = 'LR1_DR02_VC01_V6a'
-    # INSTANCE = 'LR1_DR02_VC02_V6a'
+    # INSTANCE = 'LR1_DR02_VC01_V6a'
+    INSTANCE = 'LR1_DR02_VC02_V6a'
     # INSTANCE = 'LR1_DR02_VC03_V7a'
     # INSTANCE = 'LR1_DR02_VC03_V8a'
     # INSTANCE = 'LR1_DR02_VC04_V8a'

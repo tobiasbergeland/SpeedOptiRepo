@@ -110,6 +110,7 @@ def set_warm_start(model, warm_start_solution, window_start):
     """
     Set the warm start for the model based on a given solution.
     """
+    num_vars_fixed = 0
     for varname, var in x_solution.items():
         time = extract_time_period_from_x_var_name(varname)[0]
         val = warm_start_solution[varname]
@@ -117,7 +118,7 @@ def set_warm_start(model, warm_start_solution, window_start):
             var.start = warm_start_solution[varname]
             var.lb = val
             var.ub = val
-            
+            num_vars_fixed += 1
     for varname, var in s_solution.items():
         time = extract_time_period_from_s_or_alpha_var_name(varname)
         val = warm_start_solution[varname]
@@ -125,7 +126,7 @@ def set_warm_start(model, warm_start_solution, window_start):
             var.start = warm_start_solution[varname]
             var.lb = val
             var.ub = val
-            
+            num_vars_fixed += 1
     for varname, var in alpha_solution.items():
         time = extract_time_period_from_s_or_alpha_var_name(varname)
         val = warm_start_solution[varname]
@@ -133,12 +134,10 @@ def set_warm_start(model, warm_start_solution, window_start):
             var.start = warm_start_solution[varname]
             var.lb = val
             var.ub = val
+            num_vars_fixed += 1
     model.update()
     return model
-    
    
-    # Apply warm start: load previous solution into model
-    
 def prepare_window(model, window_start, window_end, x_vars, x_bounds, s_vars, s_bounds, alpha_vars, alpha_bounds):
     
     # Fix variables to their solution values if they are outside the current window
@@ -220,18 +219,12 @@ def save_original_rhs(model):
 
 
 def rolling_horizon_optimization(model, horizon_length, window_size, step_size, ps_data):
-    print('Stats for the original model')
-    model.printStats()
-    # Print all the bounds for the variables
-    for var in model.getVars():
-        print(f"{var.VarName}: {var.LB} - {var.UB}")
     # First save all constraints, but remove time-dependent constraints from the model.
     time_constraints = store_and_remove_time_constraints(model)
-    print('Stats after removing time-dependent constraints')
-    model.printStats()
     
     current_solution = None
     for window_start in range(0, horizon_length + 1, step_size):
+        # print('Stats after removing time-dependent constraints')
         window_end = window_start + window_size
         if window_end > horizon_length:
             window_end = horizon_length
@@ -242,7 +235,6 @@ def rolling_horizon_optimization(model, horizon_length, window_size, step_size, 
             
         if current_solution:
             x_solution, s_solution, alpha_solution, x_bounds, s_bounds, alpha_bounds = get_var_data(model)
-        
             # Prepare the model for the current window
             model = prepare_window(model, window_start, window_end, x_solution, x_bounds, s_solution, s_bounds, alpha_solution, alpha_bounds)
             
@@ -253,24 +245,17 @@ def rolling_horizon_optimization(model, horizon_length, window_size, step_size, 
         # Solve the model for the current window
         current_solution = solve_window(model)
         
-        # Print the non zero variables
-        for varname, value in current_solution.items():
-            if value > 0:
-                print(f"{varname}: {value}")
-        print('New iteration')
+        if window_end >= horizon_length:
+            break
+        else:
+            print('New iteration')
         
-    print('Stats after solving all windows')
-    model.printStats()
-    for var in model.getVars():
-        print(f"{var.VarName}: {var.LB} - {var.UB}")
-        
-
 def extract_current_solution(model):
     return {var.VarName: var.X for var in model.getVars()}
 
 
 def adjust_constraints_for_window(model, window_end, time_constraints):
-    constraints_to_remove = []
+    constraints_to_remove_from_time_constraints = []
     # Find a set of active constraints in the entire model
     for name, info in time_constraints.items():
         time = int(name.split('_Time')[1])
@@ -279,10 +264,12 @@ def adjust_constraints_for_window(model, window_end, time_constraints):
             lhs, sense, rhs, name = info
             c = model.addConstr(lhs, sense, rhs, name)
             # remove the constraint from the time_constraints dictionary
-            constraints_to_remove.append(name)
+            constraints_to_remove_from_time_constraints.append(name)
             
-    for name in constraints_to_remove:
+    for name in constraints_to_remove_from_time_constraints:
         del time_constraints[name]
+        
+    print(len(constraints_to_remove_from_time_constraints))
         
     model.update()
 
@@ -297,6 +284,7 @@ def store_and_remove_time_constraints(model):
             model.remove(constr)  # Remove the constraint from the model
     
     model.update()  # Always update the model after making changes
+    print(f"Removed {len(time_constraints)} time-dependent constraints")
     return time_constraints
     
 def restore_constraints(model, original_rhs):
@@ -322,11 +310,12 @@ def set_objective_for_window(model, window_start, window_end, ps_data):
     obj = gp.LinExpr()
     for varname, var in x_vars.items():
         time = extract_time_period_from_x_var_name(varname)[0]
-        if time < window_end:
+        if time <= window_end:
             obj += var * costs_namekey[varname] # Assuming get_cost returns the cost coefficient for the variable
             
     for node in regular_nodes:
-        if window_start <= node.time < window_end:
+        # if window_start <= node.time <= window_end:
+        if node.time <= window_end:
             obj += alpha_vars[f'alpha[{node.port.number},{node.time}]'] * P[(node.port.number, node.time)]
 
     model.setObjective(obj, gp.GRB.MINIMIZE)  # Set the objective to minimize; adjust accordingly
