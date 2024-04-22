@@ -985,7 +985,7 @@ def build_problem(INSTANCE, RUNNING_MIRPSO):
     all_ports, loading_regions, discharging_regions, port_dict = create_ports_from_info_with_loading(ports_info, spotMarketPricePerUnit, spotMarketDiscountFactor)
     ports = get_ports(all_ports)
     NUM_TIME_PERIODS = metadata['numPeriods']
-    NUM_TIME_PERIODS = 90
+    NUM_TIME_PERIODS = 120
     TIME_PERIOD_RANGE = list(range(0, NUM_TIME_PERIODS))
     MAX_SPEED = 19
     MIN_SPEED = 13
@@ -1705,7 +1705,7 @@ def main():
     model.write("Group2.lp")  # Export model to an LP file
     
 
-    #solve_model(model, costs, P, RUNNING_MIRPSO, INSTANCE, HORIZON)
+    solve_model(model, costs, P, RUNNING_MIRPSO, INSTANCE, HORIZON)
     
     ps_data = {'model': model, 'costs': costs, 'P':P, 'regularNodes': regularNodes, 'vessels': vessels, 'vessel_arcs': vessel_arcs, 'costs_namekey':costs_namekey}
     
