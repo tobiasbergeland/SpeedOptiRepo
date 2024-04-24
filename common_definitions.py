@@ -74,6 +74,7 @@ class MIRPSOEnv():
         
     def reset(self):
         for port in self.PORTS:
+            # If random initial start, set it here
             port.inventory = self.INITIAL_PORT_INVENTORY[port]
         for vessel in self.VESSELS:
             vessel.inventory = self.INITIAL_VESSEL_INVENTORY[vessel]

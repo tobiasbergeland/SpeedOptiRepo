@@ -44,7 +44,7 @@ class Node:
         return str(self.tuple)
 
 class Arc:
-    def __init__(self, origin_node, destination_node, distance, cost, travel_time, speed, is_waiting_arc, is_source_or_sink_arc, vessel_class):
+    def __init__(self, origin_node, destination_node, distance, cost, travel_time, speed, is_waiting_arc, is_source_or_sink_arc, vessel_class, speed_ranking, num_speed_options):
         self.origin_node = origin_node
         self.destination_node = destination_node
         self.tuple = (origin_node, destination_node)
@@ -55,6 +55,8 @@ class Arc:
         self.is_waiting_arc = is_waiting_arc
         self.is_source_or_sink_arc = is_source_or_sink_arc
         self.vessel_class = vessel_class
+        self.speed_ranking = speed_ranking
+        self.num_speed_options = num_speed_options
             
     def __repr__(self):
         return f'{self.origin_node} -> {self.destination_node} --- Cost: {self.cost:.1f} --- Speed: {self.speed:.1f}'
@@ -79,8 +81,8 @@ class Vessel:
         self.action_path = []
         # Position is which port it is located at. If it is in transit, position is None
         self.position = None
-        self.min_speed = avg_speed - 4
-        self.max_speed = avg_speed + 4
+        self.min_speed = avg_speed - 5 
+        self.max_speed = avg_speed + 2 
         
     def __repr__(self):
         return f'Vessel {self.number}'
@@ -446,7 +448,7 @@ def generate_source_arc_info(sourceNode, vessels):
         initial_port = vessel.initial_port
         first_time_available = vessel.first_time_available
         speed = 0
-        arc_info = [speed, first_time_available +1, -1, first_time_available, sourceNode.port.number, initial_port.number, initial_port.port_fee, 0, vessel, False, True]
+        arc_info = [speed, first_time_available +1, -1, first_time_available, sourceNode.port.number, initial_port.number, initial_port.port_fee, 0, vessel, False, True, None, None]
         source_arcs_info.append(arc_info)
     return [source_arcs_info]
 
@@ -479,7 +481,7 @@ def create_arcs_for_node(node, vessel, all_port_numbers, full_distance_matrix_km
         destination_port = port_dict[destination_port_number]
         if destination_port_number == node.port.number:
             # Create waiting_arc
-            arc_info = [0, 1, node.time, node.time+1, node.port.number, destination_port_number, 0, 0, vessel, True, False]
+            arc_info = [0, 1, node.time, node.time+1, node.port.number, destination_port_number, 0, 0, vessel, True, False, None, None]
             node_arcs.append(arc_info)
         else:
             # Only create the arcs from a loading to a discharging port and vice versa
@@ -503,7 +505,7 @@ def create_arcs_for_node(node, vessel, all_port_numbers, full_distance_matrix_km
                 
                 if arrival_time < vessel.first_time_available or arrival_time > NUM_TIME_PERIODS:
                     continue
-                arc_info = [vessel.avg_speed, travel_time, node.time, arrival_time, node.port.number, destination_port_number, travel_cost, distance_km, vessel, False, False]
+                arc_info = [vessel.avg_speed, travel_time, node.time, arrival_time, node.port.number, destination_port_number, travel_cost, distance_km, vessel, False, False, None, None]
                 node_arcs.append(arc_info)
 
     return node_arcs
@@ -519,7 +521,6 @@ def create_arcs_for_node_MIRPSO(node, vessels, all_port_numbers, source_times, f
             continue
 
         for destination_port_number in all_port_numbers:
-            
             if destination_port_number == node.port.number:
                 # Create waiting_arc
                 arc_info_matrix = create_arc_info(speed=0, minimum_timesteps=1, departure=node.time, origin_port=node.port, destination_port=node.port, lowest_speed=MIN_SPEED, distance_to_port=0, vessel=vessel, is_waiting_arc=True, NUM_TIME_PERIODS=NUM_TIME_PERIODS, FUEL_PRICE=FUEL_PRICE)
@@ -557,6 +558,8 @@ def calc_cost(fuel_consumption, FUEL_PRICE):
     return fuel_consumption * FUEL_PRICE
 
 def create_arc_info(speed, minimum_timesteps, departure, origin_port, destination_port, lowest_speed, distance_to_port, vessel, is_waiting_arc, NUM_TIME_PERIODS, FUEL_PRICE):
+    num_speed_options = 0
+    
     # Create a list of tuples with the speed and the time period
     arc_info = []
     
@@ -565,9 +568,11 @@ def create_arc_info(speed, minimum_timesteps, departure, origin_port, destinatio
     if arrival_time > NUM_TIME_PERIODS:
         return None
     if is_waiting_arc:
-        arc_info = [speed, 1, departure, departure + minimum_timesteps, origin_port.number, destination_port.number, 0, distance_to_port, vessel, is_waiting_arc, False]
+        arc_info = [speed, 1, departure, departure + minimum_timesteps, origin_port.number, destination_port.number, 0, distance_to_port, vessel, is_waiting_arc, False, None, None]
     else:
-    # Create the info for all the speed alternatives
+        # Create the info for all the speed alternatives
+        speed_ranking = 1
+        num_speed_options = 1
         if origin_port.isLoadingPort == 1:
             empty = False
         else:
@@ -577,11 +582,13 @@ def create_arc_info(speed, minimum_timesteps, departure, origin_port, destinatio
         # Add port fee at destination
         travel_cost += destination_port.port_fee
         
-        arc_tuple = [speed, minimum_timesteps, departure, arrival_time, origin_port.number, destination_port.number, travel_cost, distance_to_port, vessel, False, False]
+        arc_tuple = [speed, minimum_timesteps, departure, arrival_time, origin_port.number, destination_port.number, travel_cost, distance_to_port, vessel, False, False, speed_ranking, num_speed_options]
         arc_info.append(arc_tuple)
         
         timesteps = minimum_timesteps+1
         while True:
+            speed_ranking += 1
+            num_speed_options += 1
             # Calculate the next speed
             speed = distance_to_port / ((timesteps)*24)
             # If the speed is lower than the lowest speed, break the loop
@@ -592,7 +599,7 @@ def create_arc_info(speed, minimum_timesteps, departure, origin_port, destinatio
             travel_cost += destination_port.port_fee
             
             arrival_time = departure + timesteps
-            arc_tuple = [speed, minimum_timesteps, departure, arrival_time, origin_port.number, destination_port.number, travel_cost, distance_to_port, vessel, False, False]
+            arc_tuple = [speed, minimum_timesteps, departure, arrival_time, origin_port.number, destination_port.number, travel_cost, distance_to_port, vessel, False, False, speed_ranking, num_speed_options]
             arc_info.append(arc_tuple)
             
             # Increment the time period
@@ -679,7 +686,7 @@ def add_arcs_to_nodes(all_info, NODE_DICT, NUM_TIME_PERIODS):
                 continue
 
             # Unpack the tuple data
-            speed, travel_time, departure, arrival, origin_port_number, destination_port_number, travel_cost, distance_nm, vessel, is_waiting_arc, is_source_or_sink_arc= arc
+            speed, travel_time, departure, arrival, origin_port_number, destination_port_number, travel_cost, distance_nm, vessel, is_waiting_arc, is_source_or_sink_arc, speed_ranking, num_speed_options = arc
             vessel_class = vessel.vessel_class
 
             # Retrieve the origin and destination nodes
@@ -692,7 +699,7 @@ def add_arcs_to_nodes(all_info, NODE_DICT, NUM_TIME_PERIODS):
                 destination_node_obj.incoming_arcs.setdefault(vessel_class, [])
 
                 # Create the arc
-                arc = Arc(origin_node=origin_node_obj, destination_node=destination_node_obj, distance=distance_nm, cost=travel_cost, travel_time=travel_time, speed=speed, is_waiting_arc=is_waiting_arc, is_source_or_sink_arc=is_source_or_sink_arc, vessel_class = vessel_class)
+                arc = Arc(origin_node=origin_node_obj, destination_node=destination_node_obj, distance=distance_nm, cost=travel_cost, travel_time=travel_time, speed=speed, is_waiting_arc=is_waiting_arc, is_source_or_sink_arc=is_source_or_sink_arc, vessel_class = vessel_class, speed_ranking=speed_ranking, num_speed_options=num_speed_options)
                 
                 # Add the arc to the respective lists
                 origin_node_obj.outgoing_arcs[vessel_class].append(arc)
@@ -720,7 +727,7 @@ def add_arc_to_dict(origin, sinkNode, vessel, arc_dict, vessel_arcs, perPeriodRe
     origin_time = origin.time
     time_diff = (sinkNode.time-1) - origin_time
     reward = perPeriodRewardForFinishingEarly * time_diff
-    arc = Arc(origin_node=origin, destination_node=sinkNode, distance=0, cost=-reward, travel_time=0, speed=0, is_waiting_arc=False, is_source_or_sink_arc=True, vessel_class=vessel.vessel_class)
+    arc = Arc(origin_node=origin, destination_node=sinkNode, distance=0, cost=-reward, travel_time=0, speed=0, is_waiting_arc=False, is_source_or_sink_arc=True, vessel_class=vessel.vessel_class, speed_ranking=None, num_speed_options=None)
     origin.outgoing_arcs.setdefault(vessel.vessel_class, [])
     sinkNode.incoming_arcs.setdefault(vessel.vessel_class, [])
     origin.outgoing_arcs[vessel.vessel_class].append(arc)
@@ -768,7 +775,7 @@ def add_special_sink_arcs(vessels, travel_times, NODE_DICT, ports, TIME_PERIOD_R
             for port, travel_time in enumerate(travel_times_from_node):
                 if node.time + travel_time > TIME_PERIOD_RANGE[-1]:
                     # Create a special sink arc
-                    special_sink_arc = Arc(origin_node=node, destination_node=special_nodes_dict[port + 1], distance=0, cost=0, travel_time=travel_time, speed=0, is_waiting_arc=False, is_source_or_sink_arc=True, vessel_class=vessel.vessel_class) 
+                    special_sink_arc = Arc(origin_node=node, destination_node=special_nodes_dict[port + 1], distance=0, cost=0, travel_time=travel_time, speed=0, is_waiting_arc=False, is_source_or_sink_arc=True, vessel_class=vessel.vessel_class, speed_ranking = None, num_speed_options = None) 
                     special_sink_arcs.setdefault(vessel, []).append(special_sink_arc)
                     
     return special_sink_arcs, special_nodes_dict
@@ -814,8 +821,10 @@ def build_model(vessels, regularNodes, ports, TIME_PERIOD_RANGE, sourceNode, sin
     interregional_arcs = []
     for vc in vessel_classes:
         for arc in vessel_class_arcs[vc]:
-                if not arc.is_waiting_arc:
-                    interregional_arcs.append(arc)
+            if arc.origin_node == sourceNode:
+                print('here')
+            if not arc.is_waiting_arc and not arc.origin_node==sourceNode:
+                interregional_arcs.append(arc)
     
     non_interregional_arcs = []
     for vc in vessel_classes:
@@ -894,15 +903,28 @@ def build_model(vessels, regularNodes, ports, TIME_PERIOD_RANGE, sourceNode, sin
     m.setObjective(original_obj, GRB.MINIMIZE)
     m.update()
 
+
+    # Create a dict with the vessel object in each vessel class
+    vessels_in_vclass = {vc: [vessel for vessel in vessels if vessel.vessel_class == vc] for vc in vessel_classes}
+    # Create a dict with the start_node for each vessel in each vessel class
+    start_nodes_for_vessels_in_vc = {vc: [NODE_DICT[(vessel.initial_port.number, vessel.first_time_available)] for vessel in vessels_in_vclass[vc]] for vc in vessel_classes}
+    # Use start_nodes_for_vessels_in_vc to count the amount of vessels that start at the same node in each vessel class
+    start_node_counter = {vc: {node: 0 for node in start_nodes_for_vessels_in_vc[vc]} for vc in vessel_classes}
+    for vc in vessel_classes:
+        for v in vessels_in_vclass[vc]:
+            start_node = NODE_DICT[(v.initial_port.number, v.first_time_available)]
+            start_node_counter[vc][start_node] += 1
+            
     # Constraint (2)
     '''Must leave the source node'''
-    for vessel in vessels:
-        # Find the destination node for the arc
-        destination_node = NODE_DICT[(vessel.initial_port.number, vessel.first_time_available)]
-        key = (sourceNode, destination_node)
-        source_arc = vessel.all_arcs_v[key]
-        # All arcs from the source node must be used. Every vessel has only one arc from the source node
-        m.addConstr(x[(source_arc.tuple), vessel.vessel_class] == 1, name = 'SourceFlow')
+    for vc in vessel_classes:
+        for vessel in vessels_in_vclass[vc]:
+            # Find the destination node for the arc
+            destination_node = NODE_DICT[(vessel.initial_port.number, vessel.first_time_available)]
+            key = (sourceNode, destination_node)
+            source_arc = vessel.all_arcs_v[key]
+            # All arcs from the source node must be used. Every vessel has only one arc from the source node
+            m.addConstr(x[(source_arc.tuple), vessel.vessel_class] == start_node_counter[vessel.vessel_class][destination_node], name = 'SourceFlow')
     m.update()
 
     # Constraint (3)
@@ -1645,6 +1667,12 @@ def get_current_s_solution(model):
 def get_current_alpha_solution(model):
     # Extracts spot market transaction levels
     return {v.VarName: v.x for v in model.getVars() if v.VarName.startswith('alpha')}
+
+
+def save_solution_to_file(model, INSTANCE, HORIZON, SOLUTION_METHOD):
+    # All arc information
+    # Both node, and vessel_class, vessel information
+    pass
   
 
 def main():
@@ -1656,7 +1684,7 @@ def main():
     RUNNING_MIRPSO = True
     # RUNNING_WEIGHTED_PS = True
     # RUNNING_NORMAL_PS = True
-    RUNNING_RH = True
+    # RUNNING_RH = True
     # INSTANCE = 'LR1_1_DR1_3_VC1_V7a'
     # INSTANCE = 'LR1_1_DR1_4_VC3_V8a'
     # INSTANCE = 'LR1_1_DR1_4_VC3_V9¨a'
@@ -1669,12 +1697,12 @@ def main():
     # INSTANCE = 'LR2_11_DR2_33_VC4_V11a'
     # GROUP 2
     # INSTANCE = 'LR1_DR02_VC01_V6a'
-    INSTANCE = 'LR1_DR02_VC02_V6a'
+    # INSTANCE = 'LR1_DR02_VC02_V6a'
     # INSTANCE = 'LR1_DR02_VC03_V7a'
     # INSTANCE = 'LR1_DR02_VC03_V8a'
     # INSTANCE = 'LR1_DR02_VC04_V8a'
     # INSTANCE = 'LR1_DR02_VC05_V8a'
-    # INSTANCE = 'LR1_DR03_VC03_V10b'
+    INSTANCE = 'LR1_DR03_VC03_V10b'
     
     problem_data = build_problem(INSTANCE, RUNNING_MIRPSO)
     
@@ -1707,7 +1735,6 @@ def main():
     model.write("Group2.lp")  # Export model to an LP file
     
 
-    # solve_model(model, costs, P, RUNNING_MIRPSO, INSTANCE, HORIZON)
     
     ps_data = {'model': model, 'costs': costs, 'P':P, 'regularNodes': regularNodes, 'vessels': vessels, 'vessel_arcs': vessel_arcs, 'costs_namekey':costs_namekey}
     
@@ -1736,6 +1763,9 @@ def main():
         rolling_horizon_optimization(model, HORIZON, window_size, step_size, ps_data)
         # Print objective function value
         print(f'Objective function value: {model.objVal}')
+    else:
+        solve_model(model, costs, P, RUNNING_MIRPSO, INSTANCE, HORIZON)
+        
         
     end_time = time.time()
     elapsed_time = end_time - start_time
