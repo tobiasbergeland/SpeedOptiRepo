@@ -1,6 +1,9 @@
 import re
 import gurobipy as gp
 
+# from MIRP_GROUP_2 import proximity_search_using_agent
+from optimization_utils import *
+
 def get_current_x_solution_vars(model):
     return {v.varName : v for v in model.getVars() if v.VarName.startswith('x')}
 
@@ -34,76 +37,6 @@ def extract_time_period_from_x_var_name(var_name):
     else:
         return None
 
-
-# def solve_model_RHH(model, costs, P, RUNNING_MIRPSO, INSTANCE, start_period, end_period, warm_start_solution=None, arc_time_periods=None):
-#     if warm_start_solution is None:
-#         warm_start_solution = {}
-
-#     else:
-#         # Apply warm start: load previous solution into model
-#         for var in model.getVars():
-#             if var.VarName in warm_start_solution:
-#                 var.start = warm_start_solution[var.VarName]
-
-    
-#     # Fix variables as needed, including x variables spanning the fixed boundary
-#     for var in model.getVars():
-#         if var.VarName.startswith('x'):
-#             if arc_time_periods and var.VarName in arc_time_periods:
-#                 dep_time, arr_time = arc_time_periods[var.VarName]
-#                 if dep_time < start_period + 30:  # Check if the sailing starts before the fixed period ends
-#                     var.lb = var.ub = warm_start_solution.get(var.VarName, var.x)
-#         else:
-#             time_period = extract_time_period_from_var_name(var.VarName)
-#             if time_period != -1 and time_period < start_period + 30:
-#                 if var.VarName in warm_start_solution:
-#                     var.lb = var.ub = warm_start_solution[var.VarName]
-
-#     model.optimize()
-
-#     # After solving, save the new solution to use as the next warm start
-#     new_solution = {var.VarName: var.x for var in model.getVars()}
-
-#     return new_solution
-
-"""
-    new_sol = None
-
-    roll = 30
-    for i in range(0, HORIZON, roll):
-        print(f"Solving model for time periods {i} to {i+roll}")
-        if i == 0:
-            warm_start_solution = None
-            arc_time_periods = None
-        else:
-            warm_start_solution = new_sol
-            arc_time_periods = {v.VarName: extract_time_period_from_var_name(v.VarName) for v in model.getVars() if v.VarName.startswith('x')}
-        new_sol = solve_model_RHH(model, costs, P, RUNNING_MIRPSO, INSTANCE, i, i+roll, warm_start_solution, arc_time_periods)
-        #for var_name, value in new_sol.items():
-        #    print(f"{var_name}: {value}")
-    """
-    
-    
-# def solve_window(model, costs, P, RUNNING_MIRPSO, INSTANCE, window_size=60, fix_period=30):
-#     # Solve for 60 days at a time
-#     # Fix the first 30 days from the last window
-
-#     for i in range(0, TIME_PERIOD_RANGE, window_size - fix_period):  # Notice the step size
-#         start_period = i
-#         end_period = i + window_size
-
-#         if start_period == 0:
-#             new_sol = None
-#             arc_time_periods = None
-#         else:
-#             arc_time_periods = {v.VarName: extract_time_period_from_var_name(v.VarName) for v in model.getVars() if v.VarName.startswith('x')}
-
-#         print(f"Solving model for time periods {start_period} to {end_period}")
-#         new_sol = solve_model_RHH(model, costs, P, RUNNING_MIRPSO, INSTANCE, start_period, end_period, new_sol, arc_time_periods)
-        
-
-        
-        
         
 def set_warm_start(model, warm_start_solution, window_start):
     x_solution, s_solution, alpha_solution, _, _, _ = get_var_data(model)
@@ -113,25 +46,26 @@ def set_warm_start(model, warm_start_solution, window_start):
     num_vars_fixed = 0
     for varname, var in x_solution.items():
         time = extract_time_period_from_x_var_name(varname)[0]
-        val = warm_start_solution[varname]
+        val = round(warm_start_solution[varname])
         if time < window_start:
-            var.start = warm_start_solution[varname]
+            # Round the value to the nearest integer
+            var.start = val
             var.lb = val
             var.ub = val
             num_vars_fixed += 1
     for varname, var in s_solution.items():
         time = extract_time_period_from_s_or_alpha_var_name(varname)
-        val = warm_start_solution[varname]
+        val = round(warm_start_solution[varname])
         if time < window_start:
-            var.start = warm_start_solution[varname]
+            var.start = val
             var.lb = val
             var.ub = val
             num_vars_fixed += 1
     for varname, var in alpha_solution.items():
         time = extract_time_period_from_s_or_alpha_var_name(varname)
-        val = warm_start_solution[varname]
+        val = round(warm_start_solution[varname])
         if time < window_start:
-            var.start = warm_start_solution[varname]
+            var.start = val
             var.lb = val
             var.ub = val
             num_vars_fixed += 1
@@ -218,7 +152,7 @@ def save_original_rhs(model):
     return {constr.ConstrName: constr.RHS for constr in model.getConstrs()}
 
 
-def rolling_horizon_optimization(model, horizon_length, window_size, step_size, ps_data):
+def rolling_horizon_optimization(model, horizon_length, window_size, step_size, ps_data, agent, env, vessel_class_arcs, RUNNING_WPS_AND_RH, proximity_search_using_agent):
     # First save all constraints, but remove time-dependent constraints from the model.
     time_constraints = store_and_remove_time_constraints(model)
     
@@ -242,8 +176,15 @@ def rolling_horizon_optimization(model, horizon_length, window_size, step_size, 
         adjust_constraints_for_window(model, window_end, time_constraints)
         set_objective_for_window(model, window_start, window_end, ps_data)
         
-        # Solve the model for the current window
-        current_solution = solve_window(model)
+        if RUNNING_WPS_AND_RH:
+            ps_data['model'] = model
+            # Model is prepared for the window
+            # Solve the model for the current window with WPS
+            solution, new_obj_value, solution_vals = proximity_search_using_agent(ps_data, agent, env, vessel_class_arcs, RUNNING_WPS_AND_RH, window_end)
+            current_solution = solution_vals
+        else:
+            # Solve the model for the current window
+            current_solution = solve_window(model)
         
         if window_end >= horizon_length:
             break

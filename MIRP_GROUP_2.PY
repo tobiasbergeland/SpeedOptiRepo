@@ -6,6 +6,7 @@ import math
 import gurobipy as gp
 from gurobipy import GRB
 from common_definitions import MIRPSOEnv, DQNAgent, ReplayMemory, DQNAgent
+from optimization_utils import *
 from rolling_horizon import rolling_horizon_optimization
 
 class Port:
@@ -876,7 +877,7 @@ def build_model(vessels, regularNodes, ports, TIME_PERIOD_RANGE, sourceNode, sin
     for vc in vessel_classes:
         for arc in vessel_class_arcs[vc]:
             # Generate the variable name based on whether the arc is interregional or not
-            if not arc.is_waiting_arc:
+            if not arc.is_waiting_arc and not arc.origin_node == sourceNode:
                 # This arc is interregional
                 key = (arc.tuple, vc)
                 variable_name = f"x_interregional_{arc.tuple}_{vc}"
@@ -1109,8 +1110,6 @@ def get_current_s_solution_vals(model):
 
 
 
-
-
 def add_cutoff_constraint(model, current_best_obj, cutoff_value):
     # Prefix for cutoff constraint names
     cutoff_prefix = "cutoff_constraint"
@@ -1160,12 +1159,60 @@ def convert_key_to_varname(key):
     
     # Check if the arc is an interregional arc or not
     # If origin port is the same as the destination port, it's a waiting arc, thus not a interregional arc
-    if origin_node.port.number == destination_node.port.number:
+    if origin_node.port.number == destination_node.port.number or origin_node.time == -1:
         varname = f"x_non_interregional_{arc_tuple}_{vc}"
     else:
         varname = f"x_interregional_{arc_tuple}_{vc}"
         
     return varname
+
+
+def evaluate_solution_with_original_objective_for_RH(model, ps_data, window_end):
+    print("Evaluating solution with original objective")
+    costs = ps_data['costs']
+    regularNodes = ps_data['regularNodes']
+    P = ps_data['P']
+    
+    # Directly calculate arc costs using comprehension
+    x = {v.VarName: v.X for v in model.getVars() if v.VarName.startswith('x')}
+    # Do the same fo alpha variables
+    alpha = {v.VarName: v.X for v in model.getVars() if v.VarName.startswith('a')}
+    
+    # arc_costs = sum(costs[key] * x[convert_key_to_varname(key)] for key in costs)
+    
+    arc_costs = 0
+    for key in costs:
+        # Find the time of the arc
+        arc_tuple = key[0]
+        origin_node = arc_tuple[0]
+        if origin_node.time <= window_end:
+            arc_costs += costs[key] * x[convert_key_to_varname(key)]
+    
+    
+    alpha_costs = 0
+    for node in regularNodes:
+        key = f'alpha[{node.port.number},{node.time}]'
+        alpha_val = alpha[key]
+        P_val = P[(node.port.number, node.time)]
+        if node.time <= window_end:
+            alpha_costs += alpha_val * P_val
+        # else:
+            # print(f'Node {node.port.number} at time {node.time} is not included in the window')
+        
+    print(f'Alpha_costs: {alpha_costs}')
+    # alpha_costs = sum(alpha[f'a[{node.port.number},{node.time}]'] * P[({node.port.number}, {node.time})] for node in regularNodes)
+    print(f'Arc costs: {arc_costs}')
+    
+    # print(alpha_costs)
+    
+    # Directly calculate operation costs using comprehension
+    # o = {v.VarName: v.X for v in model.getVars() if v.VarName.startswith('o')}
+    # operation_costs = sum(o[f'o[{node.port.number},{node.time},{vessel}]'] * OPERATING_COST for node in regularNodes for vessel in vessels)
+    # print(f'Operating costs: {operation_costs}')
+    
+    new_obj_value = arc_costs + alpha_costs
+    print('New objective value:', new_obj_value)
+    return new_obj_value
 
 def evaluate_solution_with_original_objective(model, ps_data):
     print("Evaluating solution with original objective")
@@ -1568,10 +1615,15 @@ def solve_model(model, costs, P, RUNNING_MIRPSO, INSTANCE, HORIZON):
         print("Model is infeasible")
 
 
-def proximity_search_using_agent(ps_data, agent, env, vessel_class_arcs):
+def proximity_search_using_agent(ps_data, agent, env, vessel_class_arcs, RUNNING_WPS_AND_RH, window_end):
+    cutoff_reductions = 0
     model = ps_data['model']
     model.setParam(gp.GRB.Param.SolutionLimit, 1)
     model.optimize()
+    
+    if model.Status == GRB.INFEASIBLE:
+        model.computeIIS()
+        model.write('infeasible_model.ilp')
     original_objective_function = model.getObjective()
     
     # Current solution is a dict with the varname and the actual values only.
@@ -1596,6 +1648,12 @@ def proximity_search_using_agent(ps_data, agent, env, vessel_class_arcs):
     
     y = model.addVars(x_variables.keys(), vtype=GRB.BINARY, name="y")
     
+    new_solution_vals = {v.VarName: v.X for v in model.getVars()}
+    new_solution_vars = {v.VarName: v for v in model.getVars()}
+    
+    current_solution_vals = new_solution_vals
+    current_solution_vars = new_solution_vars
+    
     i = 1
     # Start loop here:
     while True:
@@ -1618,18 +1676,28 @@ def proximity_search_using_agent(ps_data, agent, env, vessel_class_arcs):
         i += 1
 
         # Check if a new solution is found with the lowest amount of changes to the structure as possible
-        if model.Status ==  GRB.SOLUTION_LIMIT:
+        if model.Status ==  GRB.SOLUTION_LIMIT or model.Status == GRB.OPTIMAL:
             print("Hamming Distance from previous solution:", model.objVal)
             
-            new_solution = {v.VarName: v.X for v in model.getVars()}
-
-            new_obj_value = evaluate_solution_with_original_objective(model, ps_data)
+            new_solution_vals = {v.VarName: v.X for v in model.getVars()}
+            new_solution_vars = {v.VarName: v for v in model.getVars()}
+            if RUNNING_WPS_AND_RH:
+                new_obj_value = evaluate_solution_with_original_objective_for_RH(model, ps_data, window_end)
+            else:
+                new_obj_value = evaluate_solution_with_original_objective(model, ps_data)
+                
+            if new_obj_value >= current_best_obj:
+                print("No better solution found.")
+                print('Why did model_status become GRB.SOLUTION_LIMIT?')
+                print(current_best_obj)
+                print(new_obj_value)
+                print(cutoff_value)
             print("Found a better solution.")
             print(f'Previous objective value was {current_best_obj}. New objective value: {new_obj_value}')
 
-            current_solution = new_solution
+            current_solution_vals = new_solution_vals
+            current_solution_vars = new_solution_vars
             current_best_obj = new_obj_value
-            
             
             # Current solution is a dict with the varname and the actual values only.
             current_solution_x = get_current_x_solution_vals(model)
@@ -1640,20 +1708,31 @@ def proximity_search_using_agent(ps_data, agent, env, vessel_class_arcs):
     
             weights = calculate_weights(current_solution_x, current_solution_alpha, current_solution_s, active_arcs, agent, env, vessel_classes)
             
-        if model.Status == GRB.TIME_LIMIT:
+        elif model.Status == GRB.TIME_LIMIT:
             # Return the best solution found. Time limit reached.
+            # Remove the cutoff constraint
+            for constr in model.getConstrs():  # Iterate over all constraints in the model
+                if constr.ConstrName.startswith("cutoff_constraint"):
+                    model.remove(constr)
+            model.update()
+            return current_solution_vals, current_best_obj, current_solution_vals
+        
+        elif model.Status == GRB.INFEASIBLE:
+            # Reduce the cutoff value and try again
+            initial_percentage_decrease *= 0.1
+            cutoff_reductions += 1
+            if cutoff_reductions > 3 or cutoff_value < 1:
+                for constr in model.getConstrs():  # Iterate over all constraints in the model
+                    if constr.ConstrName.startswith("cutoff_constraint"):
+                        model.remove(constr)
+                model.update()
+                return current_solution_vars, current_best_obj, current_solution_vals
             
-            solution = {v.VarName: v.X for v in model.getVars()}
-            new_obj_value = evaluate_solution_with_original_objective(model, ps_data)
-            print(f'Best objective value is {new_obj_value}.')
-            break
             
+    # solution = {v.VarName: v for v in model.getVars()}
+    # solution_vals = {var.VarName: var.X for var in model.getVars()}
 
-    solution = {v.VarName: v for v in model.getVars()}
-    
-    
-
-    return solution, new_obj_value
+    # return solution, new_obj_value, solution_vals
 
 
 
@@ -1680,29 +1759,22 @@ def main():
     RUNNING_WEIGHTED_PS = False
     RUNNING_NORMAL_PS = False
     RUNNING_RH = False
+    RUNNING_WPS_AND_RH = False
     
-    RUNNING_MIRPSO = True
+    # RUNNING_MIRPSO = True
     # RUNNING_WEIGHTED_PS = True
     # RUNNING_NORMAL_PS = True
     # RUNNING_RH = True
-    # INSTANCE = 'LR1_1_DR1_3_VC1_V7a'
-    # INSTANCE = 'LR1_1_DR1_4_VC3_V8a'
-    # INSTANCE = 'LR1_1_DR1_4_VC3_V9¨a'
-    # INSTANCE = 'LR1_1_DR1_4_VC3_V11a'
-    # INSTANCE = 'LR1_1_DR1_4_VC3_V12a'
-    # INSTANCE = 'LR1_2_DR1_3_VC2_V6a'
-    # INSTANCE = 'LR1_2_DR1_3_VC3_V8a'
-    # INSTANCE = 'LR1_1_DR1_4_VC3_V12b'
-    # INSTANCE = 'LR2_11_DR2_22_VC3_V6a'
-    # INSTANCE = 'LR2_11_DR2_33_VC4_V11a'
+    RUNNING_WPS_AND_RH = True
+    
     # GROUP 2
     # INSTANCE = 'LR1_DR02_VC01_V6a'
-    # INSTANCE = 'LR1_DR02_VC02_V6a'
+    INSTANCE = 'LR1_DR02_VC02_V6a'
     # INSTANCE = 'LR1_DR02_VC03_V7a'
     # INSTANCE = 'LR1_DR02_VC03_V8a'
     # INSTANCE = 'LR1_DR02_VC04_V8a'
     # INSTANCE = 'LR1_DR02_VC05_V8a'
-    INSTANCE = 'LR1_DR03_VC03_V10b'
+    # INSTANCE = 'LR1_DR03_VC03_V10b'
     
     problem_data = build_problem(INSTANCE, RUNNING_MIRPSO)
     
@@ -1750,7 +1822,7 @@ def main():
         
         agent.main_model.load_state_dict(torch.load('main_model_8apr_nt3_50_1664.pth'))
         agent.target_model.load_state_dict(torch.load('target_model_8_apr_nt3_50_1664.pth'))
-        solution, new_obj_value = proximity_search_using_agent(ps_data, agent, env, vessel_class_arcs)
+        solution, new_obj_value, solution_vals = proximity_search_using_agent(ps_data, agent, env, vessel_class_arcs)
         
     elif RUNNING_NORMAL_PS:
         # Perform the proximity search using the initial solution
@@ -1760,9 +1832,28 @@ def main():
         # Define your window size and execute rolling horizon optimization
         window_size = 60  # example window size
         step_size = 30
-        rolling_horizon_optimization(model, HORIZON, window_size, step_size, ps_data)
+        rolling_horizon_optimization(model, HORIZON, window_size, step_size, ps_data, None, None, None, RUNNING_WPS_AND_RH, proximity_search_using_agent)
         # Print objective function value
         print(f'Objective function value: {model.objVal}')
+        
+    elif RUNNING_WPS_AND_RH:
+        env = MIRPSOEnv(ports, vessels, vessel_arcs, NODES, TIME_PERIOD_RANGE, sourceNode, sinkNode, NODE_DICT, special_sink_arcs, special_nodes_dict)
+        replay = ReplayMemory(3000)
+        
+        agent = DQNAgent(ports = ports, vessels=vessels, TRAINING_FREQUENCY = None, TARGET_UPDATE_FREQUENCY = None, NON_RANDOM_ACTION_EPISODE_FREQUENCY = None, BATCH_SIZE = None, replay = replay)
+        replay = agent.load_replay_buffer(file_name= 'replay_buffer_8apr_nt3_50_1664.pkl')
+        agent.memory = replay
+        
+        agent.main_model.load_state_dict(torch.load('main_model_8apr_nt3_50_1664.pth'))
+        agent.target_model.load_state_dict(torch.load('target_model_8_apr_nt3_50_1664.pth'))
+        
+        window_size = 60  # example window size
+        step_size = 30
+        rolling_horizon_optimization(model, HORIZON, window_size, step_size, ps_data, agent, env, vessel_class_arcs, RUNNING_WPS_AND_RH, proximity_search_using_agent)
+        
+        # solution, new_obj_value = proximity_search_using_agent(ps_data, agent, env, vessel_class_arcs)
+        
+        pass
     else:
         solve_model(model, costs, P, RUNNING_MIRPSO, INSTANCE, HORIZON)
         
@@ -1778,5 +1869,4 @@ def main():
     # print("Objective value:", model.objVal)
     
     
-if __name__ == "__main__":
-    main()
+if __name__ == "__main__":    main()
