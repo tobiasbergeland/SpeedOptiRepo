@@ -1098,18 +1098,6 @@ def find_initial_solution(model):
         print("No feasible solution found within the time limit.")
         return None, None
 
-def get_current_x_solution_vals(model):
-    return {v.varName : v.x for v in model.getVars() if v.VarName.startswith('x')}
-
-def get_current_alpha_solution_vals(model):
-    return {v.varName: v.x for v in model.getVars() if v.VarName.startswith('a')}
-
-def get_current_s_solution_vals(model):
-    return {v.varName: v.x for v in model.getVars() if v.VarName.startswith('s')}
-
-
-
-
 def add_cutoff_constraint(model, current_best_obj, cutoff_value):
     # Prefix for cutoff constraint names
     cutoff_prefix = "cutoff_constraint"
@@ -1147,38 +1135,20 @@ def update_objective_to_minimize_hamming_distance(model, y, x_variables, current
         else:
             model.addConstr(y[var_name] >= initial_value - var, name=f'y_{var_name}_Hamming_distance')
             
-    weighted_hamming_distance = gp.quicksum(weights[var_name] * y[var_name] for var_name in x_variables.keys())
-    model.setObjective(weighted_hamming_distance, GRB.MINIMIZE)
+    if weights:
+        weighted_hamming_distance = gp.quicksum(weights[var_name] * y[var_name] for var_name in x_variables.keys())
+        model.setObjective(weighted_hamming_distance, GRB.MINIMIZE)
+    else:
+        model.setObjective(y.sum(), GRB.MINIMIZE)
     model.update()
 
-def convert_key_to_varname(key):
-    arc_tuple = key[0]
-    origin_node = arc_tuple[0]
-    destination_node = arc_tuple[1]
-    vc = key[1]
-    
-    # Check if the arc is an interregional arc or not
-    # If origin port is the same as the destination port, it's a waiting arc, thus not a interregional arc
-    if origin_node.port.number == destination_node.port.number or origin_node.time == -1:
-        varname = f"x_non_interregional_{arc_tuple}_{vc}"
-    else:
-        varname = f"x_interregional_{arc_tuple}_{vc}"
-        
-    return varname
-
-
 def evaluate_solution_with_original_objective_for_RH(model, ps_data, window_end):
-    print("Evaluating solution with original objective")
     costs = ps_data['costs']
     regularNodes = ps_data['regularNodes']
     P = ps_data['P']
     
-    # Directly calculate arc costs using comprehension
     x = {v.VarName: v.X for v in model.getVars() if v.VarName.startswith('x')}
-    # Do the same fo alpha variables
     alpha = {v.VarName: v.X for v in model.getVars() if v.VarName.startswith('a')}
-    
-    # arc_costs = sum(costs[key] * x[convert_key_to_varname(key)] for key in costs)
     
     arc_costs = 0
     for key in costs:
@@ -1188,7 +1158,6 @@ def evaluate_solution_with_original_objective_for_RH(model, ps_data, window_end)
         if origin_node.time <= window_end:
             arc_costs += costs[key] * x[convert_key_to_varname(key)]
     
-    
     alpha_costs = 0
     for node in regularNodes:
         key = f'alpha[{node.port.number},{node.time}]'
@@ -1196,26 +1165,17 @@ def evaluate_solution_with_original_objective_for_RH(model, ps_data, window_end)
         P_val = P[(node.port.number, node.time)]
         if node.time <= window_end:
             alpha_costs += alpha_val * P_val
-        # else:
-            # print(f'Node {node.port.number} at time {node.time} is not included in the window')
         
     print(f'Alpha_costs: {alpha_costs}')
-    # alpha_costs = sum(alpha[f'a[{node.port.number},{node.time}]'] * P[({node.port.number}, {node.time})] for node in regularNodes)
     print(f'Arc costs: {arc_costs}')
-    
-    # print(alpha_costs)
-    
-    # Directly calculate operation costs using comprehension
-    # o = {v.VarName: v.X for v in model.getVars() if v.VarName.startswith('o')}
-    # operation_costs = sum(o[f'o[{node.port.number},{node.time},{vessel}]'] * OPERATING_COST for node in regularNodes for vessel in vessels)
-    # print(f'Operating costs: {operation_costs}')
     
     new_obj_value = arc_costs + alpha_costs
     print('New objective value:', new_obj_value)
     return new_obj_value
 
-def evaluate_solution_with_original_objective(model, ps_data):
-    print("Evaluating solution with original objective")
+def evaluate_solution_with_original_objective(model, ps_data, print_info, has_been_infeasible):
+    if print_info or has_been_infeasible:
+        print("Evaluating solution with original objective")
     costs = ps_data['costs']
     regularNodes = ps_data['regularNodes']
     P = ps_data['P']
@@ -1234,62 +1194,76 @@ def evaluate_solution_with_original_objective(model, ps_data):
         P_val = P[(node.port.number, node.time)]
         alpha_costs += alpha_val * P_val
         
-    print(f'Alpha_costs: {alpha_costs}')
-    # alpha_costs = sum(alpha[f'a[{node.port.number},{node.time}]'] * P[({node.port.number}, {node.time})] for node in regularNodes)
-    print(f'Arc costs: {arc_costs}')
-    
-    # print(alpha_costs)
-    
-    # Directly calculate operation costs using comprehension
-    # o = {v.VarName: v.X for v in model.getVars() if v.VarName.startswith('o')}
-    # operation_costs = sum(o[f'o[{node.port.number},{node.time},{vessel}]'] * OPERATING_COST for node in regularNodes for vessel in vessels)
-    # print(f'Operating costs: {operation_costs}')
+    if print_info or has_been_infeasible:
+        print(f'Alpha_costs: {alpha_costs}')
+        print(f'Arc costs: {arc_costs}')
     
     new_obj_value = arc_costs + alpha_costs
-    print('New objective value:', new_obj_value)
+    if print_info or has_been_infeasible:
+        print('New objective value:', new_obj_value)
     return new_obj_value
 
 
 def update_weights_based_on_action(weights, actions, active_arcs, active_arcs_chosen_by_agent, RUNNING_MIRPSO):
-    for vessel, action in actions.items():
-        vc = vessel.vessel_class
-        arc = action[3]
-        varname = convert_key_to_varname((arc.tuple, arc.vessel_class))
-        if arc in active_arcs_chosen_by_agent:
-            weights[varname] = 1
-        else:
-            weights[varname] = 0
-        
-     
-    # for arc in active_arcs[vc]:
-    #     if arc not in active_arcs_chosen_by_agent:
-    #         weights[arc.tuple] = 0
+    if RUNNING_MIRPSO:
+        for arc in active_arcs_chosen_by_agent:
+            origin_node = arc.origin_node
+            destination_node = arc.destination_node
+            origin_port_number = arc.origin_node.port.number
+            destination_port_number = arc.destination_node.port.number
+            for varname, w in weights.items():
+                origin_port, origin_time, destination_port, destination_time, vc = key_to_node_info(varname_to_key(varname))
+                
+                if f'[{origin_node},{destination_port_number}]' in varname:
+                    weights[varname] = 1
+                else:
+                    weights[varname] = 0
+    else:
+        for vessel, action in actions.items():
+            arc = action[3]
+            varname = convert_key_to_varname((arc.tuple, arc.vessel_class))
+            if arc in active_arcs_chosen_by_agent:
+                weights[varname] = 1
+            else:
+                weights[varname] = 0
+   
     return weights
             
         
         
 def perform_proximity_search(ps_data):  # Add other parameters as needed
+    '''return current_solution_vars, current_best_obj, current_solution_vals here as well '''
     model = ps_data['model']
+    vessel_class_arcs = ps_data['vessel_class_arcs']
     model.setParam(gp.GRB.Param.SolutionLimit, 1)
+    model.setParam(gp.GRB.Param.OutputFlag, 0)
     model.optimize()
     original_objective_function = model.getObjective()
     
-    # Current solution is a dict with the varname and the actual values only.
-    current_solution = get_current_x_solution_vals(model)
-    current_best_obj = model.getObjective().getValue()
     
-    # x_variables is a dict with varname and the actual variables.
-    x_variables = {v.VarName: v for v in model.getVars() if v.VarName.startswith('x')}
+    current_solution_vals_x = get_current_x_solution_vals(model)
+    current_solution_vars_x = {v.VarName: v for v in model.getVars() if v.VarName.startswith('x')}
+    active_arcs = find_corresponding_arcs(current_solution_vals_x, vessel_class_arcs)
+    current_solution_alpha = get_current_alpha_solution_vals(model)
+    current_solution_s = get_current_s_solution_vals(model)
+    current_best_obj = model.getObjective().getValue()
     
     initial_percentage_decrease = 0.0005
     cutoff_value = (initial_percentage_decrease * current_best_obj)
     
-    y = model.addVars(x_variables.keys(), vtype=GRB.BINARY, name="y")
-    i = 1
+    y = model.addVars(current_solution_vars_x.keys(), vtype=GRB.BINARY, name="y")
+    i = 0
+    has_been_infeasible = False
     
     # Start loop here:
     while True:
-        print(f'Proximity Search Iteration {i}')
+        if has_been_infeasible:
+            model.setParam()
+        i += 1
+        print_info = (i % 100 == 0)
+            
+        if print_info or has_been_infeasible:
+            print(f'Proximity Search Iteration {i}')
         
         # Set the objective (back) to the original objective function
         model.setObjective(original_objective_function, GRB.MINIMIZE)
@@ -1298,47 +1272,39 @@ def perform_proximity_search(ps_data):  # Add other parameters as needed
         cutoff_value = (initial_percentage_decrease * current_best_obj)
         add_cutoff_constraint(model, current_best_obj, cutoff_value)
 
-        update_objective_to_minimize_hamming_distance(model, y, x_variables, current_solution)
+        update_objective_to_minimize_hamming_distance(model, y, current_solution_vars_x, current_solution_vals_x, None)
         model.setParam(gp.GRB.Param.SolutionLimit, 1)
         model.setParam(gp.GRB.Param.TimeLimit, 300)
         model.optimize()
-        i += 1
 
         # Check if a new solution is found with the lowest amount of changes to the structure as possible
         if model.Status ==  GRB.SOLUTION_LIMIT:
-            print("Hamming Distance from previous solution:", model.objVal)
+            if print_info or has_been_infeasible:
+                print("Hamming Distance from previous solution:", model.objVal)
             
-            new_solution = {v.VarName: v.X for v in model.getVars()}
+            current_solution_vals_x = get_current_x_solution_vals(model)
 
-            new_obj_value = evaluate_solution_with_original_objective(model, ps_data)
-            print("Found a better solution.")
-            print(f'Previous objective value was {current_best_obj}. New objective value: {new_obj_value}')
-
-            current_solution = new_solution
+            new_obj_value = evaluate_solution_with_original_objective(model, ps_data, print_info, has_been_infeasible)
+            if print_info or has_been_infeasible:
+                print(f'Previous objective value was {current_best_obj}. New objective value: {new_obj_value}')
+                
             current_best_obj = new_obj_value
+            current_solution_vars_x = get_current_x_solution_vars(model)
+            current_solution_alpha = get_current_alpha_solution_vals(model)
+            current_solution_s = get_current_s_solution_vals(model)
+
             
         elif model.Status == GRB.TIME_LIMIT or model.Status == GRB.INFEASIBLE:
+            has_been_infeasible = True
             # Return the best solution found. Time limit reached.
             print(f'Best objective value is {current_best_obj}.')
-            return current_solution, current_best_obj
+            # return current_solution, current_best_obj, model
+            return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs
 
 
 # def create_state_from_variables(current_solution_x, current_solution_alpha, current_solution_s):
     
-def find_corresponding_arcs(current_solution_x, vessel_class_arcs):
-    active_arcs = {vc: [] for vc in vessel_class_arcs.keys()}
-    
-    for vessel_class, arcs in vessel_class_arcs.items():
-        for arc in arcs:
-            # Use the name of the variable to find the corresponding arc
-            # Create the same variable name as in the model
-            varname = convert_key_to_varname((arc.tuple, arc.vessel_class))
-            if 1 - 1e-3 <= current_solution_x[varname]:
-                # append to the active arcs with the vessel class as key if it is not present already
-                if arc not in active_arcs[vessel_class]:
-                    active_arcs.setdefault(arc.vessel_class, []).append(arc)
-                # active_arcs.setdefault(arc.vessel_class, []).append(arc)
-    return active_arcs
+
 
 
 def find_corresponding_action(action, active_arcs, vessel, active_arcs_chosen_by_agent):
@@ -1386,10 +1352,7 @@ def init_weights(active_arcs, vessel_classes, current_solution_x):
         weights[varname] = 0
     return weights
                 
-            
-         
-
-def calculate_weights(current_solution_x, current_solution_alpha, current_solution_s, active_arcs, agent, env, vessel_classes):
+def calculate_weights(current_solution_x, current_solution_alpha, current_solution_s, active_arcs, agent, env, vessel_classes, RUNNING_MIRPSO):
     weights = init_weights(active_arcs, vessel_classes, current_solution_x)
         
     active_arcs_chosen_by_agent = []
@@ -1401,7 +1364,9 @@ def calculate_weights(current_solution_x, current_solution_alpha, current_soluti
     for vessel, action in actions.items():
         arc = action[3]
         active_arcs_chosen_by_agent.append(arc)
-    weights = update_weights_based_on_action(weights, actions, active_arcs, active_arcs_chosen_by_agent, RUNNING_MIRPSO=False)
+        
+    weights = update_weights_based_on_action(weights, actions, active_arcs, active_arcs_chosen_by_agent, RUNNING_MIRPSO)
+    
     state = env.step(state=state, actions=actions, experience_path=experience_path, decision_basis_states=decision_basis_states)
     done = False
     
@@ -1472,9 +1437,8 @@ def calculate_weights(current_solution_x, current_solution_alpha, current_soluti
         
     return weights
         
-        
-
-def solve_model(model, costs, P, RUNNING_MIRPSO, INSTANCE, HORIZON):
+def solve_model(model, costs, P, RUNNING_MIRPSO, INSTANCE, HORIZON, ps_data):
+    vessel_class_arcs = ps_data['vessel_class_arcs']
 
     x_vars_counter = 0
     for var in model.getVars():
@@ -1541,84 +1505,56 @@ def solve_model(model, costs, P, RUNNING_MIRPSO, INSTANCE, HORIZON):
         model.optimize()
     except gp.GurobiError as e:
         print(f"Gurobi Error: {e}")
-    
-    # Check the status of the optimization
-    if model.status == gp.GRB.OPTIMAL:
-        print("Optimal solution found!")
-        print(f"Objective value: {model.objVal}")
-        # Save the optimal solution to file
-        # model.write("MIRPSO2.sol")
-        # Write the values of all variables
-        if RUNNING_MIRPSO:
-            with open(f'MIRPSO_GROUP_2_{INSTANCE}_{HORIZON}.sol', 'w') as file:
-                file.write(f'Objective function for {INSTANCE} with {HORIZON} time periods: {model.objVal}\n')
-                file.write("Variable Values:\n")
-                for var in model.getVars():
-                    file.write(f"{var.varName}: {var.x}\n")
-                file.write("Costs:\n")
-                for key, value in costs.items():
-                    file.write(f"{key}: {value}\n")
-                file.write("P:\n")
-                for key, value in P.items():
-                    file.write(f"{key}: {value}\n")
-            file.close()
-        else:
-            
-            with open(f'MIRP_GROUP_2_{INSTANCE}_{HORIZON}.sol', 'w') as file:
-                file.write(f'Objective function for {INSTANCE} with {HORIZON} time periods: {model.objVal}\n')
-                file.write("Variable Values:\n")
-                for var in model.getVars():
-                    file.write(f"{var.varName}: {var.x}\n")
-                file.write("Costs:\n")
-                for key, value in costs.items():
-                    file.write(f"{key}: {value}\n")
-                file.write("P:\n")
-                for key, value in P.items():
-                    file.write(f"{key}: {value}\n")
-            file.close()
-            
-    if model.status == gp.GRB.TIME_LIMIT:
-        print("Time limit reached")
-        if RUNNING_MIRPSO:
-            with open(f'MIRPSO_GROUP_2_{INSTANCE}_{HORIZON}.sol', 'w') as file:
-                file.write(f'Objective function for {INSTANCE} with {HORIZON} time periods: {model.objVal}\n')
-                file.write(f'Time limit reached after {time_limit} seconds\n')
-                file.write("Variable Values:\n")
-                for var in model.getVars():
-                    file.write(f"{var.varName}: {var.x}\n")
-                file.write("Costs:\n")
-                for key, value in costs.items():
-                    file.write(f"{key}: {value}\n")
-                file.write("P:\n")
-                for key, value in P.items():
-                    file.write(f"{key}: {value}\n")
-            file.close()
-        else:
-            with open(f'MIRP_GROUP_2_{INSTANCE}_{HORIZON}.sol', 'w') as file:
-                file.write(f'Objective function for {INSTANCE} with {HORIZON} time periods: {model.objVal}\n')
-                file.write(f'Time limit reached after {time_limit} seconds\n')
-                file.write("Variable Values:\n")
-                for var in model.getVars():
-                    file.write(f"{var.varName}: {var.x}\n")
-                file.write("Costs:\n")
-                for key, value in costs.items():
-                    file.write(f"{key}: {value}\n")
-                file.write("P:\n")
-                for key, value in P.items():
-                    file.write(f"{key}: {value}\n")
-            file.close()
         
-    if model.status == gp.GRB.INFEASIBLE:
+    # Return objective function value, the current solution, the current solution values, the current solution s-values, the current solution alpha-values and the active arcs
+    current_solution_vals_x = get_current_x_solution_vals(model)
+    current_solution_vars_x = {v.VarName: v for v in model.getVars() if v.VarName.startswith('x')}
+    current_solution_s = get_current_s_solution_vals(model)
+    current_solution_alpha = get_current_alpha_solution_vals(model)
+    active_arcs = find_corresponding_arcs(current_solution_vals_x, vessel_class_arcs)
+    return model.objVal, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs
+    
+        
+        
+def save_solution(INSTANCE, HORIZON, model, elapsed_time, costs, P, RUNNING_MIRPSO, current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs):
+    if model.status == gp.GRB.OPTIMAL:
+        model_status = "Model status = OPTIMAL"
+    elif model.status == gp.GRB.TIME_LIMIT:
+        model_status = "Model status = TIME_LIMIT"
+    elif model.status == gp.GRB.INFEASIBLE:
+        model_status = "Model status = INFEASIBLE"
         model.computeIIS()
-        # Write the IIS to a .ilp file
         model.write("MIRPSO.ilp")
         print("Model is infeasible")
+        return
+    
+    if RUNNING_MIRPSO:
+        filename = f'MIRPSO_GROUP_2_{INSTANCE}_{HORIZON}.sol'
+    else:
+        filename = f'MIRP_GROUP_2_{INSTANCE}_{HORIZON}.sol'
+        
+    with open(filename, 'w') as file:
+        file.write(f'Objective function for {INSTANCE} with {HORIZON} time periods: {model.objVal}\n')
+        file.write(model_status)
+        if model.status == gp.GRB.TIME_LIMIT:
+            file.write(f'Time limit reached after {time_limit} seconds\n')
+        file.write("Variable Values:\n")
+        for var in model.getVars():
+            file.write(f"{var.varName}: {var.x}\n")
+        file.write("Costs:\n")
+        for key, value in costs.items():
+            file.write(f"{key}: {value}\n")
+        file.write("P:\n")
+        for key, value in P.items():
+            file.write(f"{key}: {value}\n")
+    file.close()
 
 
-def proximity_search_using_agent(ps_data, agent, env, vessel_class_arcs, RUNNING_WPS_AND_RH, window_end):
+def proximity_search_using_agent(ps_data, agent, env, vessel_class_arcs, RUNNING_WPS_AND_RH, window_end, RUNNING_MIRPSO):
     cutoff_reductions = 0
     model = ps_data['model']
     model.setParam(gp.GRB.Param.SolutionLimit, 1)
+    model.setParam(gp.GRB.Param.OutputFlag, 0)
     model.optimize()
     
     if model.Status == GRB.INFEASIBLE:
@@ -1627,37 +1563,33 @@ def proximity_search_using_agent(ps_data, agent, env, vessel_class_arcs, RUNNING
     original_objective_function = model.getObjective()
     
     # Current solution is a dict with the varname and the actual values only.
-    current_solution_x = get_current_x_solution_vals(model)
-    active_arcs = find_corresponding_arcs(current_solution_x, vessel_class_arcs)
-    current_solution_alpha = get_current_alpha_solution(model)
-    current_solution_s = get_current_s_solution(model)
+    current_solution_vals_x = get_current_x_solution_vals(model)
+    current_solution_vars_x = {v.VarName: v for v in model.getVars() if v.VarName.startswith('x')}
+    active_arcs = find_corresponding_arcs(current_solution_vals_x, vessel_class_arcs)
+    current_solution_alpha = get_current_alpha_solution_vals(model)
+    current_solution_s = get_current_s_solution_vals(model)
     vessel_classes = vessel_class_arcs.keys()
     
-    weights = calculate_weights(current_solution_x, current_solution_alpha, current_solution_s, active_arcs, agent, env, vessel_classes)
-    # Find the amount of weights that are non-zero
-    # non_zero_weights = sum(1 for value in weights.values() if value > 0)
-    # print(f'Length of weights: {non_zero_weights}')
+    weights = calculate_weights(current_solution_vals_x, current_solution_alpha, current_solution_s, active_arcs, agent, env, vessel_classes, RUNNING_MIRPSO)
     
     current_best_obj = model.getObjective().getValue()
     
-    # x_variables is a dict with varname and the actual variables.
-    x_variables = {v.VarName: v for v in model.getVars() if v.VarName.startswith('x')}
-    
-    initial_percentage_decrease = 0.05
+    initial_percentage_decrease = 0.005
     cutoff_value = (initial_percentage_decrease * current_best_obj)
     
-    y = model.addVars(x_variables.keys(), vtype=GRB.BINARY, name="y")
+    y = model.addVars(current_solution_vars_x.keys(), vtype=GRB.BINARY, name="y")
     
-    new_solution_vals = {v.VarName: v.X for v in model.getVars()}
-    new_solution_vars = {v.VarName: v for v in model.getVars()}
+    has_been_infeasible = False
+    i = 0
     
-    current_solution_vals = new_solution_vals
-    current_solution_vars = new_solution_vars
-    
-    i = 1
-    # Start loop here:
     while True:
-        print(f'Proximity Search Iteration {i}')
+        if has_been_infeasible:
+            model.setParam(gp.GRB.Param.OutputFlag, 1)
+        i += 1
+        print_info = (i % 100 == 0)
+            
+        if print_info or has_been_infeasible:
+            print(f'Proximity Search Iteration {i}')
         
         # Set the objective (back) to the original objective function
         model.setObjective(original_objective_function, GRB.MINIMIZE)
@@ -1666,47 +1598,33 @@ def proximity_search_using_agent(ps_data, agent, env, vessel_class_arcs, RUNNING
         cutoff_value = (initial_percentage_decrease * current_best_obj)
         add_cutoff_constraint(model, current_best_obj, cutoff_value)
         
-        # non_zero_weights = sum(1 for value in weights.values() if value > 0)
-        # print(f'Length of weights: {non_zero_weights}')
-
-        update_objective_to_minimize_hamming_distance(model, y, x_variables, current_solution_x, weights)
+        update_objective_to_minimize_hamming_distance(model, y, current_solution_vars_x, current_solution_vals_x, weights)
         model.setParam(gp.GRB.Param.SolutionLimit, 1)
         model.setParam(gp.GRB.Param.TimeLimit, 300)
         model.optimize()
-        i += 1
 
         # Check if a new solution is found with the lowest amount of changes to the structure as possible
         if model.Status ==  GRB.SOLUTION_LIMIT or model.Status == GRB.OPTIMAL:
-            print("Hamming Distance from previous solution:", model.objVal)
+            if print_info or has_been_infeasible:
+                print("Hamming Distance from previous solution:", model.objVal)
             
-            new_solution_vals = {v.VarName: v.X for v in model.getVars()}
-            new_solution_vars = {v.VarName: v for v in model.getVars()}
             if RUNNING_WPS_AND_RH:
                 new_obj_value = evaluate_solution_with_original_objective_for_RH(model, ps_data, window_end)
             else:
-                new_obj_value = evaluate_solution_with_original_objective(model, ps_data)
+                new_obj_value = evaluate_solution_with_original_objective(model, ps_data, print_info, has_been_infeasible)
                 
-            if new_obj_value >= current_best_obj:
-                print("No better solution found.")
-                print('Why did model_status become GRB.SOLUTION_LIMIT?')
-                print(current_best_obj)
-                print(new_obj_value)
-                print(cutoff_value)
-            print("Found a better solution.")
-            print(f'Previous objective value was {current_best_obj}. New objective value: {new_obj_value}')
+            if print_info or has_been_infeasible:            
+                print(f'Previous objective value was {current_best_obj}. New objective value: {new_obj_value}')
 
-            current_solution_vals = new_solution_vals
-            current_solution_vars = new_solution_vars
             current_best_obj = new_obj_value
-            
-            # Current solution is a dict with the varname and the actual values only.
-            current_solution_x = get_current_x_solution_vals(model)
-            active_arcs = find_corresponding_arcs(current_solution_x, vessel_class_arcs)
-            current_solution_alpha = get_current_alpha_solution(model)
-            current_solution_s = get_current_s_solution(model)
+            current_solution_vals_x = get_current_x_solution_vals(model)
+            current_solution_vars_x = {v.VarName: v for v in model.getVars() if v.VarName.startswith('x')}
+            active_arcs = find_corresponding_arcs(current_solution_vals_x, vessel_class_arcs)
+            current_solution_alpha = get_current_alpha_solution_vals(model)
+            current_solution_s = get_current_s_solution_vals(model)
             vessel_classes = vessel_class_arcs.keys()
     
-            weights = calculate_weights(current_solution_x, current_solution_alpha, current_solution_s, active_arcs, agent, env, vessel_classes)
+            weights = calculate_weights(current_solution_vals_x, current_solution_alpha, current_solution_s, active_arcs, agent, env, vessel_classes)
             
         elif model.Status == GRB.TIME_LIMIT:
             # Return the best solution found. Time limit reached.
@@ -1715,9 +1633,10 @@ def proximity_search_using_agent(ps_data, agent, env, vessel_class_arcs, RUNNING
                 if constr.ConstrName.startswith("cutoff_constraint"):
                     model.remove(constr)
             model.update()
-            return current_solution_vals, current_best_obj, current_solution_vals
+            return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs
         
         elif model.Status == GRB.INFEASIBLE:
+            has_been_infeasible = True
             # Reduce the cutoff value and try again
             initial_percentage_decrease *= 0.1
             cutoff_reductions += 1
@@ -1726,33 +1645,8 @@ def proximity_search_using_agent(ps_data, agent, env, vessel_class_arcs, RUNNING
                     if constr.ConstrName.startswith("cutoff_constraint"):
                         model.remove(constr)
                 model.update()
-                return current_solution_vars, current_best_obj, current_solution_vals
+                return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs
             
-            
-    # solution = {v.VarName: v for v in model.getVars()}
-    # solution_vals = {var.VarName: var.X for var in model.getVars()}
-
-    # return solution, new_obj_value, solution_vals
-
-
-
-
-
-
-def get_current_s_solution(model):
-    # Extracts inventory levels
-    return {v.VarName: v.x for v in model.getVars() if v.VarName.startswith('s')}
-
-def get_current_alpha_solution(model):
-    # Extracts spot market transaction levels
-    return {v.VarName: v.x for v in model.getVars() if v.VarName.startswith('alpha')}
-
-
-def save_solution_to_file(model, INSTANCE, HORIZON, SOLUTION_METHOD):
-    # All arc information
-    # Both node, and vessel_class, vessel information
-    pass
-  
 
 def main():
     RUNNING_MIRPSO = False
@@ -1761,15 +1655,15 @@ def main():
     RUNNING_RH = False
     RUNNING_WPS_AND_RH = False
     
-    # RUNNING_MIRPSO = True
-    # RUNNING_WEIGHTED_PS = True
+    RUNNING_MIRPSO = True
+    RUNNING_WEIGHTED_PS = True
     # RUNNING_NORMAL_PS = True
     # RUNNING_RH = True
-    RUNNING_WPS_AND_RH = True
+    # RUNNING_WPS_AND_RH = True
     
     # GROUP 2
-    # INSTANCE = 'LR1_DR02_VC01_V6a'
-    INSTANCE = 'LR1_DR02_VC02_V6a'
+    INSTANCE = 'LR1_DR02_VC01_V6a'
+    # INSTANCE = 'LR1_DR02_VC02_V6a'
     # INSTANCE = 'LR1_DR02_VC03_V7a'
     # INSTANCE = 'LR1_DR02_VC03_V8a'
     # INSTANCE = 'LR1_DR02_VC04_V8a'
@@ -1801,14 +1695,9 @@ def main():
     
     model, costs, P, costs_namekey = build_model(vessels = vessels, regularNodes=regularNodes, ports=ports, TIME_PERIOD_RANGE = TIME_PERIOD_RANGE, sourceNode = sourceNode, sinkNode = sinkNode, vessel_classes = VESSEL_CLASSES, origin_node_arcs = origin_node_arcs, destination_node_arcs=destination_node_arcs, vessel_class_arcs=vessel_class_arcs, NODE_DICT = NODE_DICT, vessel_class_capacities=vessel_class_capacities)
     
- 
-    
-    
     model.write("Group2.lp")  # Export model to an LP file
     
-
-    
-    ps_data = {'model': model, 'costs': costs, 'P':P, 'regularNodes': regularNodes, 'vessels': vessels, 'vessel_arcs': vessel_arcs, 'costs_namekey':costs_namekey}
+    ps_data = {'model': model, 'costs': costs, 'P':P, 'regularNodes': regularNodes, 'vessels': vessels, 'vessel_arcs': vessel_arcs, 'costs_namekey':costs_namekey, 'vessel_class_arcs': vessel_class_arcs}
     
     # Take the time of solving the model
     start_time = time.time()
@@ -1822,17 +1711,18 @@ def main():
         
         agent.main_model.load_state_dict(torch.load('main_model_8apr_nt3_50_1664.pth'))
         agent.target_model.load_state_dict(torch.load('target_model_8_apr_nt3_50_1664.pth'))
-        solution, new_obj_value, solution_vals = proximity_search_using_agent(ps_data, agent, env, vessel_class_arcs)
+        current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs = proximity_search_using_agent(ps_data, agent, env, vessel_class_arcs, RUNNING_WPS_AND_RH, None, RUNNING_MIRPSO)
+        
         
     elif RUNNING_NORMAL_PS:
         # Perform the proximity search using the initial solution
-        improved_solution, obj_value = perform_proximity_search(ps_data)
+        current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs = perform_proximity_search(ps_data)
         
     elif RUNNING_RH:
         # Define your window size and execute rolling horizon optimization
         window_size = 60  # example window size
         step_size = 30
-        rolling_horizon_optimization(model, HORIZON, window_size, step_size, ps_data, None, None, None, RUNNING_WPS_AND_RH, proximity_search_using_agent)
+        current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs = rolling_horizon_optimization(model, HORIZON, window_size, step_size, ps_data, None, None, None, RUNNING_WPS_AND_RH, proximity_search_using_agent)
         # Print objective function value
         print(f'Objective function value: {model.objVal}')
         
@@ -1849,24 +1739,15 @@ def main():
         
         window_size = 60  # example window size
         step_size = 30
-        rolling_horizon_optimization(model, HORIZON, window_size, step_size, ps_data, agent, env, vessel_class_arcs, RUNNING_WPS_AND_RH, proximity_search_using_agent)
+        current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs = rolling_horizon_optimization(model, HORIZON, window_size, step_size, ps_data, agent, env, vessel_class_arcs, RUNNING_WPS_AND_RH, proximity_search_using_agent)
         
-        # solution, new_obj_value = proximity_search_using_agent(ps_data, agent, env, vessel_class_arcs)
-        
-        pass
     else:
-        solve_model(model, costs, P, RUNNING_MIRPSO, INSTANCE, HORIZON)
-        
+        current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs = solve_model(model, costs, P, RUNNING_MIRPSO, INSTANCE, HORIZON, ps_data)
         
     end_time = time.time()
     elapsed_time = end_time - start_time
-    print(f'Elapsed time: {elapsed_time}')
     
-    # model.optimize()
-    #Perform proximity search with simulated annealing
-    #improved_solution, obj_value = perform_proximity_search_with_simulated_annealing(ps_data)
-    # print("Final solution:", improved_solution)
-    # print("Objective value:", model.objVal)
+    save_solution(INSTANCE, HORIZON, model, elapsed_time, costs, P, RUNNING_MIRPSO, current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs)
     
-    
-if __name__ == "__main__":    main()
+if __name__ == "__main__":
+    main()
