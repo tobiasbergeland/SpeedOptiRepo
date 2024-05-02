@@ -462,7 +462,7 @@ def populate_all_info(source_arcs_info, vessels, ports, source_times, full_dista
         travel_time_matrix = full_travel_time_matrices[vessel.vessel_class]
         
         if MIRPSO:
-            arcs_for_current_vessel = [create_arcs_for_node_MIRPSO(node=node, vessels=vessels, all_port_numbers = [port.number for port in ports], source_times=source_times, full_distance_matrix_nm = full_distance_matrix_nm, MAX_SPEED=vessel.max_speed, MIN_SPEED=vessel.min_speed, ports=ports, NUM_TIME_PERIODS=NUM_TIME_PERIODS, port_dict=port_dict, FUEL_PRICE=FUEL_PRICE) for node in NODE_DICT.values()]
+            arcs_for_current_vessel = [create_arcs_for_node_MIRPSO(node=node, vessel=vessel, all_port_numbers = [port.number for port in ports], source_times=source_times, full_distance_matrix_nm = full_distance_matrix_nm, MAX_SPEED=vessel.max_speed, MIN_SPEED=vessel.min_speed, ports=ports, NUM_TIME_PERIODS=NUM_TIME_PERIODS, port_dict=port_dict, FUEL_PRICE=FUEL_PRICE) for node in NODE_DICT.values()]
         else:
             # For each node, create the outgoing arcs
             arcs_for_current_vessel = [create_arcs_for_node(node, vessel, [port.number for port in ports], full_distance_matrix_km, ports, NUM_TIME_PERIODS, travel_cost_matrix, travel_time_matrix, port_dict) for node in NODE_DICT.values()]
@@ -511,39 +511,39 @@ def create_arcs_for_node(node, vessel, all_port_numbers, full_distance_matrix_km
 
     return node_arcs
 
-def create_arcs_for_node_MIRPSO(node, vessels, all_port_numbers, source_times, full_distance_matrix_nm,  MAX_SPEED, MIN_SPEED, ports, NUM_TIME_PERIODS, port_dict, FUEL_PRICE):
+def create_arcs_for_node_MIRPSO(node, vessel, all_port_numbers, source_times, full_distance_matrix_nm,  MAX_SPEED, MIN_SPEED, ports, NUM_TIME_PERIODS, port_dict, FUEL_PRICE):
     node_arcs = []
     
-    for vessel in vessels:
-        if node.port.number in [0, len(ports) + 1]:
-            continue
-        start_time = source_times[vessel]
-        if node.time < start_time:
-            continue
+    # for vessel in vessels:
+    if node.port.number in [0, len(ports) + 1]:
+        return node_arcs
+    start_time = source_times[vessel]
+    if node.time < start_time:
+        return node_arcs
 
-        for destination_port_number in all_port_numbers:
-            if destination_port_number == node.port.number:
-                # Create waiting_arc
-                arc_info_matrix = create_arc_info(speed=0, minimum_timesteps=1, departure=node.time, origin_port=node.port, destination_port=node.port, lowest_speed=MIN_SPEED, distance_to_port=0, vessel=vessel, is_waiting_arc=True, NUM_TIME_PERIODS=NUM_TIME_PERIODS, FUEL_PRICE=FUEL_PRICE)
-                node_arcs.append(arc_info_matrix)
-            else:
-                destination_port = port_dict[destination_port_number]
-                origin_is_loading = node.port.isLoadingPort == 1
-                destination_is_loading = destination_port.isLoadingPort == 1
-                # If both are loading or both are discharging, skip
-                if origin_is_loading == destination_is_loading:
-                    continue
-                # Only create the arcs from a loading to a discharging port and vice versa
-                distance_nm = full_distance_matrix_nm[node.port.number - 1][destination_port_number - 1]
-                minimum_timesteps, speed = calculate_minimum_timesteps_and_speed(distance_nm=distance_nm, MAX_SPEED=MAX_SPEED, MIN_SPEED=MIN_SPEED)
-                arrival_time = node.time + minimum_timesteps
-                if arrival_time < source_times[vessel] or arrival_time > NUM_TIME_PERIODS:
-                    continue
-                
-                arc_info_matrix = create_arc_info(speed=speed, minimum_timesteps=minimum_timesteps, departure=node.time, origin_port=node.port, destination_port=destination_port, lowest_speed=MIN_SPEED, distance_to_port=distance_nm, vessel=vessel, is_waiting_arc=False, NUM_TIME_PERIODS = NUM_TIME_PERIODS, FUEL_PRICE=FUEL_PRICE)
-                for arc in arc_info_matrix:
-                    if arc:
-                        node_arcs.append(arc)
+    for destination_port_number in all_port_numbers:
+        if destination_port_number == node.port.number:
+            # Create waiting_arc
+            arc_info_matrix = create_arc_info(speed=0, minimum_timesteps=1, departure=node.time, origin_port=node.port, destination_port=node.port, lowest_speed=MIN_SPEED, distance_to_port=0, vessel=vessel, is_waiting_arc=True, NUM_TIME_PERIODS=NUM_TIME_PERIODS, FUEL_PRICE=FUEL_PRICE)
+            node_arcs.append(arc_info_matrix)
+        else:
+            destination_port = port_dict[destination_port_number]
+            origin_is_loading = node.port.isLoadingPort == 1
+            destination_is_loading = destination_port.isLoadingPort == 1
+            # If both are loading or both are discharging, skip
+            if origin_is_loading == destination_is_loading:
+                continue
+            # Only create the arcs from a loading to a discharging port and vice versa
+            distance_nm = full_distance_matrix_nm[node.port.number - 1][destination_port_number - 1]
+            minimum_timesteps, speed = calculate_minimum_timesteps_and_speed(distance_nm=distance_nm, MAX_SPEED=MAX_SPEED, MIN_SPEED=MIN_SPEED)
+            arrival_time = node.time + minimum_timesteps
+            if arrival_time < source_times[vessel] or arrival_time > NUM_TIME_PERIODS:
+                continue
+            
+            arc_info_matrix = create_arc_info(speed=speed, minimum_timesteps=minimum_timesteps, departure=node.time, origin_port=node.port, destination_port=destination_port, lowest_speed=MIN_SPEED, distance_to_port=distance_nm, vessel=vessel, is_waiting_arc=False, NUM_TIME_PERIODS = NUM_TIME_PERIODS, FUEL_PRICE=FUEL_PRICE)
+            for arc in arc_info_matrix:
+                if arc:
+                    node_arcs.append(arc)
     return node_arcs
 
 def calc_cost(fuel_consumption, FUEL_PRICE):
@@ -822,8 +822,6 @@ def build_model(vessels, regularNodes, ports, TIME_PERIOD_RANGE, sourceNode, sin
     interregional_arcs = []
     for vc in vessel_classes:
         for arc in vessel_class_arcs[vc]:
-            if arc.origin_node == sourceNode:
-                print('here')
             if not arc.is_waiting_arc and not arc.origin_node==sourceNode:
                 interregional_arcs.append(arc)
     
@@ -1012,8 +1010,6 @@ def build_problem(INSTANCE, RUNNING_MIRPSO):
     NUM_TIME_PERIODS = metadata['numPeriods']
     NUM_TIME_PERIODS = 120
     TIME_PERIOD_RANGE = list(range(0, NUM_TIME_PERIODS))
-    # MAX_SPEED = 19
-    # MIN_SPEED = 13
     FUEL_PRICE = 500
     ORIGINAL_NUM_PORTS = len(ports)
     
@@ -1202,45 +1198,53 @@ def evaluate_solution_with_original_objective(model, ps_data, print_info, has_be
     if print_info or has_been_infeasible:
         print('New objective value:', new_obj_value)
     return new_obj_value
+    
 
 
-def update_weights_based_on_action(weights, actions, active_arcs, active_arcs_chosen_by_agent, RUNNING_MIRPSO):
-    if RUNNING_MIRPSO:
-        for arc in active_arcs_chosen_by_agent:
-            origin_node = arc.origin_node
-            destination_node = arc.destination_node
-            origin_port_number = arc.origin_node.port.number
-            destination_port_number = arc.destination_node.port.number
-            for varname, w in weights.items():
-                origin_port, origin_time, destination_port, destination_time, vc = key_to_node_info(varname_to_key(varname))
-                
-                if f'[{origin_node},{destination_port_number}]' in varname:
-                    weights[varname] = 1
-                else:
-                    weights[varname] = 0
-    else:
-        for vessel, action in actions.items():
-            arc = action[3]
-            varname = convert_key_to_varname((arc.tuple, arc.vessel_class))
-            if arc in active_arcs_chosen_by_agent:
-                weights[varname] = 1
-            else:
-                weights[varname] = 0
+def update_weights_based_on_action(weights, active_arcs_chosen_by_agent):
+    
+    for arc in active_arcs_chosen_by_agent:
+            # origin_node_agent = arc.origin_node
+            # destination_port_number_agent = arc.destination_node.port.number
+            varname_agent = convert_key_to_varname((arc.tuple, arc.vessel_class))
+            weights[varname_agent] = 1
+    
+    
+    # if RUNNING_MIRPSO:
+    #     for arc in active_arcs_chosen_by_agent:
+    #         origin_node_agent = arc.origin_node
+    #         destination_port_number_agent = arc.destination_node.port.number
+    #         varname_agent = convert_key_to_varname((arc.tuple, arc.vessel_class))
+    #         weights[varname_agent] = 1
+            
+            
+    #         for varname, w in weights.items():
+    #             key = varname_to_key(varname)
+    #             origin_port, origin_time, destination_port, destination_time, vc = key_to_node_info(key)
+    #             origin_node = NODE_DICT[(origin_port, origin_time)]
+    #             if origin_node_agent == origin_node and destination_port_number_agent == destination_port and arc.vessel_class == vc:
+    #                 weights[varname] = 1
+    # else:
+    #     for vessel, action in actions.items():
+    #         arc = action[3]
+    #         varname = convert_key_to_varname((arc.tuple, arc.vessel_class))
+    #         if arc in active_arcs_chosen_by_agent:
+    #             weights[varname] = 1
+    #         else:
+    #             weights[varname] = 0
    
     return weights
             
         
         
 def perform_proximity_search(ps_data):  # Add other parameters as needed
-    '''return current_solution_vars, current_best_obj, current_solution_vals here as well '''
+    
     model = ps_data['model']
     vessel_class_arcs = ps_data['vessel_class_arcs']
     model.setParam(gp.GRB.Param.SolutionLimit, 1)
     model.setParam(gp.GRB.Param.OutputFlag, 0)
     model.optimize()
     original_objective_function = model.getObjective()
-    
-    
     current_solution_vals_x = get_current_x_solution_vals(model)
     current_solution_vars_x = {v.VarName: v for v in model.getVars() if v.VarName.startswith('x')}
     active_arcs = find_corresponding_arcs(current_solution_vals_x, vessel_class_arcs)
@@ -1248,8 +1252,9 @@ def perform_proximity_search(ps_data):  # Add other parameters as needed
     current_solution_s = get_current_s_solution_vals(model)
     current_best_obj = model.getObjective().getValue()
     
-    initial_percentage_decrease = 0.0005
-    cutoff_value = (initial_percentage_decrease * current_best_obj)
+    PERCENTAGE_DECREASE = 0.005
+    INFEASIBILITY_MULTIPLIER = 0.1
+    cutoff_value = (PERCENTAGE_DECREASE * current_best_obj)
     
     y = model.addVars(current_solution_vars_x.keys(), vtype=GRB.BINARY, name="y")
     i = 0
@@ -1260,7 +1265,7 @@ def perform_proximity_search(ps_data):  # Add other parameters as needed
         if has_been_infeasible:
             model.setParam()
         i += 1
-        print_info = (i % 100 == 0)
+        print_info = (i % 10 == 0)
             
         if print_info or has_been_infeasible:
             print(f'Proximity Search Iteration {i}')
@@ -1269,7 +1274,7 @@ def perform_proximity_search(ps_data):  # Add other parameters as needed
         model.setObjective(original_objective_function, GRB.MINIMIZE)
         model.update()
 
-        cutoff_value = (initial_percentage_decrease * current_best_obj)
+        cutoff_value = (PERCENTAGE_DECREASE * current_best_obj)
         add_cutoff_constraint(model, current_best_obj, cutoff_value)
 
         update_objective_to_minimize_hamming_distance(model, y, current_solution_vars_x, current_solution_vals_x, None)
@@ -1296,15 +1301,68 @@ def perform_proximity_search(ps_data):  # Add other parameters as needed
             
         elif model.Status == GRB.TIME_LIMIT or model.Status == GRB.INFEASIBLE:
             has_been_infeasible = True
+            PERCENTAGE_DECREASE *= INFEASIBILITY_MULTIPLIER
             # Return the best solution found. Time limit reached.
             print(f'Best objective value is {current_best_obj}.')
             # return current_solution, current_best_obj, model
             return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs
-
-
-# def create_state_from_variables(current_solution_x, current_solution_alpha, current_solution_s):
+        
+def find_corresponding_action_MIRPSO(possible_actions, dport_chosen_by_agent, active_arcs, vessel, legal_actions, traveling_arcs_taken, waiting_arcs_taken):
+    vc = vessel.vessel_class
+    # If waiting is correct, traveling arcs taken will be empty for the next vessel, meaning there is a possibility of choosing the wrong arc for the next vessel.
+    # Issue if two or more vessels are at the same port at the same time and one or more of them are waiting but not all. 
     
-
+    for action in possible_actions:
+        possible_arc = action[3]
+        for arc in active_arcs[vc]:
+            if is_similar_arc(arc, possible_arc) and arc.is_waiting_arc == False:
+                if any(is_similar_arc(arc, taken_arc) for taken_arc in traveling_arcs_taken[vc]):
+                    print('Active, but already taken by another vessel')
+                    continue
+                return action, True
+            # if arc.origin_node == possible_arc.origin_node and arc.destination_node == possible_arc.destination_node and arc.vessel_class == vc and arc.is_waiting_arc == False:
+            #     if arc in traveling_arcs_taken[vc]:
+                    # continue
+                    
+    a = 2     
+    # Sligthly wrong to do it like this, but now trvaleing arcs are forced to be chosen before waiting, ensuring all traveling arcs are taken. Fewer weights will be set to one, but it is not a big issue.
+    for action in legal_actions:
+        possible_arc = action[3]
+        for arc in active_arcs[vc]:
+            if is_similar_arc(arc, possible_arc) and arc.is_waiting_arc == False:
+                if any(is_similar_arc(arc, taken_arc) for taken_arc in traveling_arcs_taken[vc]):
+                    print('Active, but already taken by another vessel')
+                    continue
+                return action, False
+    
+    a = 1
+    for action in possible_actions:
+        possible_arc = action[3]
+        for arc in active_arcs[vc]:
+            if arc.is_waiting_arc:
+                if arc.origin_node == possible_arc.origin_node and arc.destination_node == possible_arc.destination_node and arc.vessel_class == vc:
+                    return action, True
+        
+    
+            
+            # if arc.origin_node == possible_arc.origin_node and arc.vessel_class == vc and arc.is_waiting_arc == False and arc.destination_node == possible_arc.destination_node:
+            #     if arc in traveling_arcs_taken[vc]:
+            #         continue
+     
+    a = 3       
+    for action in legal_actions:
+        possible_arc = action[3]
+        if possible_arc.is_waiting_arc:
+            for arc in active_arcs[vc]:
+                if arc.is_waiting_arc:
+                    if arc.origin_node == possible_arc.origin_node and arc.vessel_class == vc:
+                        return action, False
+    
+    # If no arcs were 
+                    
+    return None, False
+        
+    
 
 
 def find_corresponding_action(action, active_arcs, vessel, active_arcs_chosen_by_agent):
@@ -1321,7 +1379,6 @@ def find_corresponding_action(action, active_arcs, vessel, active_arcs_chosen_by
             # A potential arc with same vessel class, origin and destination port was found
             active_arcs_chosen_by_agent.append(agent_arc)
             return action
-    
     
     # If no corresponding arc was found, we have to make the action based on the arcs that are active
     for arc in potential_active_arcs:
@@ -1346,17 +1403,24 @@ def find_corresponding_action(action, active_arcs, vessel, active_arcs_chosen_by
     
     return None
 
-def init_weights(active_arcs, vessel_classes, current_solution_x):
+def is_similar_arc(arc1, arc2):
+    return (arc1.origin_node == arc2.origin_node and
+            arc1.destination_node == arc2.destination_node and
+            arc1.vessel_class == arc2.vessel_class)
+
+
+def init_weights(active_arcs, vessel_classes, current_solution_x, vessel_class_arcs):
     weights = {}
-    for varname in current_solution_x.keys():
-        weights[varname] = 0
+    for vc in vessel_classes:
+        for arc in vessel_class_arcs[vc]:
+            varname = convert_key_to_varname((arc.tuple, vc))
+            weights[varname] = 0
     return weights
                 
-def calculate_weights(current_solution_x, current_solution_alpha, current_solution_s, active_arcs, agent, env, vessel_classes, RUNNING_MIRPSO):
-    weights = init_weights(active_arcs, vessel_classes, current_solution_x)
+def calculate_weights(current_solution_x, current_solution_alpha, current_solution_s, active_arcs, agent, env, vessel_classes, RUNNING_MIRPSO, NODE_DICT, vessel_class_arcs):
+    weights = init_weights(active_arcs, vessel_classes, current_solution_x, vessel_class_arcs)
         
     active_arcs_chosen_by_agent = []
-    
     state = env.reset()
     experience_path = []
     decision_basis_states = {vessel.number: env.custom_deep_copy_of_state(state) for vessel in state['vessels']}
@@ -1364,8 +1428,7 @@ def calculate_weights(current_solution_x, current_solution_alpha, current_soluti
     for vessel, action in actions.items():
         arc = action[3]
         active_arcs_chosen_by_agent.append(arc)
-        
-    weights = update_weights_based_on_action(weights, actions, active_arcs, active_arcs_chosen_by_agent, RUNNING_MIRPSO)
+    weights = update_weights_based_on_action(weights, active_arcs_chosen_by_agent)
     
     state = env.step(state=state, actions=actions, experience_path=experience_path, decision_basis_states=decision_basis_states)
     done = False
@@ -1378,7 +1441,6 @@ def calculate_weights(current_solution_x, current_solution_alpha, current_soluti
         for port in env.PORTS:
             var_name = f's[{port.number},{time}]'
             port.inventory_level = current_solution_s[var_name]
-        
         state = env.produce(state)
         
         if state['time'] == env.TIME_PERIOD_RANGE[-1]:
@@ -1390,37 +1452,58 @@ def calculate_weights(current_solution_x, current_solution_alpha, current_soluti
         available_vessels = env.find_available_vessels(state=state)
         
         if available_vessels:
+            traveling_arcs_taken = {vc : [] for vc in vessel_classes}
+            waiting_arcs_taken = {vc : [] for vc in vessel_classes}
             actions = {}
             actions_to_make = {}
-            
             active_arcs_chosen_by_agent = []
-            
             decision_basis_states = {}
             decision_basis_state = env.custom_deep_copy_of_state(state)
+            
             for vessel in available_vessels:
                 corresponding_vessel = decision_basis_state['vessel_dict'][vessel.number]
                 decision_basis_states[corresponding_vessel['number']] = decision_basis_state
-                legal_actions = env.sim_find_legal_actions_for_vessel(state=decision_basis_state, vessel=corresponding_vessel, queued_actions=actions_to_make)
+                legal_actions = env.sim_find_legal_actions_for_vessel(state=decision_basis_state, vessel=corresponding_vessel, queued_actions=actions_to_make, RUNNING_WPS = True)
                 
-                action = agent.select_action_for_ps(state=copy.deepcopy(decision_basis_state), legal_actions=legal_actions, env=env, vessel_simp=corresponding_vessel)
-                # Now I must find the corresponding arc that should be taken, and not the action that the agent selected
-                actions[vessel] = action
-                
-                action_chosen_by_model = find_corresponding_action(action, active_arcs, vessel, active_arcs_chosen_by_agent)
-                model_arc = action_chosen_by_model[3]
-                actions_to_make[vessel] = action_chosen_by_model
-                
-                decision_basis_state = env.update_vessel_in_transition_and_inv_for_state(state = decision_basis_state, vessel = corresponding_vessel, destination_port = model_arc.destination_node.port, destination_time = model_arc.destination_node.time, origin_port = model_arc.origin_node.port, quantity = action_chosen_by_model[2], operation_type = action_chosen_by_model[1])
-                                
+                if RUNNING_MIRPSO:
+                    possible_actions, dport_chosen_by_agent = agent.select_action_for_ps(state=copy.deepcopy(decision_basis_state), legal_actions=legal_actions, env=env, vessel_simp=corresponding_vessel, RUNNING_MIRPSO=RUNNING_MIRPSO)
+                else:
+                    action = agent.select_action_for_ps(state=copy.deepcopy(decision_basis_state), legal_actions=legal_actions, env=env, vessel_simp=corresponding_vessel, RUNNING_MIRPSO=RUNNING_MIRPSO)
                     
-                # For the arcs not chosen by the agent, set the weights to 0
-               
-                # _, _, _, _arc = action
-                # actions[vessel] = action
-            
-            
+                if action is None:
+                    print('Action is None')
+                # Now I must find the corresponding arc that should be taken, and not the action that the agent selected
+                if RUNNING_MIRPSO:
+                    # If one of the possible actions is in the active arcs, we should choose this action
+                    correct_action, correct_choice_by_agent = find_corresponding_action_MIRPSO(possible_actions, dport_chosen_by_agent, active_arcs, vessel, legal_actions, traveling_arcs_taken, waiting_arcs_taken)
+                    correct_arc = correct_action[3]
+                    if not correct_arc.is_waiting_arc:
+                        traveling_arcs_taken[vessel.vessel_class].append(correct_arc)
+                    else:
+                        waiting_arcs_taken[vessel.vessel_class].append(correct_arc)
+                    if correct_choice_by_agent:
+                        active_arcs_chosen_by_agent.append(correct_arc)
+                        
+                    actions_to_make[vessel] = correct_action
+                    
+                    decision_basis_state = env.update_vessel_in_transition_and_inv_for_state(state = decision_basis_state, vessel = corresponding_vessel, destination_port = correct_arc.destination_node.port, destination_time = correct_arc.destination_node.time, origin_port = correct_arc.origin_node.port, quantity = correct_action[2], operation_type = correct_action[1])
+                    
+                else:
+                    actions[vessel] = action
+                    action_chosen_by_model = find_corresponding_action(action, active_arcs, vessel, active_arcs_chosen_by_agent)
+                    model_arc = action_chosen_by_model[3]
+                    actions_to_make[vessel] = action_chosen_by_model
+                    
+                    decision_basis_state = env.update_vessel_in_transition_and_inv_for_state(state = decision_basis_state, vessel = corresponding_vessel, destination_port = model_arc.destination_node.port, destination_time = model_arc.destination_node.time, origin_port = model_arc.origin_node.port, quantity = action_chosen_by_model[2], operation_type = action_chosen_by_model[1])
+                            
+                    for vessel, action in actions.items():
+                        arc = action[3]
+                        active_arcs_chosen_by_agent.append(arc)
+                         
             # Now we have to update the weights based on the actions taken
-            weights = update_weights_based_on_action(weights, actions, active_arcs, active_arcs_chosen_by_agent, RUNNING_MIRPSO=False)
+            weights = update_weights_based_on_action(weights, active_arcs_chosen_by_agent)
+            
+            
             # Perform the operations based on the active arcs, and not the actions taken by the agent
             # for action in legal_actions:
             #     arc = action[3]
@@ -1435,6 +1518,11 @@ def calculate_weights(current_solution_x, current_solution_alpha, current_soluti
         
         state = env.consumption(state)
         
+    # # print the weights that are not 0
+    # for varname, weight in weights.items():
+    #     if weight != 0:
+    #         print(f'{varname}: {weight}')
+
     return weights
         
 def solve_model(model, costs, P, RUNNING_MIRPSO, INSTANCE, HORIZON, ps_data):
@@ -1550,19 +1638,30 @@ def save_solution(INSTANCE, HORIZON, model, elapsed_time, costs, P, RUNNING_MIRP
     file.close()
 
 
-def proximity_search_using_agent(ps_data, agent, env, vessel_class_arcs, RUNNING_WPS_AND_RH, window_end, RUNNING_MIRPSO):
+def proximity_search_using_agent(ps_data, agent, env, RUNNING_WPS_AND_RH, window_end, RUNNING_MIRPSO):
+    WEIGHT_UPDATE_FREQUENCY = 10
+    PERCENTAGE_DECREASE = 0.005
+    INFEASIBILITY_MULTIPLIER = 0.1
     cutoff_reductions = 0
     model = ps_data['model']
-    model.setParam(gp.GRB.Param.SolutionLimit, 1)
-    model.setParam(gp.GRB.Param.OutputFlag, 0)
-    model.optimize()
-    
-    if model.Status == GRB.INFEASIBLE:
-        model.computeIIS()
-        model.write('infeasible_model.ilp')
+    NODE_DICT = ps_data['node_dict']
+    vessel_class_arcs = ps_data['vessel_class_arcs']
     original_objective_function = model.getObjective()
+    model.setParam(gp.GRB.Param.SolutionLimit, 1)
     
-    # Current solution is a dict with the varname and the actual values only.
+    experience_path, port_inventory_dict, vessel_inventory_dict = evaluate_agent(env, agent)
+    active_X_keys, S_values, alpha_values = convert_path_to_MIRPSO_solution(env, experience_path, port_inventory_dict)
+    current_solution_vals_x, model, warm_start_sol = warm_start_model(model, active_X_keys, S_values, alpha_values)
+    current_solution_vars_x = {v.VarName: v for v in model.getVars() if v.VarName.startswith('x')}
+    # active_arcs = find_corresponding_arcs(current_solution_vals_x, vessel_class_arcs)
+    y = model.addVars(current_solution_vars_x.keys(), vtype=GRB.BINARY, name="y")
+    update_objective_to_minimize_hamming_distance(model, y, current_solution_vars_x, current_solution_vals_x, None)
+    model.setParam(gp.GRB.Param.SolutionLimit, 1)
+    model.setParam(gp.GRB.Param.TimeLimit, 300)
+    model.optimize()
+    model.setParam(gp.GRB.Param.OutputFlag, 0)
+    
+    current_best_obj = evaluate_solution_with_original_objective(model, ps_data, True, False)
     current_solution_vals_x = get_current_x_solution_vals(model)
     current_solution_vars_x = {v.VarName: v for v in model.getVars() if v.VarName.startswith('x')}
     active_arcs = find_corresponding_arcs(current_solution_vals_x, vessel_class_arcs)
@@ -1570,14 +1669,18 @@ def proximity_search_using_agent(ps_data, agent, env, vessel_class_arcs, RUNNING
     current_solution_s = get_current_s_solution_vals(model)
     vessel_classes = vessel_class_arcs.keys()
     
-    weights = calculate_weights(current_solution_vals_x, current_solution_alpha, current_solution_s, active_arcs, agent, env, vessel_classes, RUNNING_MIRPSO)
     
-    current_best_obj = model.getObjective().getValue()
+    'Calculate the weights based on the initial solution'
+    weights = calculate_weights(current_solution_vals_x, current_solution_alpha, current_solution_s, active_arcs, agent, env, vessel_classes, RUNNING_MIRPSO, NODE_DICT, vessel_class_arcs)
     
-    initial_percentage_decrease = 0.005
-    cutoff_value = (initial_percentage_decrease * current_best_obj)
+    # model.setObjective(original_objective_function, GRB.MINIMIZE)
     
-    y = model.addVars(current_solution_vars_x.keys(), vtype=GRB.BINARY, name="y")
+    # current_best_obj = model.getObjective().getValue()
+    
+    
+    # cutoff_value = (PERCENTAGE_DECREASE * current_best_obj)
+    
+    # y = model.addVars(current_solution_vars_x.keys(), vtype=GRB.BINARY, name="y")
     
     has_been_infeasible = False
     i = 0
@@ -1586,16 +1689,17 @@ def proximity_search_using_agent(ps_data, agent, env, vessel_class_arcs, RUNNING
         if has_been_infeasible:
             model.setParam(gp.GRB.Param.OutputFlag, 1)
         i += 1
-        print_info = (i % 100 == 0)
-            
-        if print_info or has_been_infeasible:
+        
+        PRINT_INFO = (i % 1 == 0)
+        CALCULATE_WEIGHTS = (i % WEIGHT_UPDATE_FREQUENCY == 0)
+        if PRINT_INFO or has_been_infeasible:
             print(f'Proximity Search Iteration {i}')
         
         # Set the objective (back) to the original objective function
         model.setObjective(original_objective_function, GRB.MINIMIZE)
         model.update()
 
-        cutoff_value = (initial_percentage_decrease * current_best_obj)
+        cutoff_value = (PERCENTAGE_DECREASE * current_best_obj)
         add_cutoff_constraint(model, current_best_obj, cutoff_value)
         
         update_objective_to_minimize_hamming_distance(model, y, current_solution_vars_x, current_solution_vals_x, weights)
@@ -1605,15 +1709,15 @@ def proximity_search_using_agent(ps_data, agent, env, vessel_class_arcs, RUNNING
 
         # Check if a new solution is found with the lowest amount of changes to the structure as possible
         if model.Status ==  GRB.SOLUTION_LIMIT or model.Status == GRB.OPTIMAL:
-            if print_info or has_been_infeasible:
+            if PRINT_INFO or has_been_infeasible:
                 print("Hamming Distance from previous solution:", model.objVal)
             
             if RUNNING_WPS_AND_RH:
                 new_obj_value = evaluate_solution_with_original_objective_for_RH(model, ps_data, window_end)
             else:
-                new_obj_value = evaluate_solution_with_original_objective(model, ps_data, print_info, has_been_infeasible)
+                new_obj_value = evaluate_solution_with_original_objective(model, ps_data, PRINT_INFO, has_been_infeasible)
                 
-            if print_info or has_been_infeasible:            
+            if PRINT_INFO or has_been_infeasible:            
                 print(f'Previous objective value was {current_best_obj}. New objective value: {new_obj_value}')
 
             current_best_obj = new_obj_value
@@ -1623,8 +1727,8 @@ def proximity_search_using_agent(ps_data, agent, env, vessel_class_arcs, RUNNING
             current_solution_alpha = get_current_alpha_solution_vals(model)
             current_solution_s = get_current_s_solution_vals(model)
             vessel_classes = vessel_class_arcs.keys()
-    
-            weights = calculate_weights(current_solution_vals_x, current_solution_alpha, current_solution_s, active_arcs, agent, env, vessel_classes)
+            if CALCULATE_WEIGHTS:
+                weights = calculate_weights(current_solution_vals_x, current_solution_alpha, current_solution_s, active_arcs, agent, env, vessel_classes, RUNNING_MIRPSO, NODE_DICT, vessel_class_arcs)
             
         elif model.Status == GRB.TIME_LIMIT:
             # Return the best solution found. Time limit reached.
@@ -1638,7 +1742,8 @@ def proximity_search_using_agent(ps_data, agent, env, vessel_class_arcs, RUNNING
         elif model.Status == GRB.INFEASIBLE:
             has_been_infeasible = True
             # Reduce the cutoff value and try again
-            initial_percentage_decrease *= 0.1
+            PERCENTAGE_DECREASE *= INFEASIBILITY_MULTIPLIER
+            
             cutoff_reductions += 1
             if cutoff_reductions > 3 or cutoff_value < 1:
                 for constr in model.getConstrs():  # Iterate over all constraints in the model
@@ -1655,7 +1760,7 @@ def main():
     RUNNING_RH = False
     RUNNING_WPS_AND_RH = False
     
-    RUNNING_MIRPSO = True
+    # RUNNING_MIRPSO = True
     RUNNING_WEIGHTED_PS = True
     # RUNNING_NORMAL_PS = True
     # RUNNING_RH = True
@@ -1697,7 +1802,7 @@ def main():
     
     model.write("Group2.lp")  # Export model to an LP file
     
-    ps_data = {'model': model, 'costs': costs, 'P':P, 'regularNodes': regularNodes, 'vessels': vessels, 'vessel_arcs': vessel_arcs, 'costs_namekey':costs_namekey, 'vessel_class_arcs': vessel_class_arcs}
+    ps_data = {'model': model, 'costs': costs, 'P':P, 'regularNodes': regularNodes, 'vessels': vessels, 'vessel_arcs': vessel_arcs, 'costs_namekey':costs_namekey, 'vessel_class_arcs': vessel_class_arcs, 'node_dict': NODE_DICT}
     
     # Take the time of solving the model
     start_time = time.time()
@@ -1711,7 +1816,7 @@ def main():
         
         agent.main_model.load_state_dict(torch.load('main_model_8apr_nt3_50_1664.pth'))
         agent.target_model.load_state_dict(torch.load('target_model_8_apr_nt3_50_1664.pth'))
-        current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs = proximity_search_using_agent(ps_data, agent, env, vessel_class_arcs, RUNNING_WPS_AND_RH, None, RUNNING_MIRPSO)
+        current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs = proximity_search_using_agent(ps_data, agent, env, RUNNING_WPS_AND_RH, None, RUNNING_MIRPSO)
         
         
     elif RUNNING_NORMAL_PS:

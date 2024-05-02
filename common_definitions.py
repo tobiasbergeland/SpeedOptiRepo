@@ -265,8 +265,12 @@ class MIRPSOEnv():
         return legal_actions
     
     
-    def sim_find_legal_actions_for_vessel(self, state, vessel, queued_actions):
-        legal_arcs = self.sim_get_legal_arcs(state=state, vessel=vessel, special_sink_arcs=self.SPECIAL_SINK_ARCS, special_node_dict=self.SPECIAL_NODES_DICT, queued_actions=queued_actions)
+    def sim_find_legal_actions_for_vessel(self, state, vessel, queued_actions, RUNNING_WPS):
+        if RUNNING_WPS:
+            legal_arcs = self.sim_get_legal_arcs_for_ps(state=state, vessel=vessel, special_sink_arcs=self.SPECIAL_SINK_ARCS, special_node_dict=self.SPECIAL_NODES_DICT, queued_actions=queued_actions)
+        else:
+            legal_arcs = self.sim_get_legal_arcs(state=state, vessel=vessel, special_sink_arcs=self.SPECIAL_SINK_ARCS, special_node_dict=self.SPECIAL_NODES_DICT, queued_actions=queued_actions)
+            
         if not legal_arcs:
             print('No legal arcs found')
         
@@ -330,6 +334,52 @@ class MIRPSOEnv():
             if port['inventory'] + vessel['inventory'] <= port['capacity'] + port['rate']:
                 return True
         return False
+    
+    
+    def sim_get_legal_arcs_for_ps(self, state, vessel, special_sink_arcs, special_node_dict, queued_actions):
+            current_node_key = (vessel['position'], state['time'])
+            current_node = self.NODE_DICT[current_node_key]
+            
+            # Only one possibility form source
+            if current_node == self.SOURCE_NODE:
+                return [arc for arc in self.VESSEL_ARCS[vessel] if arc.origin_node == current_node]
+            
+            non_sim_vessel = self.VESSEL_DICT[vessel['number']]
+            # Pre-filter arcs that originate from the current node
+            return [arc for arc in self.VESSEL_ARCS[non_sim_vessel] if arc.origin_node == current_node]
+            
+            # Add the special sink arcs to the potential arcs if there are any
+            # potential_arcs += [arc for arc in special_sink_arcs[non_sim_vessel] if arc.origin_node == current_node]
+            # ports_that_must_be_avoided = self.ports_that_must_be_avoided(state)
+            # Remove current port form the ports that must be avoided
+            # if current_port['number'] in ports_that_must_be_avoided.keys():
+            #     del ports_that_must_be_avoided[current_port['number']]
+                
+            # Remove all arcs going to a port that must be avoided
+            # legal_arcs = [arc for arc in potential_arcs if arc.destination_node.port.number not in ports_that_must_be_avoided.keys() or arc.destination_node.time == self.TIME_PERIOD_RANGE[-1]+1]
+            
+            # if self.can_operate_at_port_now(vessel, current_port, queued_actions):
+            #     # Check if the vessel can wait at the current port
+            #     if self.waiting_arc_is_legal(current_port):
+            #         if not legal_arcs:
+            #             print('No legal arcs found')
+            #             legal_arcs = [random.choice(potential_arcs)]
+            #         return legal_arcs
+            #     else:
+            #         # Remove the waiting arc and return the rest
+            #         legal_arcs = [arc for arc in legal_arcs if not arc.is_waiting_arc]
+            #         if not legal_arcs:
+            #             print('No legal arcs found')
+            #             legal_arcs = [random.choice(potential_arcs)]
+            #         return legal_arcs
+            # else:
+            #     # Waiting arc is the only legal arc
+            #     legal_arcs = [arc for arc in legal_arcs if arc.is_waiting_arc]
+            #     if not legal_arcs:
+            #         print('No legal arcs found')
+            #         # Take one random action from the potential arcs
+            #         legal_arcs = [random.choice(potential_arcs)]
+            #     return legal_arcs
         
         
     def sim_get_legal_arcs(self, state, vessel, special_sink_arcs, special_node_dict, queued_actions):
@@ -337,14 +387,13 @@ class MIRPSOEnv():
             current_node = self.NODE_DICT[current_node_key]
             current_port = state['port_dict'][vessel['position']]
             
-           
             # Only one possibility form source
             if current_node == self.SOURCE_NODE:
                 return [arc for arc in self.VESSEL_ARCS[vessel] if arc.origin_node == current_node]
             
-
             non_sim_vessel = self.VESSEL_DICT[vessel['number']]
             # Pre-filter arcs that originate from the current node
+                    
             potential_arcs = [arc for arc in self.VESSEL_ARCS[non_sim_vessel] if arc.origin_node == current_node]
             # Remove the sink arc from the potential arcs
             potential_arcs = [arc for arc in potential_arcs if arc.destination_node.port != self.SINK_NODE.port]
@@ -383,34 +432,8 @@ class MIRPSOEnv():
                 return legal_arcs
             
             
-            # '''Waiting, Sink and arcs to legal ports are now in legal_arcs.'''
-            # if not self.waiting_arc_is_legal(current_port):
-            #     # Remove the waiting arcs and return the rest
-            #     legal_arcs = [arc for arc in legal_arcs if not arc.is_waiting_arc]
-            #     if len(legal_arcs) > 1:
-            #         # We know that there is at least one legal arc in addition to the waiting arc. Remove the sink arc
-            #         legal_arcs = [arc for arc in legal_arcs if arc.destination_node.port != self.SINK_NODE.port]
-            #     if not legal_arcs:
-            #         print('No legal arcs found')
-            #     return legal_arcs
-            # else:
-            #     # We know that the waiting arc is legal. But we have to check if operation is legal at the current port
-            #     if self.can_operate_at_port_now(vessel, current_port):
-            #         if len(legal_arcs) > 2:
-            #             # We know we have at least one legal arc in addition to the waiting arc. Remove the sink arc
-            #             legal_arcs = [arc for arc in legal_arcs if arc.destination_node.port != self.SINK_NODE.port]
-            #         if not legal_arcs:
-            #             print('No legal arcs found')
-            #         return legal_arcs
-            #     else:
-            #         # Keep the waiting arc and remove the rest
-            #         legal_arcs = [arc for arc in legal_arcs if arc.is_waiting_arc]
-            #         if not legal_arcs:
-            #             print('No legal arcs found')
-            #             # No legal arcs, sink arc must be added again
-            #             legal_arcs = [arc for arc in potential_arcs if arc.origin_node == current_node and arc.destination_node.port == self.SINK_NODE.port]
-            #         return legal_arcs
-                    
+        
+
         
     def waiting_arc_is_legal(self, current_port):
         if current_port['isLoadingPort'] == 1:
@@ -943,14 +966,18 @@ class DQNAgent:
                 
                 
                 
-    def select_action_for_ps(self, state, legal_actions, env, vessel_simp):  
-            
-        # If there is only one legal action, choose it
-        if len(legal_actions) == 1:
-            action = legal_actions[0]
-            arc = action[3]
-            return action
+    def select_action_for_ps(self, state, legal_actions, env, vessel_simp, RUNNING_MIRPSO):  
         
+        if RUNNING_MIRPSO:
+            if len(legal_actions) == 1:
+                return legal_actions, True
+        else:
+            # If there is only one legal action, choose it
+            if len(legal_actions) == 1:
+                action = legal_actions[0]
+                arc = action[3]
+                return action
+            
         # Encode state and add vessel number
         encoded_state = env.encode_state(state, vessel_simp)
         # Convert the state to a tensor
@@ -960,13 +987,28 @@ class DQNAgent:
         # Sort the q-values, but keep track of the original indices
         q_values = [(q_value, index +1) for index, q_value in enumerate(q_values)]
         q_values.sort(reverse=True)
-        # Choose the action with the highest q-value that is legal
-        for q_value, destination_port_number in q_values:
-            for action in legal_actions:
-                arc = action[3]
-                if arc.destination_node.port.number == destination_port_number:
-                    return action
-                
+        
+        if RUNNING_MIRPSO:
+            possible_actions = []
+            # Choose the action with the highest q-value that is legal
+            for q_value, destination_port_number in q_values:
+                for action in legal_actions:
+                    arc = action[3]
+                    if arc.destination_node.port.number == destination_port_number:
+                        possible_actions.append(action)
+                # If there are legal actions for the first choice of the agent, return them
+                if possible_actions:
+                    return possible_actions, destination_port_number
+            return None, None
+        
+        else:       
+            # Choose the action with the highest q-value that is legal
+            for q_value, destination_port_number in q_values:
+                for action in legal_actions:
+                    arc = action[3]
+                    if arc.destination_node.port.number == destination_port_number:
+                        return action
+                    
                 
     def train_main_network(self, env):
         if len(self.memory) < self.BATCH_SIZE:
