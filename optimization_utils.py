@@ -149,7 +149,7 @@ def evaluate_agent(env, agent):
     vessel_inventory_dict = {}
     decision_basis_states = {vessel.number: env.custom_deep_copy_of_state(state) for vessel in state['vessels']}
     
-    actions = {vessel: env.find_legal_actions_for_vessel(state=state, vessel=vessel)[0] for vessel in state['vessels']}
+    actions = {vessel: env.find_legal_actions_for_vessel(state=state, vessel=vessel, random_start = False)[0] for vessel in state['vessels']}
     state = env.step(state=state, actions=actions, experience_path=experience_path, decision_basis_states=decision_basis_states)
     
     while not done:
@@ -193,7 +193,7 @@ def evaluate_agent(env, agent):
                     corresponding_vessel = decision_basis_state['vessel_dict'][vessel.number]
                     decision_basis_states[corresponding_vessel['number']] = decision_basis_state
                     legal_actions = env.sim_find_legal_actions_for_vessel(state=decision_basis_state, vessel=corresponding_vessel, queued_actions=actions_to_make, RUNNING_WPS = False)
-                    action, decision_basis_state = agent.select_action(state=copy.deepcopy(decision_basis_state), legal_actions=legal_actions, env=env, vessel_simp=corresponding_vessel, exploit=True)
+                    action, decision_basis_state = agent.select_action_for_eval(state=copy.deepcopy(decision_basis_state), legal_actions=legal_actions, env=env, vessel_simp=corresponding_vessel)
                     _, _, _, _arc = action
                     actions[vessel] = action
                 # Perform the operation and routing actions and update the state based on this
@@ -320,3 +320,218 @@ def warm_start_model(m, active_X_keys, S_values, alpha_values):
     warm_start_sol = {v.VarName: v.Start for v in m.getVars()}
     
     return x_solution, m, warm_start_sol
+
+def time_passed(start_time):
+    return time.time() - start_time
+
+
+import gurobipy as gp
+from gurobipy import GRB
+import time
+
+def perform_proximity_search(ps_data, RUNNING_NPS_AND_RH, window_end, time_limit):  # Add other parameters as needed
+        
+    model = ps_data['model']
+    vessel_class_arcs = ps_data['vessel_class_arcs']
+    model.setParam(gp.GRB.Param.SolutionLimit, 1)
+    model.setParam(gp.GRB.Param.OutputFlag, 0)
+    
+    start_time = time.time()
+        
+    model.optimize()
+    original_objective_function = model.getObjective()
+    current_solution_vals_x = get_current_x_solution_vals(model)
+    current_solution_vars_x = {v.VarName: v for v in model.getVars() if v.VarName.startswith('x')}
+    active_arcs = find_corresponding_arcs(current_solution_vals_x, vessel_class_arcs)
+    current_solution_alpha = get_current_alpha_solution_vals(model)
+    current_solution_s = get_current_s_solution_vals(model)
+    current_best_obj = model.getObjective().getValue()
+    
+    PERCENTAGE_DECREASE = 0.005
+    PERCENTAGE_DECREASE_AFTER_INFISIBILITY = 0.0025
+    INFEASIBILITY_MULTIPLIER = 0.1
+    cutoff_value = (PERCENTAGE_DECREASE * current_best_obj)
+    
+    y = model.addVars(current_solution_vars_x.keys(), vtype=GRB.BINARY, name="y")
+    i = 0
+    has_been_infeasible = False
+    
+    # Start loop here:
+    while True:
+        if has_been_infeasible:
+            model.setParam(gp.GRB.Param.OutputFlag, 1)
+        i += 1
+        print_info = (i % 10 == 0)
+            
+        if print_info or has_been_infeasible:
+            print(f'Proximity Search Iteration {i}')
+        
+        # Set the objective (back) to the original objective function
+        model.setObjective(original_objective_function, GRB.MINIMIZE)
+        model.update()
+
+        cutoff_value = (PERCENTAGE_DECREASE * current_best_obj)
+        add_cutoff_constraint(model, current_best_obj, cutoff_value)
+
+        update_objective_to_minimize_hamming_distance(model, y, current_solution_vars_x, current_solution_vals_x, None)
+        model.setParam(gp.GRB.Param.SolutionLimit, 1)
+        time_left = time_limit - time_passed(start_time)
+        model.setParam(gp.GRB.Param.TimeLimit, min(300, time_left) if time_left >= 0 else 10)
+        model.optimize()
+
+        # Check if a new solution is found with the lowest amount of changes to the structure as possible
+        if model.Status ==  GRB.SOLUTION_LIMIT:
+            if print_info or has_been_infeasible:
+                print("Hamming Distance from previous solution:", model.objVal)
+            current_solution_vals_x = get_current_x_solution_vals(model)
+            if RUNNING_NPS_AND_RH:
+                new_obj_value = evaluate_solution_with_original_objective_for_RH(model, ps_data, window_end)
+            else:
+                new_obj_value = evaluate_solution_with_original_objective(model, ps_data, print_info, has_been_infeasible)
+            if print_info or has_been_infeasible:
+                print(f'Previous objective value was {current_best_obj}. New objective value: {new_obj_value}')
+                
+            current_best_obj = new_obj_value
+            current_solution_vars_x = get_current_x_solution_vars(model)
+            current_solution_alpha = get_current_alpha_solution_vals(model)
+            current_solution_s = get_current_s_solution_vals(model)
+            if has_been_infeasible:
+                PERCENTAGE_DECREASE = PERCENTAGE_DECREASE_AFTER_INFISIBILITY
+                
+            current_time = time.time()
+            time_diff = current_time - start_time
+            if time_diff > time_limit:
+                remove_cutoff_constraints(model)
+                return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs
+            
+        elif model.Status == GRB.TIME_LIMIT or model.Status == GRB.INFEASIBLE:
+            has_been_infeasible = True
+            PERCENTAGE_DECREASE *= INFEASIBILITY_MULTIPLIER
+            # Return the best solution found. Time limit reached.
+            print(f'Best objective value is {current_best_obj}.')
+            if cutoff_value < 1:
+                remove_cutoff_constraints(model)
+                return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs
+            else:
+                current_time = time.time()
+                if start_time:
+                    if current_time - start_time > time_limit:
+                        remove_cutoff_constraints(model)
+                        return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs
+            
+        
+        
+def remove_cutoff_constraints(model):
+    cutoff_prefix = "cutoff_constraint"
+    for constr in model.getConstrs():  # Iterate over all constraints in the model
+        if constr.ConstrName.startswith(cutoff_prefix):
+            model.remove(constr)
+    model.update() 
+
+def add_cutoff_constraint(model, current_best_obj, cutoff_value):
+    # Prefix for cutoff constraint names
+    cutoff_prefix = "cutoff_constraint"
+    
+    # Remove all existing cutoff constraints
+    for constr in model.getConstrs():  # Iterate over all constraints in the model
+        if constr.ConstrName.startswith(cutoff_prefix):
+            model.remove(constr)
+    
+    # Ensure the model is updated after removals
+    model.update()
+    
+    # Add the new cutoff constraint with a unique name to avoid name conflicts
+    constraint_name = f"{cutoff_prefix}_{current_best_obj}_{cutoff_value}"
+    cutoff_constr = model.addConstr(model.getObjective() <= current_best_obj - cutoff_value, name=constraint_name)
+    
+    # Update the model to add the new constraint
+    model.update()
+    
+    return cutoff_constr
+
+
+def update_objective_to_minimize_hamming_distance(model, y, x_variables, current_solution, weights):
+  
+    # Remove previous Hamming distance constraints
+    for constr in model.getConstrs():
+        if 'Hamming_distance' in constr.ConstrName:
+            model.remove(constr)
+    model.update()
+    
+    # Add new Hamming distance constraints
+    for var_name, var in x_variables.items():
+        initial_value = current_solution[var_name]
+        if initial_value == 0:
+            model.addConstr(y[var_name] >= var - initial_value, name=f'y_{var_name}_Hamming_distance')
+        else:
+            model.addConstr(y[var_name] >= initial_value - var, name=f'y_{var_name}_Hamming_distance')
+            
+    if weights:
+        weighted_hamming_distance = gp.quicksum(weights[var_name] * y[var_name] for var_name in x_variables.keys())
+        model.setObjective(weighted_hamming_distance, GRB.MINIMIZE)
+    else:
+        model.setObjective(y.sum(), GRB.MINIMIZE)
+    model.update()
+    
+    
+def evaluate_solution_with_original_objective_for_RH(model, ps_data, window_end):
+    costs = ps_data['costs']
+    regularNodes = ps_data['regularNodes']
+    P = ps_data['P']
+    
+    x = {v.VarName: v.X for v in model.getVars() if v.VarName.startswith('x')}
+    alpha = {v.VarName: v.X for v in model.getVars() if v.VarName.startswith('a')}
+    
+    arc_costs = 0
+    for key in costs:
+        # Find the time of the arc
+        arc_tuple = key[0]
+        origin_node = arc_tuple[0]
+        if origin_node.time <= window_end:
+            arc_costs += costs[key] * x[convert_key_to_varname(key)]
+    
+    alpha_costs = 0
+    for node in regularNodes:
+        key = f'alpha[{node.port.number},{node.time}]'
+        alpha_val = alpha[key]
+        P_val = P[(node.port.number, node.time)]
+        if node.time <= window_end:
+            alpha_costs += alpha_val * P_val
+        
+    # print(f'Alpha_costs: {alpha_costs}')
+    # print(f'Arc costs: {arc_costs}')
+    
+    new_obj_value = arc_costs + alpha_costs
+    # print('New objective value:', new_obj_value)
+    return new_obj_value
+
+def evaluate_solution_with_original_objective(model, ps_data, print_info, has_been_infeasible):
+    if print_info or has_been_infeasible:
+        print("Evaluating solution with original objective")
+    costs = ps_data['costs']
+    regularNodes = ps_data['regularNodes']
+    P = ps_data['P']
+    
+    # Directly calculate arc costs using comprehension
+    x = {v.VarName: v.X for v in model.getVars() if v.VarName.startswith('x')}
+    # Do the same fo alpha variables
+    alpha = {v.VarName: v.X for v in model.getVars() if v.VarName.startswith('a')}
+    
+    arc_costs = sum(costs[key] * x[convert_key_to_varname(key)] for key in costs)
+    
+    alpha_costs = 0
+    for node in regularNodes:
+        key = f'alpha[{node.port.number},{node.time}]'
+        alpha_val = alpha[key]
+        P_val = P[(node.port.number, node.time)]
+        alpha_costs += alpha_val * P_val
+        
+    if print_info or has_been_infeasible:
+        print(f'Alpha_costs: {alpha_costs}')
+        print(f'Arc costs: {arc_costs}')
+    
+    new_obj_value = arc_costs + alpha_costs
+    if print_info or has_been_infeasible:
+        print('New objective value:', new_obj_value)
+    return new_obj_value
+    

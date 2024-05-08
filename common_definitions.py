@@ -7,6 +7,8 @@ import torch.nn as nn
 import torch.optim as optim
 from collections import deque
 import torch.nn.functional as F
+import copy
+
 
 class MIRPSOEnv():
     def __init__(self, PORTS, VESSELS, VESSEL_ARCS, NODES, TIME_PERIOD_RANGE, SOURCE_NODE, SINK_NODE, NODE_DICT, special_sink_arcs, special_nodes_dict):
@@ -271,9 +273,6 @@ class MIRPSOEnv():
         else:
             legal_arcs = self.sim_get_legal_arcs(state=state, vessel=vessel, special_sink_arcs=self.SPECIAL_SINK_ARCS, special_node_dict=self.SPECIAL_NODES_DICT, queued_actions=queued_actions)
             
-        if not legal_arcs:
-            print('No legal arcs found')
-        
         legal_actions = []
         for arc in legal_arcs:
             if arc.origin_node == self.SOURCE_NODE:
@@ -412,29 +411,23 @@ class MIRPSOEnv():
                 # Check if the vessel can wait at the current port
                 if self.waiting_arc_is_legal(current_port):
                     if not legal_arcs:
-                        print('No legal arcs found')
                         legal_arcs = [random.choice(potential_arcs)]
                     return legal_arcs
                 else:
                     # Remove the waiting arc and return the rest
                     legal_arcs = [arc for arc in legal_arcs if not arc.is_waiting_arc]
                     if not legal_arcs:
-                        print('No legal arcs found')
                         legal_arcs = [random.choice(potential_arcs)]
                     return legal_arcs
             else:
                 # Waiting arc is the only legal arc
                 legal_arcs = [arc for arc in legal_arcs if arc.is_waiting_arc]
                 if not legal_arcs:
-                    print('No legal arcs found')
                     # Take one random action from the potential arcs
                     legal_arcs = [random.choice(potential_arcs)]
                 return legal_arcs
             
             
-        
-
-        
     def waiting_arc_is_legal(self, current_port):
         if current_port['isLoadingPort'] == 1:
             if current_port['inventory'] + current_port['rate'] > current_port['capacity'] + current_port['rate']:
@@ -446,9 +439,7 @@ class MIRPSOEnv():
     
     def get_legal_arcs(self, state, vessel):
         current_node = self.NODE_DICT[(vessel.position.number, state['time'])]
-        
         if current_node == self.SOURCE_NODE:
-            # Return the source arc
             return [arc for arc in self.VESSEL_ARCS[vessel] if arc.origin_node == current_node]
 
         potential_arcs = [arc for arc in self.VESSEL_ARCS[vessel] if arc.origin_node == current_node]
@@ -580,7 +571,7 @@ class MIRPSOEnv():
         # state['infeasible'] = self.is_infeasible(state=state)
         return state, None, None, None, None
     
-    def log_episode(self, episode, total_reward_for_path, experience_path, state, cum_q_vals_main_net, cum_q_vals_target_net):
+    def log_episode(self, episode, total_reward_for_path, experience_path, state):
         infeasibility_counter = 0
         infeasibility_dict = {}
         for exp in experience_path:
@@ -596,7 +587,7 @@ class MIRPSOEnv():
             infeasibility_dict[len(self.TIME_PERIOD_RANGE)] = True
             
         infeasibility_counter = len(infeasibility_dict.keys())
-        print(f"Episode {episode}: Total Reward = {total_reward_for_path}\nMain Net Cumulative Q-Vals = {cum_q_vals_main_net}\nTarget Net Cumulative Q-Vals = {cum_q_vals_target_net}\nInfeasibility Counter = {infeasibility_counter}")
+        print(f"Episode {episode}: Total Reward = {total_reward_for_path}\nInfeasibility Counter = {infeasibility_counter}")
         if infeasibility_counter > 0:
             # Sort the dict by time
             infeasibility_dict = dict(sorted(infeasibility_dict.items()))
@@ -639,6 +630,9 @@ class MIRPSOEnv():
         for exp in experience_path:
             current_state, action, vessel, reward_ph, next_state, earliest_vessel, feasible_path_ph, fi_time, terminal_flag = exp
             current_state_time = current_state['time']
+         
+            
+                
             '''Immediate Reward'''
             # if current_state_time == first_infeasible_time:
             #     reward = -horizon
@@ -647,9 +641,15 @@ class MIRPSOEnv():
             # else:
             #     reward = -1
             if not current_state['infeasible']:
-                reward = 1
+                reward = 10
             else:
-                reward = -1
+                reward = -10
+                
+            if action is not None:
+                operation_type = action[1]
+                if operation_type != 0:
+                    # Give extra reward.
+                    reward += 1
             
             '''Future Reward'''
             # Future reward for the next state if the next state is not terminal
@@ -955,7 +955,7 @@ class DQNAgent:
         # Sort the q-values, but keep track of the original indices
         q_values = [(q_value, index +1) for index, q_value in enumerate(q_values)]
         q_values.sort(reverse=True)
-        a = 10
+        a = 10   
         # Choose the action with the highest q-value that is legal
         for q_value, destination_port_number in q_values:
             for action in legal_actions:
@@ -964,6 +964,38 @@ class DQNAgent:
                     new_state = env.update_vessel_in_transition_and_inv_for_state(state = state, vessel = vessel_simp, destination_port = arc.destination_node.port, destination_time = arc.destination_node.time, origin_port = arc.origin_node.port, quantity = action[2], operation_type = action[1])
                     return action, new_state
                 
+                
+    def select_action_for_eval(self, state, legal_actions, env, vessel_simp):
+        # If there is only one legal action, choose it
+        if len(legal_actions) == 1:
+            action = legal_actions[0]
+            arc = action[3]
+            # new_state = copy.deepcopy(state)
+            new_state = env.update_vessel_in_transition_and_inv_for_state(state = state, vessel = vessel_simp, destination_port = arc.destination_node.port, destination_time = arc.destination_node.time, origin_port = arc.origin_node.port, quantity = action[2], operation_type = action[1])
+            return action, new_state
+        
+        # Encode state and add vessel number
+        encoded_state = env.encode_state(state, vessel_simp)
+        # Convert the state to a tensor
+        state_tensor = torch.tensor(encoded_state, dtype=torch.float32).unsqueeze(0)
+        q_values = self.main_model(state_tensor).detach().numpy()
+        q_values = q_values[0]
+        # Sort the q-values, but keep track of the original indices
+        q_values = [(q_value, index +1) for index, q_value in enumerate(q_values)]
+        q_values.sort(reverse=True)
+        a = 10   
+        # Find all unique destination port numbers
+        unique_ports = {action[3].destination_node.port.number for action in legal_actions}
+        # Choose the action with the highest q-value that is legal
+        for q_value, destination_port_number in q_values:
+            if destination_port_number in unique_ports:
+                # Find all actions with the same destination port number in legal actions
+                possible_actions = [action for action in legal_actions if action[3].destination_node.port.number == destination_port_number]
+                action = max(possible_actions, key=lambda x: x[3].speed)
+                arc = action[3]
+                new_state = env.update_vessel_in_transition_and_inv_for_state(state = state, vessel = vessel_simp, destination_port = arc.destination_node.port, destination_time = arc.destination_node.time, origin_port = arc.origin_node.port, quantity = action[2], operation_type = action[1])
+                return action, new_state
+            
                 
                 
     def select_action_for_ps(self, state, legal_actions, env, vessel_simp, RUNNING_MIRPSO):  

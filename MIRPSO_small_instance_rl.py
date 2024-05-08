@@ -14,7 +14,6 @@ import torch
 from common_definitions import MIRPSOEnv, DQNAgent, ReplayMemory, DQNAgent
 from optimization_utils import *
 from MIRP_GROUP_2 import (build_problem, build_model, solve_model, rearrange_arcs)
-from proximity_search import perform_proximity_search
 
     
 def evaluate_agent_until_solution_is_found(env, agent):
@@ -110,11 +109,6 @@ def evaluate_agent_until_solution_is_found(env, agent):
         print(f"Attempt {attempts} failed. Retrying...")
         attempts += 1
         
-        
-
-    
-
-
 
 import matplotlib.pyplot as plt
 from IPython.display import display, clear_output
@@ -225,63 +219,40 @@ def unpack_env_data(env_data):
 
 
 
-def main(FULLSIM):
-    RUNNING_MIRPSO =True
+def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
+    RUNNING_MIRPSO =False
+    # RUNNING_MIRPSO =True
+    
     # Set a higher recursion limit (be cautious with this)
     sys.setrecursionlimit(5000) 
     # random.seed(1)
     gc.enable()
     
-    # INSTANCE = 'LR1_1_DR1_3_VC1_V7a'
-    # INSTANCE = 'LR1_1_DR1_4_VC3_V8a'
-    # INSTANCE = 'LR1_1_DR1_4_VC3_V9a'
-    # INSTANCE = 'LR1_1_DR1_4_VC3_V11a'
-    # INSTANCE = 'LR1_1_DR1_4_VC3_V12a'
-    # INSTANCE = 'LR1_2_DR1_3_VC2_V6a'
-    # INSTANCE = 'LR1_2_DR1_3_VC3_V8a'
-    # INSTANCE = 'LR1_1_DR1_4_VC3_V12b'
-    # INSTANCE = 'LR2_11_DR2_22_VC3_V6a'
-    # INSTANCE = 'LR2_11_DR2_33_VC4_V11a'
-    
-    INSTANCE = 'LR1_DR02_VC01_V6a'
+    # INSTANCE = 'LR1_DR02_VC01_V6a'
     # INSTANCE = 'LR1_DR02_VC02_V6a'
     # INSTANCE = 'LR1_DR02_VC03_V7a'
     # INSTANCE = 'LR1_DR02_VC03_V8a'
     # INSTANCE = 'LR1_DR02_VC04_V8a'
     # INSTANCE = 'LR1_DR02_VC05_V8a'
-    # INSTANCE = 'LR1_DR03_VC03_V10b'
+    INSTANCE = 'LR1_DR03_VC03_V10b'
     
     TRAINING_FREQUENCY = 1
     TARGET_UPDATE_FREQUENCY = 250
     NON_RANDOM_ACTION_EPISODE_FREQUENCY = 25
     BATCH_SIZE = 256
     BUFFER_SAVING_FREQUENCY = 1000
-
     problem_data = build_problem(INSTANCE, RUNNING_MIRPSO)
     
     vessels, vessel_arcs, arc_dict, regularNodes, ports, TIME_PERIOD_RANGE, sourceNode, sinkNode, waiting_arcs, NODES, NODE_DICT, VESSEL_CLASSES, vessel_class_capacities, special_sink_arcs, special_nodes_dict = unpack_problem_data(problem_data)
     
     origin_node_arcs, destination_node_arcs, vessel_class_arcs = rearrange_arcs(arc_dict=arc_dict)
     
-    
-    # simp_model, env_data = build_simplified_RL_model(vessels, all_vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, non_operational, sourceNode, sinkNode, waiting_arcs, OPERATING_COST, OPERATING_SPEED, NODES, NODE_DICT)
-    #Vessel arcs are the only thing that changes between the simplified and the full model
-    # vessels, vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, non_operational, sourceNode, sinkNode, waiting_arcs, OPERATING_COST, OPERATING_SPEED, ports_dict, NODE_DICT, vessel_dict = unpack_env_data(env_data)
-    m, costs, P, costs_namekey = build_model(vessels = vessels,
-                        regularNodes=regularNodes,
-                        ports = ports,
-                        TIME_PERIOD_RANGE = TIME_PERIOD_RANGE,
-                        sourceNode = sourceNode,
-                        sinkNode = sinkNode,
-                        vessel_classes = VESSEL_CLASSES,
-                        origin_node_arcs = origin_node_arcs,
-                        destination_node_arcs = destination_node_arcs,
-                        vessel_class_arcs = vessel_class_arcs,
-                        NODE_DICT = NODE_DICT,
-                        vessel_class_capacities = vessel_class_capacities)
+    m, costs, P, costs_namekey = build_model(vessels = vessels, regularNodes=regularNodes, ports = ports, TIME_PERIOD_RANGE = TIME_PERIOD_RANGE, sourceNode = sourceNode, sinkNode = sinkNode,
+                                             vessel_classes = VESSEL_CLASSES,origin_node_arcs = origin_node_arcs, destination_node_arcs = destination_node_arcs, vessel_class_arcs = vessel_class_arcs,
+                                             NODE_DICT = NODE_DICT, vessel_class_capacities = vessel_class_capacities)
     
     env = MIRPSOEnv(ports, vessels, vessel_arcs, NODES, TIME_PERIOD_RANGE, sourceNode, sinkNode, NODE_DICT, special_sink_arcs, special_nodes_dict)
-    replay = ReplayMemory(3000)
+    replay = ReplayMemory(5000)
     agent = DQNAgent(ports = ports, vessels=vessels, TRAINING_FREQUENCY = TRAINING_FREQUENCY, TARGET_UPDATE_FREQUENCY = TARGET_UPDATE_FREQUENCY, NON_RANDOM_ACTION_EPISODE_FREQUENCY = NON_RANDOM_ACTION_EPISODE_FREQUENCY, BATCH_SIZE = BATCH_SIZE, replay = replay)
     
     # '''Load main and target model.'''
@@ -301,7 +272,7 @@ def main(FULLSIM):
         
     else:
         num_feasible_paths_with_random_actions = 0
-        NUM_EPISODES = 4001
+        NUM_EPISODES = 10000
         # replay = agent.load_replay_buffer(file_name='replay_buffer_8apr_40+60TP_2_3000.pkl')
         # replay.capacity = 5000
         # replay = replay.clean_up()
@@ -310,7 +281,6 @@ def main(FULLSIM):
         # agent.main_model.load_state_dict(torch.load('main_model_8apr_nt2_1000.pth'))
         # agent.target_model.load_state_dict(torch.load('target_model_8_apr_nt2_1000.pth'))
         
-        # profiler = cProfile.Profile()
         for episode in range(1, NUM_EPISODES):
             if episode % NON_RANDOM_ACTION_EPISODE_FREQUENCY == 0:
                 exploit = True
@@ -336,7 +306,6 @@ def main(FULLSIM):
             # We know that each vessel have only one legal action in the initial state
             actions = {vessel: env.find_legal_actions_for_vessel(state=state, vessel=vessel)[0] for vessel in state['vessels']}
             state = env.step(state=state, actions=actions, experience_path=experience_path, decision_basis_states=decision_basis_states)
-            # state['time'] = 0
             
             # All vessels have made their initial action.
             while not done:
@@ -349,7 +318,7 @@ def main(FULLSIM):
                     if feasible_path:
                         num_feasible_paths_with_random_actions += 1
                     if episode % NON_RANDOM_ACTION_EPISODE_FREQUENCY == 0:
-                        env.log_episode(episode, total_reward_for_path, experience_path, state, cum_q_vals_main_net, cum_q_vals_target_net)
+                        env.log_episode(episode, total_reward_for_path, experience_path, state)
                     break
                 
                 # With the increased time, the vessels have moved and some of them have maybe reached their destination. Updating the vessel status based on this.
@@ -365,7 +334,7 @@ def main(FULLSIM):
                     for vessel in available_vessels:
                         corresponding_vessel = decision_basis_state['vessel_dict'][vessel.number]
                         decision_basis_states[corresponding_vessel['number']] = decision_basis_state
-                        legal_actions = env.sim_find_legal_actions_for_vessel(state=decision_basis_state, vessel=corresponding_vessel, queued_actions=actions)
+                        legal_actions = env.sim_find_legal_actions_for_vessel(state=decision_basis_state, vessel=corresponding_vessel, queued_actions=actions, RUNNING_WPS=False)
                         action, decision_basis_state = agent.select_action(state=copy.deepcopy(decision_basis_state), legal_actions=legal_actions, env=env, vessel_simp=corresponding_vessel, exploit=exploit)
                         _, _, _, _arc = action
                         actions[vessel] = action
@@ -376,21 +345,21 @@ def main(FULLSIM):
                     state = env.simple_step(state, experience_path)
                 # Make consumption ports consume regardless if any actions were performed
                 state = env.consumption(state)
-                
-                
-                
             
             if episode % BUFFER_SAVING_FREQUENCY == 0:
-                agent.save_replay_buffer(file_name=f"replay_buffer_8apr_nt3_50_{episode}.pkl")
-                torch.save(agent.main_model.state_dict(), f'main_model_8apr_nt3_50_{episode}.pth')
-                torch.save(agent.target_model.state_dict(), f'target_model_8_apr_nt3_50_{episode}.pth')
-            if num_feasible_paths_with_random_actions >= 6:
-                agent.save_replay_buffer(file_name=f"replay_buffer_8apr_nt3_50_{episode}.pkl")
-                torch.save(agent.main_model.state_dict(), f'main_model_8apr_nt3_50_{episode}.pth')
-                torch.save(agent.target_model.state_dict(), f'target_model_8_apr_nt3_50_{episode}.pth')
-                break
+                agent.save_replay_buffer(file_name=f"replay_buffer_{INSTANCE}_{episode}.pkl")
+                torch.save(agent.main_model.state_dict(), f'main_model_{INSTANCE}_{episode}.pth')
+                torch.save(agent.target_model.state_dict(), f'target_model_{INSTANCE}_{episode}.pth')
                 
-            
+            # if num_feasible_paths_with_random_actions >= 6:
+            #     agent.save_replay_buffer(file_name=f"replay_buffer_8apr_nt3_50_{episode}.pkl")
+            #     torch.save(agent.main_model.state_dict(), f'main_model_8apr_nt3_50_{episode}.pth')
+            #     torch.save(agent.target_model.state_dict(), f'target_model_8_apr_nt3_50_{episode}.pth')
+            #     break
+                
+    if TRAIN_AND_SAVE_ONLY:
+        return
+    
     # When agent is done training. Let the agent solve the problem, and return the solution
     # first_infeasible_time, infeasibility_counter, experience_path, port_inventory_dict, vessel_inventory_dict  = evaluate_agent(env, agent)
     experience_path, port_inventory_dict  = evaluate_agent_until_solution_is_found(env, agent)
@@ -406,14 +375,6 @@ def main(FULLSIM):
     #print("Initial solution:", x_initial_solution)
 
     ps_data = {'model': model, 'initial_solution':x_initial_solution,'costs': costs, 'regularNodes': regularNodes, 'vessels': vessels, 'vessel_arcs': vessel_arcs}
-
-    # Perform the proximity search using the initial solution
-    # improved_solution, obj_value = perform_proximity_search(ps_data)
-    #Perform proximity search with simulated annealing
-    #improved_solution, obj_value = perform_proximity_search_with_simulated_annealing(ps_data)
-    # print("Final solution:", improved_solution)
-    # print("Objective value:", obj_value)
-    #solve_model(main_model)
     
     violated_constraints = []
     for constr in model.getConstrs():
@@ -458,9 +419,14 @@ def main(FULLSIM):
 import sys
 
 if __name__ == "__main__":
-    FULL_SIM = True
-    # FULL_SIM = False
+    FULL_SIM = False
+    TRAIN_AND_SAVE_ONLY = False
     
-    main(FULL_SIM)
+    FULL_SIM = True
+    TRAIN_AND_SAVE_ONLY = True
+    
+    
+    
+    main(FULL_SIM, TRAIN_AND_SAVE_ONLY)
     
     
