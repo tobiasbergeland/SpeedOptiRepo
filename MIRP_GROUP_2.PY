@@ -530,7 +530,6 @@ def create_arcs_for_node(node, vessel, all_port_numbers, full_distance_matrix_km
 def create_arcs_for_node_MIRPSO(node, vessel, all_port_numbers, source_times, full_distance_matrix_nm,  MAX_SPEED, MIN_SPEED, ports, NUM_TIME_PERIODS, port_dict, FUEL_PRICE):
     node_arcs = []
     
-    # for vessel in vessels:
     if node.port.number in [0, len(ports) + 1]:
         return node_arcs
     start_time = source_times[vessel]
@@ -561,18 +560,6 @@ def create_arcs_for_node_MIRPSO(node, vessel, all_port_numbers, source_times, fu
                 if arc:
                     node_arcs.append(arc)
     return node_arcs
-
-def calc_cost(fuel_consumption, FUEL_PRICE):
-    """
-    Calculate the cost based on fuel consumption.
-
-    Args:
-    - fuel_consumption (float): Fuel consumption in tons.
-
-    Returns:
-    - float: Cost in USD.
-    """
-    return fuel_consumption * FUEL_PRICE
 
 def create_arc_info(speed, minimum_timesteps, departure, origin_port, destination_port, lowest_speed, distance_to_port, vessel, is_waiting_arc, NUM_TIME_PERIODS, FUEL_PRICE):
     num_speed_options = 0
@@ -1024,7 +1011,7 @@ def build_problem(INSTANCE, RUNNING_MIRPSO):
     all_ports, loading_regions, discharging_regions, port_dict = create_ports_from_info_with_loading(ports_info, spotMarketPricePerUnit, spotMarketDiscountFactor)
     ports = get_ports(all_ports)
     NUM_TIME_PERIODS = metadata['numPeriods']
-    NUM_TIME_PERIODS = 40
+    NUM_TIME_PERIODS = 120
     TIME_PERIOD_RANGE = list(range(0, NUM_TIME_PERIODS))
     FUEL_PRICE = 500
     ORIGINAL_NUM_PORTS = len(ports)
@@ -1622,10 +1609,6 @@ def flatten_vessel_routes(vessel_routes):
         flattened_routes[vessel_id] = unique_flattened
     return flattened_routes
 
-    
-    
-
-
 import json
 import gurobipy as gp
 import logging
@@ -1639,6 +1622,8 @@ def save_solution(INSTANCE, HORIZON, model, time_limit, elapsed_time, costs, P,
 
     method_map = {"NPS": NPS, "WPS": WPS, "RH": RH, "WPS_AND_RH": WPS_AND_RH, "NPS_AND_RH": NPS_AND_RH}
     method = next((method_name for method_name, condition in method_map.items() if condition), "SOLVER")
+    
+    gap = model.MIPGap if method == 'SOLVER' else None
     
     status_map = {
         gp.GRB.OPTIMAL: "OPTIMAL",
@@ -1659,8 +1644,6 @@ def save_solution(INSTANCE, HORIZON, model, time_limit, elapsed_time, costs, P,
     # Convert tuple keys to strings
     costs_str_keys = {str(k): v for k, v in costs.items()}
     P_str_keys = {str(k): v for k, v in P.items()}
-    
-    
 
     solution_data = {
         "instance": INSTANCE,
@@ -1668,6 +1651,7 @@ def save_solution(INSTANCE, HORIZON, model, time_limit, elapsed_time, costs, P,
         'method': method,
         "status": model_status,
         "objective_value": best_obj_val,
+        'gap':gap,
         "elapsed_time": elapsed_time,
         "time_limit": time_limit if model.status == gp.GRB.TIME_LIMIT else None,
         "costs": costs_str_keys,
@@ -1692,10 +1676,6 @@ def save_solution(INSTANCE, HORIZON, model, time_limit, elapsed_time, costs, P,
     flattened_routes = {}
     flattened_routes["vessel_routes_flattened"] = reformatted_routes
     
-
-  
-    
-    
     # Save to a JSON file for easy parsing and readability
     filename = f"group2_solutions/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}.json"
     filename_readable_routes = f"group2_routes/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_routes.txt"
@@ -1704,17 +1684,16 @@ def save_solution(INSTANCE, HORIZON, model, time_limit, elapsed_time, costs, P,
     with open(filename_readable_routes, 'w') as file:
         for key, value in flattened_routes['vessel_routes_flattened'].items():
             file.write('%s: %s\n' % (key, value))
-            
         file.close()
             
-        # json.dump(flattened_routes, file, indent=None)
-
 
 def proximity_search_using_agent(ps_data, agent, env, RUNNING_WPS_AND_RH, window_end, RUNNING_MIRPSO, time_limit):
 
     WEIGHT_UPDATE_FREQUENCY = 10
     PERCENTAGE_DECREASE = 0.005
-    INFEASIBILITY_MULTIPLIER = 0.1
+    PERCENTAGE_CHANGE_FACTOR = 1.2
+    PERCENTAGE_CHANGE_FACTOR_AFTER_INF = PERCENTAGE_CHANGE_FACTOR / 10
+    
     
     model = ps_data['model']
     NODE_DICT = ps_data['node_dict']
@@ -1833,6 +1812,9 @@ def proximity_search_using_agent(ps_data, agent, env, RUNNING_WPS_AND_RH, window
             current_solution_alpha = get_current_alpha_solution_vals(model)
             current_solution_s = get_current_s_solution_vals(model)
             vessel_classes = vessel_class_arcs.keys()
+            
+            PERCENTAGE_DECREASE *= PERCENTAGE_CHANGE_FACTOR
+            
             if time.time() - start_time > time_limit:
                 remove_cutoff_constraints(model)
                 return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs
@@ -1842,7 +1824,7 @@ def proximity_search_using_agent(ps_data, agent, env, RUNNING_WPS_AND_RH, window
         elif model.Status == GRB.TIME_LIMIT or model.Status == GRB.INFEASIBLE:
             has_been_infeasible = True
             # Reduce the cutoff value and try again
-            PERCENTAGE_DECREASE *= INFEASIBILITY_MULTIPLIER
+            PERCENTAGE_DECREASE *= PERCENTAGE_CHANGE_FACTOR_AFTER_INF
             if cutoff_value < 1:
                 remove_cutoff_constraints(model)
                 return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs
@@ -1863,10 +1845,10 @@ def main():
     RUNNING_NPS_AND_RH = False
     RUNNING_WPS_AND_RH = False
     
-    # RUNNING_MIRPSO = True
+    RUNNING_MIRPSO = True
     
-    RUNNING_WEIGHTED_PS = True
-    # RUNNING_NORMAL_PS = True
+    # RUNNING_WEIGHTED_PS = True
+    RUNNING_NORMAL_PS = True
     # RUNNING_RH = True
     # RUNNING_NPS_AND_RH = True
     # RUNNING_WPS_AND_RH = True
@@ -1880,7 +1862,7 @@ def main():
     # INSTANCE = 'LR1_DR02_VC05_V8a'
     # INSTANCE = 'LR1_DR03_VC03_V10b'
     
-    TIME_LIMIT = 30
+    TIME_LIMIT = 10800
     
     problem_data = build_problem(INSTANCE, RUNNING_MIRPSO)
     

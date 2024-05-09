@@ -1,21 +1,12 @@
 import copy
 import gc
 import sys
-
-import networkx as nx
-import numpy as np
-import torch.nn.functional as F
-import gurobipy as gp    
-from gurobipy import GRB
 import torch
 
-# sys.path.append('/Users/tobiaskolstobergeland/Documents/IndØk/10.Semester/ProsjektOppgave/Repo/SpeedOptiRepo/MIRPSO_M.py')
-# from MIRPSO_M import (build_problem, build_simplified_RL_model, build_model, visualize_network_for_vessel, solve_model)
 from common_definitions import MIRPSOEnv, DQNAgent, ReplayMemory, DQNAgent
 from optimization_utils import *
 from MIRP_GROUP_2 import (build_problem, build_model, solve_model, rearrange_arcs)
 
-    
 def evaluate_agent_until_solution_is_found(env, agent):
     agent.epsilon = 0.1
     attempts = 1
@@ -27,36 +18,17 @@ def evaluate_agent_until_solution_is_found(env, agent):
         done = False
         
         port_inventory_dict = {}
-        # vessel_inventory_dict = {}
-        
         decision_basis_states = {vessel.number: env.custom_deep_copy_of_state(state) for vessel in state['vessels']}
         
         actions = {vessel: env.find_legal_actions_for_vessel(state=state, vessel=vessel)[0] for vessel in state['vessels']}
         state = env.step(state=state, actions=actions, experience_path=experience_path, decision_basis_states=decision_basis_states)
-        # state['time'] = 0
         
         while not done:
-            # if state['time'] >= env.TIME_PERIOD_RANGE[-1]*(3/4):
-            #     agent.epsilon = 0.1
-                
             # Increment time and log
             state['time'] += 1
             port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
             
             state = env.produce(state)
-            
-            # # Increase time and make production ports produce.
-            # if state['time'] in env.TIME_PERIOD_RANGE:
-            #     port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
-            #     # state = env.increment_time_and_produce(state=state)
-            # else:
-            #     #Only increment the time
-            #     state['time'] += 1
-                
-                # Init port inventory is the inventory at this time. Time is 0 after the increment.
-                # LOGGIN INIT VALUES FOR PORTS
-                # Init vessel inventory is the inventory at this time
-                # vessel_inventory_dict[state['time']] = {vessel.number: vessel.inventory for vessel in state['vessels']}
                     
             # Check if state is infeasible or terminal        
             state, total_reward_for_path, cum_q_vals_main_net, cum_q_vals_target_net, feasible_path = env.check_state(state=state, experience_path=experience_path, replay=agent.memory, agent=agent)
@@ -64,10 +36,6 @@ def evaluate_agent_until_solution_is_found(env, agent):
             if state['done']:
                 first_infeasible_time, infeasibility_counter = env.log_episode(attempts, total_reward_for_path, experience_path, state, cum_q_vals_main_net, cum_q_vals_target_net)
                 feasible_path = experience_path[0][6]
-                # state = env.consumption(state)
-                
-                # port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
-                # vessel_inventory_dict[state['time']] = {vessel.number: vessel.inventory for vessel in state['vessels']}
                 if not feasible_path:
                     break
                 else:
@@ -95,17 +63,8 @@ def evaluate_agent_until_solution_is_found(env, agent):
                 # Should check the feasibility of the state, even though no actions were performed. 
                 state = env.simple_step(state, experience_path)
             
-            # if state['time'] != 0: # Do not consume in Time 0
-            #     # Make consumption ports consume regardless if any actions were performed
-            #     state = env.consumption(state)
             state = env.consumption(state)
             
-            # # Save the inventory levels for the ports and vessels at this time
-            # if state['time'] in env.TIME_PERIOD_RANGE and state['time'] != 0:
-            #     port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
-                # vessel_inventory_dict[state['time']] = {vessel.number: vessel.inventory for vessel in state['vessels']}
-                
-                
         print(f"Attempt {attempts} failed. Retrying...")
         attempts += 1
         
@@ -215,11 +174,8 @@ def unpack_env_data(env_data):
 
 
 
-
-
-
-
 def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
+    LOG =True
     RUNNING_MIRPSO =False
     # RUNNING_MIRPSO =True
     
@@ -234,16 +190,24 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
     # INSTANCE = 'LR1_DR02_VC03_V8a'
     # INSTANCE = 'LR1_DR02_VC04_V8a'
     # INSTANCE = 'LR1_DR02_VC05_V8a'
-    INSTANCE = 'LR1_DR03_VC03_V10b'
+    
+    'Trene agent på desse. 6000 iterasjoner.'
+    # INSTANCE = 'LR1_DR03_VC03_V10b'
+    # INSTANCE = 'LR1_DR05_VC05_V25a'
+    INSTANCE = 'LR1_DR08_VC10_V40a'
+    
     
     TRAINING_FREQUENCY = 1
-    TARGET_UPDATE_FREQUENCY = 250
-    NON_RANDOM_ACTION_EPISODE_FREQUENCY = 25
+    TARGET_UPDATE_FREQUENCY = 100
+    NON_RANDOM_ACTION_EPISODE_FREQUENCY = 10
     BATCH_SIZE = 256
     BUFFER_SAVING_FREQUENCY = 1000
     problem_data = build_problem(INSTANCE, RUNNING_MIRPSO)
     
     vessels, vessel_arcs, arc_dict, regularNodes, ports, TIME_PERIOD_RANGE, sourceNode, sinkNode, waiting_arcs, NODES, NODE_DICT, VESSEL_CLASSES, vessel_class_capacities, special_sink_arcs, special_nodes_dict = unpack_problem_data(problem_data)
+    
+    for v in vessels:
+        print(f'Vessel {v.number} start in {v.initial_port} at time {v.first_time_available}')
     
     origin_node_arcs, destination_node_arcs, vessel_class_arcs = rearrange_arcs(arc_dict=arc_dict)
     
@@ -272,7 +236,7 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
         
     else:
         num_feasible_paths_with_random_actions = 0
-        NUM_EPISODES = 10000
+        NUM_EPISODES = 6002
         # replay = agent.load_replay_buffer(file_name='replay_buffer_8apr_40+60TP_2_3000.pkl')
         # replay.capacity = 5000
         # replay = replay.clean_up()
@@ -317,8 +281,9 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
                 if state['infeasible'] or state['done']:
                     if feasible_path:
                         num_feasible_paths_with_random_actions += 1
-                    if episode % NON_RANDOM_ACTION_EPISODE_FREQUENCY == 0:
+                    if episode % NON_RANDOM_ACTION_EPISODE_FREQUENCY == 0 or LOG:
                         env.log_episode(episode, total_reward_for_path, experience_path, state)
+                        
                     break
                 
                 # With the increased time, the vessels have moved and some of them have maybe reached their destination. Updating the vessel status based on this.
@@ -351,12 +316,6 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
                 torch.save(agent.main_model.state_dict(), f'main_model_{INSTANCE}_{episode}.pth')
                 torch.save(agent.target_model.state_dict(), f'target_model_{INSTANCE}_{episode}.pth')
                 
-            # if num_feasible_paths_with_random_actions >= 6:
-            #     agent.save_replay_buffer(file_name=f"replay_buffer_8apr_nt3_50_{episode}.pkl")
-            #     torch.save(agent.main_model.state_dict(), f'main_model_8apr_nt3_50_{episode}.pth')
-            #     torch.save(agent.target_model.state_dict(), f'target_model_8_apr_nt3_50_{episode}.pth')
-            #     break
-                
     if TRAIN_AND_SAVE_ONLY:
         return
     
@@ -366,13 +325,7 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
     active_X_keys, S_values, alpha_values = convert_path_to_MIRPSO_solution(env, experience_path, port_inventory_dict)
     env.reset()
     
-    # main_model, costs = build_model(vessels, all_vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, non_operational, sourceNode, sinkNode, waiting_arcs, OPERATING_COST)
-    # main_model, costs = build_model(vessels, regularNodes, ports, TIME_PERIOD_RANGE, sourceNode, sinkNode, vessel_classes, origin_node_arcs, destination_node_arcs, vessel_class_arcs, NODE_DICT, vessel_class_capacities):
-    
     x_initial_solution, model, warm_start_sol = warm_start_model(model, active_X_keys, S_values, alpha_values)
-
-    #print the initial solution
-    #print("Initial solution:", x_initial_solution)
 
     ps_data = {'model': model, 'initial_solution':x_initial_solution,'costs': costs, 'regularNodes': regularNodes, 'vessels': vessels, 'vessel_arcs': vessel_arcs}
     
