@@ -329,15 +329,14 @@ import gurobipy as gp
 from gurobipy import GRB
 import time
 
-def perform_proximity_search(ps_data, RUNNING_NPS_AND_RH, window_end, time_limit):  # Add other parameters as needed
+def perform_proximity_search(ps_data, RUNNING_NPS_AND_RH, window_end, time_limit):
         
     model = ps_data['model']
     vessel_class_arcs = ps_data['vessel_class_arcs']
     model.setParam(gp.GRB.Param.SolutionLimit, 1)
-    model.setParam(gp.GRB.Param.OutputFlag, 0)
+    model.setParam(gp.GRB.Param.OutputFlag, 1)
     
     start_time = time.time()
-        
     model.optimize()
     original_objective_function = model.getObjective()
     current_solution_vals_x = get_current_x_solution_vals(model)
@@ -347,9 +346,11 @@ def perform_proximity_search(ps_data, RUNNING_NPS_AND_RH, window_end, time_limit
     current_solution_s = get_current_s_solution_vals(model)
     current_best_obj = model.getObjective().getValue()
     
-    PERCENTAGE_DECREASE = 0.005
-    PERCENTAGE_DECREASE_AFTER_INFISIBILITY = 0.0025
-    INFEASIBILITY_MULTIPLIER = 0.1
+    PERCENTAGE_DECREASE = 0.1
+    PERCENTAGE_CHANGE_FACTOR = 1.1 #MAX 2
+    PERCENTAGE_CHANGE_FACTOR_AFTER_INF = PERCENTAGE_CHANGE_FACTOR / 4
+    # PERCENTAGE_DECREASE_AFTER_INFISIBILITY = PERCENTAGE_DECREASE/2
+    # INFEASIBILITY_MULTIPLIER = 0.1
     cutoff_value = (PERCENTAGE_DECREASE * current_best_obj)
     
     y = model.addVars(current_solution_vars_x.keys(), vtype=GRB.BINARY, name="y")
@@ -361,7 +362,7 @@ def perform_proximity_search(ps_data, RUNNING_NPS_AND_RH, window_end, time_limit
         if has_been_infeasible:
             model.setParam(gp.GRB.Param.OutputFlag, 1)
         i += 1
-        print_info = (i % 10 == 0)
+        print_info = (i % 1 == 0)
             
         if print_info or has_been_infeasible:
             print(f'Proximity Search Iteration {i}')
@@ -371,12 +372,14 @@ def perform_proximity_search(ps_data, RUNNING_NPS_AND_RH, window_end, time_limit
         model.update()
 
         cutoff_value = (PERCENTAGE_DECREASE * current_best_obj)
+        if print_info:
+            print(f'Cutoff value in iteration {i} = {cutoff_value}. Percentage decrease is {PERCENTAGE_DECREASE*100}%')
         add_cutoff_constraint(model, current_best_obj, cutoff_value)
 
         update_objective_to_minimize_hamming_distance(model, y, current_solution_vars_x, current_solution_vals_x, None)
         model.setParam(gp.GRB.Param.SolutionLimit, 1)
         time_left = time_limit - time_passed(start_time)
-        model.setParam(gp.GRB.Param.TimeLimit, min(300, time_left) if time_left >= 0 else 10)
+        model.setParam(gp.GRB.Param.TimeLimit, min(60, time_left) if time_left >= 0 else 10)
         model.optimize()
 
         # Check if a new solution is found with the lowest amount of changes to the structure as possible
@@ -395,8 +398,11 @@ def perform_proximity_search(ps_data, RUNNING_NPS_AND_RH, window_end, time_limit
             current_solution_vars_x = get_current_x_solution_vars(model)
             current_solution_alpha = get_current_alpha_solution_vals(model)
             current_solution_s = get_current_s_solution_vals(model)
-            if has_been_infeasible:
-                PERCENTAGE_DECREASE = PERCENTAGE_DECREASE_AFTER_INFISIBILITY
+            # if has_been_infeasible:
+            #     PERCENTAGE_DECREASE = PERCENTAGE_DECREASE_AFTER_INFISIBILITY
+            '''If feasible, increase the percentage change, by multiplying with PERCENTAGE CHANGE FACTOR (>1)'''
+            PERCENTAGE_DECREASE = min(PERCENTAGE_DECREASE * PERCENTAGE_CHANGE_FACTOR, 0.5)
+
                 
             current_time = time.time()
             time_diff = current_time - start_time
@@ -406,7 +412,8 @@ def perform_proximity_search(ps_data, RUNNING_NPS_AND_RH, window_end, time_limit
             
         elif model.Status == GRB.TIME_LIMIT or model.Status == GRB.INFEASIBLE:
             has_been_infeasible = True
-            PERCENTAGE_DECREASE *= INFEASIBILITY_MULTIPLIER
+            
+            PERCENTAGE_DECREASE *= PERCENTAGE_CHANGE_FACTOR_AFTER_INF
             # Return the best solution found. Time limit reached.
             print(f'Best objective value is {current_best_obj}.')
             if cutoff_value < 1:

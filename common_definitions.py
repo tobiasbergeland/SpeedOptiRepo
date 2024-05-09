@@ -645,11 +645,11 @@ class MIRPSOEnv():
             else:
                 reward = -10
                 
-            if action is not None:
-                operation_type = action[1]
-                if operation_type != 0:
+            # if action is not None:
+                # operation_type = action[1]
+                # if operation_type != 0:
                     # Give extra reward.
-                    reward += 1
+                    # reward += 1
             
             '''Future Reward'''
             # Future reward for the next state if the next state is not terminal
