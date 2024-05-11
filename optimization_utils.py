@@ -149,7 +149,7 @@ def evaluate_agent(env, agent):
     vessel_inventory_dict = {}
     decision_basis_states = {vessel.number: env.custom_deep_copy_of_state(state) for vessel in state['vessels']}
     
-    actions = {vessel: env.find_legal_actions_for_vessel(state=state, vessel=vessel, random_start = False)[0] for vessel in state['vessels']}
+    actions = {vessel: env.find_legal_actions_for_vessel(state=state, vessel=vessel)[0] for vessel in state['vessels']}
     state = env.step(state=state, actions=actions, experience_path=experience_path, decision_basis_states=decision_basis_states)
     
     while not done:
@@ -171,7 +171,7 @@ def evaluate_agent(env, agent):
         state, total_reward_for_path, cum_q_vals_main_net, cum_q_vals_target_net, feasible_path = env.check_state(state=state, experience_path=experience_path, replay=agent.memory, agent=agent)
         
         if state['done']:
-            first_infeasible_time, infeasibility_counter = env.log_episode(None, total_reward_for_path, experience_path, state, cum_q_vals_main_net, cum_q_vals_target_net)
+            first_infeasible_time, infeasibility_counter = env.log_episode(None, total_reward_for_path, experience_path, state)
             feasible_path = experience_path[0][6]
             state = env.consumption(state)
             
@@ -347,7 +347,7 @@ def perform_proximity_search(ps_data, RUNNING_NPS_AND_RH, window_end, time_limit
     current_best_obj = model.getObjective().getValue()
     
     PERCENTAGE_DECREASE = 0.1
-    PERCENTAGE_CHANGE_FACTOR = 1.1 #MAX 2
+    PERCENTAGE_CHANGE_FACTOR = 1.5 #MAX 2
     PERCENTAGE_CHANGE_FACTOR_AFTER_INF = PERCENTAGE_CHANGE_FACTOR / 4
     # PERCENTAGE_DECREASE_AFTER_INFISIBILITY = PERCENTAGE_DECREASE/2
     # INFEASIBILITY_MULTIPLIER = 0.1
@@ -401,7 +401,7 @@ def perform_proximity_search(ps_data, RUNNING_NPS_AND_RH, window_end, time_limit
             # if has_been_infeasible:
             #     PERCENTAGE_DECREASE = PERCENTAGE_DECREASE_AFTER_INFISIBILITY
             '''If feasible, increase the percentage change, by multiplying with PERCENTAGE CHANGE FACTOR (>1)'''
-            PERCENTAGE_DECREASE = min(PERCENTAGE_DECREASE * PERCENTAGE_CHANGE_FACTOR, 0.5)
+            PERCENTAGE_DECREASE = min(PERCENTAGE_DECREASE * PERCENTAGE_CHANGE_FACTOR, 0.2)
 
                 
             current_time = time.time()
@@ -467,14 +467,18 @@ def update_objective_to_minimize_hamming_distance(model, y, x_variables, current
     
     # Add new Hamming distance constraints
     for var_name, var in x_variables.items():
+        if var_name not in y.keys():
+            continue
         initial_value = current_solution[var_name]
+        if initial_value>=2:
+            print('Hello')
         if initial_value == 0:
             model.addConstr(y[var_name] >= var - initial_value, name=f'y_{var_name}_Hamming_distance')
         else:
             model.addConstr(y[var_name] >= initial_value - var, name=f'y_{var_name}_Hamming_distance')
             
     if weights:
-        weighted_hamming_distance = gp.quicksum(weights[var_name] * y[var_name] for var_name in x_variables.keys())
+        weighted_hamming_distance = gp.quicksum(weights[var_name] * y[var_name] for var_name in x_variables.keys() if var_name in y.keys())
         model.setObjective(weighted_hamming_distance, GRB.MINIMIZE)
     else:
         model.setObjective(y.sum(), GRB.MINIMIZE)

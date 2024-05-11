@@ -187,19 +187,19 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
     # INSTANCE = 'LR1_DR02_VC01_V6a'
     # INSTANCE = 'LR1_DR02_VC02_V6a'
     # INSTANCE = 'LR1_DR02_VC03_V7a'
-    # INSTANCE = 'LR1_DR02_VC03_V8a'
     # INSTANCE = 'LR1_DR02_VC04_V8a'
     # INSTANCE = 'LR1_DR02_VC05_V8a'
-    
-    'Trene agent på desse. 6000 iterasjoner.'
     # INSTANCE = 'LR1_DR03_VC03_V10b'
+    
+    'Trene agent på desse. mange iterasjoner.'
+    INSTANCE = 'LR1_DR02_VC03_V8a'
     # INSTANCE = 'LR1_DR05_VC05_V25a'
-    INSTANCE = 'LR1_DR08_VC10_V40a'
+    # INSTANCE = 'LR1_DR08_VC10_V40a'
     
     
     TRAINING_FREQUENCY = 1
     TARGET_UPDATE_FREQUENCY = 100
-    NON_RANDOM_ACTION_EPISODE_FREQUENCY = 10
+    NON_RANDOM_ACTION_EPISODE_FREQUENCY = 5
     BATCH_SIZE = 256
     BUFFER_SAVING_FREQUENCY = 1000
     problem_data = build_problem(INSTANCE, RUNNING_MIRPSO)
@@ -236,14 +236,14 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
         
     else:
         num_feasible_paths_with_random_actions = 0
-        NUM_EPISODES = 6002
-        # replay = agent.load_replay_buffer(file_name='replay_buffer_8apr_40+60TP_2_3000.pkl')
+        NUM_EPISODES = 50002
+        # replay = agent.load_replay_buffer(file_name='replay_buffer_LR1_DR02_VC03_V8a_27000.pkl')
         # replay.capacity = 5000
         # replay = replay.clean_up()
         # agent.memory = replay
         
-        # agent.main_model.load_state_dict(torch.load('main_model_8apr_nt2_1000.pth'))
-        # agent.target_model.load_state_dict(torch.load('target_model_8_apr_nt2_1000.pth'))
+        # agent.main_model.load_state_dict(torch.load('main_model_LR1_DR02_VC03_V8a_27000.pth'))
+        # agent.target_model.load_state_dict(torch.load('target_model_LR1_DR02_VC03_V8a_27000.pth'))
         
         for episode in range(1, NUM_EPISODES):
             if episode % NON_RANDOM_ACTION_EPISODE_FREQUENCY == 0:
@@ -312,9 +312,9 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
                 state = env.consumption(state)
             
             if episode % BUFFER_SAVING_FREQUENCY == 0:
-                agent.save_replay_buffer(file_name=f"replay_buffer_{INSTANCE}_{episode}.pkl")
-                torch.save(agent.main_model.state_dict(), f'main_model_{INSTANCE}_{episode}.pth')
-                torch.save(agent.target_model.state_dict(), f'target_model_{INSTANCE}_{episode}.pth')
+                agent.save_replay_buffer(file_name=f"replay_buffer_{INSTANCE}_{episode}_NEW.pkl")
+                torch.save(agent.main_model.state_dict(), f'main_model_{INSTANCE}_{episode}_NEW.pth')
+                torch.save(agent.target_model.state_dict(), f'target_model_{INSTANCE}_{episode}_NEW.pth')
                 
     if TRAIN_AND_SAVE_ONLY:
         return

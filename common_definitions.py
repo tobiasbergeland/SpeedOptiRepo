@@ -229,7 +229,7 @@ class MIRPSOEnv():
         travel_times = np.array(self.TRAVEL_TIME_DICT[vessel_simp['position']])
         vessel_positions = np.array([v['position'] if v['position'] else v['in_transit_towards']['destination_port_number'] for v in vessel_dict.values()])
         vessel_in_transit = np.array([v['in_transit_towards']['destination_time'] - state['time'] if v['in_transit_towards'] else 0 for v in vessel_dict.values()])
-        encoded_state = np.concatenate([port_critical_times, vessel_positions, vessel_in_transit, travel_times, current_vessel_position, current_vessel_class, inventory_effect_on_ports])        
+        encoded_state = np.concatenate([port_critical_times, vessel_positions, vessel_in_transit, travel_times, inventory_effect_on_ports])        
         return encoded_state
     
     def find_legal_actions_for_vessel(self, state, vessel):
@@ -560,8 +560,12 @@ class MIRPSOEnv():
             cum_q_vals_target_net = 0
             for exp in experience_path:
                 action = exp[1]
+                time = exp[0]['time']
+                first_infeasible_time = exp[7]
                 if action is not None:
-                    replay.push(exp, self)
+                    if first_infeasible_time is not None:
+                        if time <= first_infeasible_time + 10:
+                            replay.push(exp, self)
                     
                 rew = exp[3]
                 total_reward_for_path += rew
@@ -627,29 +631,35 @@ class MIRPSOEnv():
                     break
         
         extra_reward_for_feasible_path = horizon
+        
+        horizon_checkpoints = [i for i in range(0, horizon, 10)]
+        # Find the maximum number in horizon_checkpoints that is lower than or equal to first_infeasible_time
+        lowest_cp = 0
+        for cp in horizon_checkpoints:
+            if cp <= first_infeasible_time and cp > lowest_cp:
+                lowest_cp = cp
+                
+        cp_factor = lowest_cp/horizon
+        extra_cp_reward = horizon*cp_factor
+                
+        
         for exp in experience_path:
             current_state, action, vessel, reward_ph, next_state, earliest_vessel, feasible_path_ph, fi_time, terminal_flag = exp
             current_state_time = current_state['time']
-         
-            
                 
             '''Immediate Reward'''
-            # if current_state_time == first_infeasible_time:
-            #     reward = -horizon
-            # elif not current_state['infeasible']:
-            #     reward = 1
-            # else:
-            #     reward = -1
+            
             if not current_state['infeasible']:
-                reward = 10
+                reward = 1
             else:
-                reward = -10
+                reward = -1
                 
-            # if action is not None:
-                # operation_type = action[1]
-                # if operation_type != 0:
-                    # Give extra reward.
-                    # reward += 1
+            if current_state_time < lowest_cp:
+                reward += extra_cp_reward * agent.gamma ** (lowest_cp-current_state_time)     
+            
+            if first_infeasible_time:
+                if current_state_time == first_infeasible_time:
+                    reward -= horizon-first_infeasible_time
             
             '''Future Reward'''
             # Future reward for the next state if the next state is not terminal
@@ -828,10 +838,10 @@ class MIRPSOEnv():
 class DQN(nn.Module):
     def __init__(self, state_size, action_size):
         super(DQN, self).__init__()
-        self.fc1 = nn.Linear(state_size, 24)     # First fully connected layer
-        self.fc2 = nn.Linear(24, 48)             # Second fully connected layer
-        self.fc3 = nn.Linear(48, 24)             # Third fully connected layer, newly added
-        self.fc4 = nn.Linear(24, action_size)    # Output layer
+        self.fc1 = nn.Linear(state_size, 64)     # First fully connected layer
+        self.fc2 = nn.Linear(64, 128)             # Second fully connected layer
+        self.fc3 = nn.Linear(128, 64)             # Third fully connected layer, newly added
+        self.fc4 = nn.Linear(64, action_size)    # Output layer
         self.relu = nn.ReLU()                    # ReLU activation
 
     def forward(self, state):
@@ -912,12 +922,12 @@ class ReplayMemory:
 class DQNAgent:
     def __init__(self, ports, vessels, TRAINING_FREQUENCY, TARGET_UPDATE_FREQUENCY, NON_RANDOM_ACTION_EPISODE_FREQUENCY, BATCH_SIZE, replay):
         # ports plus source and sink, vessel inventory, (vessel position, vessel in transit), time period, vessel_number
-        state_size = len(ports) + 2 * len(vessels) + 1 + len(ports)*2 + 1
+        state_size = len(ports) + 2 * len(vessels) + len(ports)*2
         action_size = len(ports)
         self.state_size = state_size
         self.action_size = action_size
         self.memory = replay
-        self.gamma = 0.99    # discount rate feasible paths
+        self.gamma = 0.90    # discount rate feasible paths
         self.sigma = 0.5     # discount rate infeasible paths
         self.epsilon = 0.75 # exploration rate
         self.epsilon_min = 0.25

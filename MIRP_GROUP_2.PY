@@ -993,9 +993,9 @@ def build_model(vessels, regularNodes, ports, TIME_PERIOD_RANGE, sourceNode, sin
     return m, costs, P, costs_namekey
     
 def build_problem(INSTANCE, RUNNING_MIRPSO):    
-    INSTANCE_PATH = 'GROUP_2/'+INSTANCE+'/'+INSTANCE+'.txt'
-    VESSELINFO_PATH = 'GROUP_2/'+INSTANCE+'/vessel_data.txt'
-    VESSEL_CLASS_DATA_PATH = 'GROUP_2/'+INSTANCE+'/vessel_class_data.txt'
+    INSTANCE_PATH = 'Group_2/'+INSTANCE+'/'+INSTANCE+'.txt'
+    VESSELINFO_PATH = 'Group_2/'+INSTANCE+'/vessel_data.txt'
+    VESSEL_CLASS_DATA_PATH = 'Group_2/'+INSTANCE+'/vessel_class_data.txt'
     
     # Read file content
     with open(INSTANCE_PATH, 'r') as file:
@@ -1138,97 +1138,19 @@ def update_weights_based_on_action(weights, active_arcs_chosen_by_agent):
     return weights
             
         
-        
-# def perform_proximity_search(ps_data, RUNNING_NPS_AND_RH, window_end):  # Add other parameters as needed
-    
-#     model = ps_data['model']
-#     vessel_class_arcs = ps_data['vessel_class_arcs']
-#     model.setParam(gp.GRB.Param.SolutionLimit, 1)
-#     model.setParam(gp.GRB.Param.OutputFlag, 0)
-#     model.optimize()
-#     original_objective_function = model.getObjective()
-#     current_solution_vals_x = get_current_x_solution_vals(model)
-#     current_solution_vars_x = {v.VarName: v for v in model.getVars() if v.VarName.startswith('x')}
-#     active_arcs = find_corresponding_arcs(current_solution_vals_x, vessel_class_arcs)
-#     current_solution_alpha = get_current_alpha_solution_vals(model)
-#     current_solution_s = get_current_s_solution_vals(model)
-#     current_best_obj = model.getObjective().getValue()
-    
-#     PERCENTAGE_DECREASE = 0.005
-#     INFEASIBILITY_MULTIPLIER = 0.1
-#     cutoff_value = (PERCENTAGE_DECREASE * current_best_obj)
-    
-#     y = model.addVars(current_solution_vars_x.keys(), vtype=GRB.BINARY, name="y")
-#     i = 0
-#     has_been_infeasible = False
-    
-#     # Start loop here:
-#     while True:
-#         if has_been_infeasible:
-#             model.setParam()
-#         i += 1
-#         print_info = (i % 10 == 0)
-            
-#         if print_info or has_been_infeasible:
-#             print(f'Proximity Search Iteration {i}')
-        
-#         # Set the objective (back) to the original objective function
-#         model.setObjective(original_objective_function, GRB.MINIMIZE)
-#         model.update()
-
-#         cutoff_value = (PERCENTAGE_DECREASE * current_best_obj)
-#         add_cutoff_constraint(model, current_best_obj, cutoff_value)
-
-#         update_objective_to_minimize_hamming_distance(model, y, current_solution_vars_x, current_solution_vals_x, None)
-#         model.setParam(gp.GRB.Param.SolutionLimit, 1)
-#         model.setParam(gp.GRB.Param.TimeLimit, 300)
-#         model.optimize()
-
-#         # Check if a new solution is found with the lowest amount of changes to the structure as possible
-#         if model.Status ==  GRB.SOLUTION_LIMIT:
-#             if print_info or has_been_infeasible:
-#                 print("Hamming Distance from previous solution:", model.objVal)
-            
-#             current_solution_vals_x = get_current_x_solution_vals(model)
-
-#             if RUNNING_NPS_AND_RH:
-#                 new_obj_value = evaluate_solution_with_original_objective_for_RH(model, ps_data, window_end)
-#             else:
-#                 new_obj_value = evaluate_solution_with_original_objective(model, ps_data, print_info, has_been_infeasible)
-#             if print_info or has_been_infeasible:
-#                 print(f'Previous objective value was {current_best_obj}. New objective value: {new_obj_value}')
-                
-#             current_best_obj = new_obj_value
-#             current_solution_vars_x = get_current_x_solution_vars(model)
-#             current_solution_alpha = get_current_alpha_solution_vals(model)
-#             current_solution_s = get_current_s_solution_vals(model)
-
-            
-#         elif model.Status == GRB.TIME_LIMIT or model.Status == GRB.INFEASIBLE:
-#             has_been_infeasible = True
-#             PERCENTAGE_DECREASE *= INFEASIBILITY_MULTIPLIER
-#             # Return the best solution found. Time limit reached.
-#             print(f'Best objective value is {current_best_obj}.')
-#             # return current_solution, current_best_obj, model
-#             return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs
-        
 def find_corresponding_action_MIRPSO(possible_actions, dport_chosen_by_agent, active_arcs, vessel, legal_actions, traveling_arcs_taken, waiting_arcs_taken):
     vc = vessel.vessel_class
     # If waiting is correct, traveling arcs taken will be empty for the next vessel, meaning there is a possibility of choosing the wrong arc for the next vessel.
     # Issue if two or more vessels are at the same port at the same time and one or more of them are waiting but not all. 
-    
     for action in possible_actions:
         possible_arc = action[3]
         for arc in active_arcs[vc]:
             if is_similar_arc(arc, possible_arc) and arc.is_waiting_arc == False:
                 if any(is_similar_arc(arc, taken_arc) for taken_arc in traveling_arcs_taken[vc]):
-                    print('Active, but already taken by another vessel')
+                    # print('Active, but already taken by another vessel')
                     continue
                 return action, True
-            # if arc.origin_node == possible_arc.origin_node and arc.destination_node == possible_arc.destination_node and arc.vessel_class == vc and arc.is_waiting_arc == False:
-            #     if arc in traveling_arcs_taken[vc]:
-                    # continue
-                    
+           
     a = 2     
     # Sligthly wrong to do it like this, but now trvaleing arcs are forced to be chosen before waiting, ensuring all traveling arcs are taken. Fewer weights will be set to one, but it is not a big issue.
     for action in legal_actions:
@@ -1236,7 +1158,7 @@ def find_corresponding_action_MIRPSO(possible_actions, dport_chosen_by_agent, ac
         for arc in active_arcs[vc]:
             if is_similar_arc(arc, possible_arc) and arc.is_waiting_arc == False:
                 if any(is_similar_arc(arc, taken_arc) for taken_arc in traveling_arcs_taken[vc]):
-                    print('Active, but already taken by another vessel')
+                    # print('Active, but already taken by another vessel')
                     continue
                 return action, False
     
@@ -1249,11 +1171,6 @@ def find_corresponding_action_MIRPSO(possible_actions, dport_chosen_by_agent, ac
                     return action, True
         
     
-            
-            # if arc.origin_node == possible_arc.origin_node and arc.vessel_class == vc and arc.is_waiting_arc == False and arc.destination_node == possible_arc.destination_node:
-            #     if arc in traveling_arcs_taken[vc]:
-            #         continue
-     
     a = 3       
     for action in legal_actions:
         possible_arc = action[3]
@@ -1263,8 +1180,6 @@ def find_corresponding_action_MIRPSO(possible_actions, dport_chosen_by_agent, ac
                     if arc.origin_node == possible_arc.origin_node and arc.vessel_class == vc:
                         return action, False
     
-    # If no arcs were 
-                    
     return None, False
         
     
@@ -1329,7 +1244,7 @@ def calculate_weights(current_solution_x, current_solution_alpha, current_soluti
     state = env.reset()
     experience_path = []
     decision_basis_states = {vessel.number: env.custom_deep_copy_of_state(state) for vessel in state['vessels']}
-    actions = {vessel: env.find_legal_actions_for_vessel(state=state, vessel=vessel, random_start = False)[0] for vessel in state['vessels']}
+    actions = {vessel: env.find_legal_actions_for_vessel(state=state, vessel=vessel)[0] for vessel in state['vessels']}
     for vessel, action in actions.items():
         arc = action[3]
         active_arcs_chosen_by_agent.append(arc)
@@ -1617,8 +1532,6 @@ def save_solution(INSTANCE, HORIZON, model, time_limit, elapsed_time, costs, P,
                   RUNNING_MIRPSO, best_obj_val, solution_vals_x,
                   solution_vals_s, solution_vals_alpha, active_arcs, vessel_classes,
                   NPS, WPS, RH, WPS_AND_RH, NPS_AND_RH, VESSEL_CLASSES, vessels, sourceNode, sinkNode, NODE_DICT):
-    # If the model is not optimal store the gap also.
-    
 
     method_map = {"NPS": NPS, "WPS": WPS, "RH": RH, "WPS_AND_RH": WPS_AND_RH, "NPS_AND_RH": NPS_AND_RH}
     method = next((method_name for method_name, condition in method_map.items() if condition), "SOLVER")
@@ -1677,8 +1590,8 @@ def save_solution(INSTANCE, HORIZON, model, time_limit, elapsed_time, costs, P,
     flattened_routes["vessel_routes_flattened"] = reformatted_routes
     
     # Save to a JSON file for easy parsing and readability
-    filename = f"group2_solutions/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}.json"
-    filename_readable_routes = f"group2_routes/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_routes.txt"
+    filename = f"group2_solutions/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_3_b.json"
+    filename_readable_routes = f"group2_routes/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_routes_3_b.txt"
     with open(filename, 'w') as file:
         json.dump(solution_data, file, indent=4)
     with open(filename_readable_routes, 'w') as file:
@@ -1707,14 +1620,21 @@ def proximity_search_using_agent(ps_data, agent, env, RUNNING_WPS_AND_RH, window
         active_X_keys, S_values, alpha_values = convert_path_to_MIRPSO_solution(env, experience_path, port_inventory_dict)
         current_solution_vals_x, model, warm_start_sol = warm_start_model(model, active_X_keys, S_values, alpha_values)
         current_solution_vars_x = {v.VarName: v for v in model.getVars() if v.VarName.startswith('x')}
-        # active_arcs = find_corresponding_arcs(current_solution_vals_x, vessel_class_arcs)
-        y = model.addVars(current_solution_vars_x.keys(), vtype=GRB.BINARY, name="y")
+        # Find the interregional arcs
+        interregional_vars_keys = {k for k, v in current_solution_vars_x.items() if k.startswith('x_interregional')}
+        
+        y = model.addVars(interregional_vars_keys, vtype=GRB.BINARY, name="y")
+        # y = model.addVars(current_solution_vars_x.keys(), vtype=GRB.BINARY, name="y")
         update_objective_to_minimize_hamming_distance(model, y, current_solution_vars_x, current_solution_vals_x, None)
         
         model.setParam(gp.GRB.Param.SolutionLimit, 1)
         model.setParam(gp.GRB.Param.TimeLimit, 300)
         start_time = time.time()
         model.optimize()
+        # if model is infeasible write to ilp file
+        if model.Status == GRB.INFEASIBLE:
+            model.computeIIS()
+            model.write("MIRPSO.ilp")
         model.setParam(gp.GRB.Param.OutputFlag, 0)
         
         current_best_obj = evaluate_solution_with_original_objective(model, ps_data, True, False)
@@ -1753,6 +1673,7 @@ def proximity_search_using_agent(ps_data, agent, env, RUNNING_WPS_AND_RH, window
         current_best_obj = model.getObjective().getValue()
         current_solution_vals_x = get_current_x_solution_vals(model)
         current_solution_vars_x = {v.VarName: v for v in model.getVars() if v.VarName.startswith('x')}
+        
         active_arcs = find_corresponding_arcs(current_solution_vals_x, vessel_class_arcs)
         current_solution_alpha = get_current_alpha_solution_vals(model)
         current_solution_s = get_current_s_solution_vals(model)
@@ -1771,7 +1692,7 @@ def proximity_search_using_agent(ps_data, agent, env, RUNNING_WPS_AND_RH, window
             model.setParam(gp.GRB.Param.OutputFlag, 1)
         i += 1
         
-        PRINT_INFO = (i % 10 == 0)
+        PRINT_INFO = True
         CALCULATE_WEIGHTS = (i % WEIGHT_UPDATE_FREQUENCY == 0)
         if PRINT_INFO or has_been_infeasible:
             print(f'Proximity Search Iteration {i}')
@@ -1808,6 +1729,7 @@ def proximity_search_using_agent(ps_data, agent, env, RUNNING_WPS_AND_RH, window
             current_best_obj = new_obj_value
             current_solution_vals_x = get_current_x_solution_vals(model)
             current_solution_vars_x = {v.VarName: v for v in model.getVars() if v.VarName.startswith('x')}
+            interregional_vars_keys = {k for k, v in current_solution_vars_x.items() if k.startswith('x_interregional')}
             active_arcs = find_corresponding_arcs(current_solution_vals_x, vessel_class_arcs)
             current_solution_alpha = get_current_alpha_solution_vals(model)
             current_solution_s = get_current_s_solution_vals(model)
@@ -1857,10 +1779,18 @@ def main():
     INSTANCE = 'LR1_DR02_VC01_V6a'
     # INSTANCE = 'LR1_DR02_VC02_V6a'
     # INSTANCE = 'LR1_DR02_VC03_V7a'
+    
+    'RUN 1'
     # INSTANCE = 'LR1_DR02_VC03_V8a'
     # INSTANCE = 'LR1_DR02_VC04_V8a'
+    
     # INSTANCE = 'LR1_DR02_VC05_V8a'
     # INSTANCE = 'LR1_DR03_VC03_V10b'
+    
+    'RUN 2'
+    # INSTANCE = 'LR1_DR05_VC05_V25a'
+    'RUN 3'
+    # INSTANCE = 'LR1_DR08_VC10_V40a' 
     
     TIME_LIMIT = 10800
     
@@ -1899,11 +1829,13 @@ def main():
         replay = ReplayMemory(3000)
         
         agent = DQNAgent(ports = ports, vessels=vessels, TRAINING_FREQUENCY = None, TARGET_UPDATE_FREQUENCY = None, NON_RANDOM_ACTION_EPISODE_FREQUENCY = None, BATCH_SIZE = None, replay = replay)
-        replay = agent.load_replay_buffer(file_name= 'replay_buffer_8apr_nt3_50_1664.pkl')
+        replay = agent.load_replay_buffer(file_name= 'replay_buffer_LR1_DR03_VC03_V10b_4000.pkl')
+        
         agent.memory = replay
         
-        agent.main_model.load_state_dict(torch.load('main_model_8apr_nt3_50_1664.pth'))
-        agent.target_model.load_state_dict(torch.load('target_model_8_apr_nt3_50_1664.pth'))
+        agent.main_model.load_state_dict(torch.load('main_model_LR1_DR03_VC03_V10b_4000.pth'))
+        agent.target_model.load_state_dict(torch.load('target_model_LR1_DR03_VC03_V10b_4000.pth'))
+        
         current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs = proximity_search_using_agent(ps_data=ps_data, agent=agent, env=env, RUNNING_WPS_AND_RH=RUNNING_WPS_AND_RH, window_end=None, RUNNING_MIRPSO=RUNNING_MIRPSO, time_limit=TIME_LIMIT)
 
         
@@ -1926,11 +1858,11 @@ def main():
         replay = ReplayMemory(3000)
         
         agent = DQNAgent(ports = ports, vessels=vessels, TRAINING_FREQUENCY = None, TARGET_UPDATE_FREQUENCY = None, NON_RANDOM_ACTION_EPISODE_FREQUENCY = None, BATCH_SIZE = None, replay = replay)
-        replay = agent.load_replay_buffer(file_name= 'replay_buffer_8apr_nt3_50_1664.pkl')
+        replay = agent.load_replay_buffer(file_name= 'replay_buffer_LR1_DR03_VC03_V10b_4000.pkl')
         agent.memory = replay
         
-        agent.main_model.load_state_dict(torch.load('main_model_8apr_nt3_50_1664.pth'))
-        agent.target_model.load_state_dict(torch.load('target_model_8_apr_nt3_50_1664.pth'))
+        agent.main_model.load_state_dict(torch.load('main_model_LR1_DR03_VC03_V10b_4000.pth'))
+        agent.target_model.load_state_dict(torch.load('target_model_LR1_DR03_VC03_V10b_4000.pth'))
         
         window_size = 60  # example window size
         step_size = 30
