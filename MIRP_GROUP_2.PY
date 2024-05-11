@@ -1002,6 +1002,7 @@ def build_problem(INSTANCE, RUNNING_MIRPSO):
         content = file.read()
         
     # Extract and adjust metadata
+    
     metadata = extract_metadata(content)
     spotMarketPricePerUnit = metadata['spotMarketPricePerUnit']
     spotMarketDiscountFactor = metadata['spotMarketDiscountFactor']
