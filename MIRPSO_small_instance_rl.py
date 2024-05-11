@@ -31,7 +31,7 @@ def evaluate_agent_until_solution_is_found(env, agent):
             state = env.produce(state)
                     
             # Check if state is infeasible or terminal        
-            state, total_reward_for_path, cum_q_vals_main_net, cum_q_vals_target_net, feasible_path = env.check_state(state=state, experience_path=experience_path, replay=agent.memory, agent=agent)
+            state, total_reward_for_path, feasible_path = env.check_state(state=state, experience_path=experience_path, replay=agent.memory, agent=agent)
             
             if state['done']:
                 first_infeasible_time, infeasibility_counter = env.log_episode(attempts, total_reward_for_path, experience_path, state, cum_q_vals_main_net, cum_q_vals_target_net)
@@ -198,7 +198,7 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
     
     
     TRAINING_FREQUENCY = 1
-    TARGET_UPDATE_FREQUENCY = 100
+    TARGET_UPDATE_FREQUENCY = 50
     NON_RANDOM_ACTION_EPISODE_FREQUENCY = 5
     BATCH_SIZE = 256
     BUFFER_SAVING_FREQUENCY = 1000
@@ -274,16 +274,20 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
             # All vessels have made their initial action.
             while not done:
                 # Increase time and make production ports produce.
-                state = env.increment_time_and_produce(state=state)
+                if state['time'] <= 0:
+                    # increment time only
+                    state['time'] += 1
+                else:
+                    state = env.increment_time_and_produce(state=state)
                 
                 # Check if state is infeasible or terminal        
-                state, total_reward_for_path, cum_q_vals_main_net, cum_q_vals_target_net, feasible_path = env.check_state(state=state, experience_path=experience_path, replay=replay, agent=agent)
-                if state['infeasible'] or state['done']:
+                state, total_reward_for_path, feasible_path = env.check_state(state=state, experience_path=experience_path, replay=replay, agent=agent)
+                # if state['infeasible'] or state['done']:
+                if state['done']:
                     if feasible_path:
                         num_feasible_paths_with_random_actions += 1
                     if episode % NON_RANDOM_ACTION_EPISODE_FREQUENCY == 0 or LOG:
                         env.log_episode(episode, total_reward_for_path, experience_path, state)
-                        
                     break
                 
                 # With the increased time, the vessels have moved and some of them have maybe reached their destination. Updating the vessel status based on this.
@@ -309,12 +313,14 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
                     # Should check the feasibility of the state, even though no actions were performed. 
                     state = env.simple_step(state, experience_path)
                 # Make consumption ports consume regardless if any actions were performed
-                state = env.consumption(state)
+                if state['time'] >= 0:
+                    state = env.consumption(state)
+                # state = env.consumption(state)
             
             if episode % BUFFER_SAVING_FREQUENCY == 0:
-                agent.save_replay_buffer(file_name=f"replay_buffer_{INSTANCE}_{episode}_NEW.pkl")
-                torch.save(agent.main_model.state_dict(), f'main_model_{INSTANCE}_{episode}_NEW.pth')
-                torch.save(agent.target_model.state_dict(), f'target_model_{INSTANCE}_{episode}_NEW.pth')
+                agent.save_replay_buffer(file_name=f"replay_buffer_{INSTANCE}_{episode}_NEW2.pkl")
+                torch.save(agent.main_model.state_dict(), f'main_model_{INSTANCE}_{episode}_NEW2.pth')
+                torch.save(agent.target_model.state_dict(), f'target_model_{INSTANCE}_{episode}_NEW2.pth')
                 
     if TRAIN_AND_SAVE_ONLY:
         return
