@@ -237,13 +237,13 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
     else:
         num_feasible_paths_with_random_actions = 0
         NUM_EPISODES = 50002
-        # replay = agent.load_replay_buffer(file_name='replay_buffer_LR1_DR02_VC03_V8a_27000.pkl')
+        # replay = agent.load_replay_buffer(file_name='replay_buffer_LR1_DR02_VC03_V8a_5000_NEW2.pkl')
         # replay.capacity = 5000
         # replay = replay.clean_up()
         # agent.memory = replay
         
-        # agent.main_model.load_state_dict(torch.load('main_model_LR1_DR02_VC03_V8a_27000.pth'))
-        # agent.target_model.load_state_dict(torch.load('target_model_LR1_DR02_VC03_V8a_27000.pth'))
+        # agent.main_model.load_state_dict(torch.load('main_model_LR1_DR02_VC03_V8a_5000_NEW2.pth'))
+        # agent.target_model.load_state_dict(torch.load('target_model_LR1_DR02_VC03_V8a_5000_NEW2.pth'))
         
         for episode in range(1, NUM_EPISODES):
             if episode % NON_RANDOM_ACTION_EPISODE_FREQUENCY == 0:
@@ -281,7 +281,7 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
                     state = env.increment_time_and_produce(state=state)
                 
                 # Check if state is infeasible or terminal        
-                state, total_reward_for_path, feasible_path = env.check_state(state=state, experience_path=experience_path, replay=replay, agent=agent)
+                state, total_reward_for_path, feasible_path = env.check_state(state=state, experience_path=experience_path, replay=replay, agent=agent, INSTANCE=INSTANCE, exploit=exploit)
                 # if state['infeasible'] or state['done']:
                 if state['done']:
                     if feasible_path:
