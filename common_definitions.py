@@ -28,6 +28,8 @@ class MIRPSOEnv():
         self.SPECIAL_SINK_ARCS = special_sink_arcs
         self.SPECIAL_NODES_DICT = special_nodes_dict
         self.TRAVEL_TIME_DICT = {}
+        self.current_checkpoint = 0
+        self.current_best_IC = TIME_PERIOD_RANGE[-1]
             
         for origin_port in self.PORT_DICT.values():
             if origin_port.number in [self.SOURCE_NODE.port.number, self.SINK_NODE.port.number]:
@@ -229,10 +231,39 @@ class MIRPSOEnv():
                 
         
         travel_times = np.array(self.TRAVEL_TIME_DICT[vessel_simp['position']])
+        # Change to -1 for ports the vessel cannot travel to, but keep 0 for the current position for the vessel.
+        current_vessel_position = vessel_simp['position']
+        # Change all entries that are 0 to -1, except for the current position in travel times
+        travel_times = np.where(travel_times == 0, -1, travel_times)
+        travel_times[current_vessel_position - 1] = 0
+        
+        
+         
+        
         vessel_positions = np.array([v['position'] if v['position'] else v['in_transit_towards']['destination_port_number'] for v in vessel_dict.values()])
         vessel_in_transit = np.array([v['in_transit_towards']['destination_time'] - state['time'] if v['in_transit_towards'] else 0 for v in vessel_dict.values()])
-        encoded_state = np.concatenate([port_critical_times, vessel_positions, vessel_in_transit, travel_times, inventory_effect_on_ports])
-        current_vessel_class = np.array([vessel_simp['vessel_class']])        
+        
+        # Find the indices of the ports that have > 0 in travel times
+        legal_ports = np.where(travel_times > 0)[0]
+        inv_at_arrival = [entry for entry in port_critical_times]
+        for lp_idx in legal_ports:
+            tt = travel_times[lp_idx]
+            # Subtract the travel time from inv_at_arrival for the port
+            inv_at_arrival[lp_idx] -= tt
+            # Iterate through the indices and ports in vessel_positions and vessel_in_transit
+            for v_idx, port_num in enumerate(vessel_positions):
+                if port_num == lp_idx + 1:
+                    # I know that the vessel is in transit towards the port
+                    if vessel_in_transit[v_idx] <= tt:
+                        # I know that the vessel will arrive at the port before the target vessel
+                        effect_on_port = state['vessel_dict'][v_idx+1]['capacity'] // port_dict[lp_idx+1]['rate']
+                        inv_at_arrival[lp_idx] += effect_on_port
+                        
+        inv_at_arrival = np.array(inv_at_arrival)
+                    
+            
+        encoded_state = np.concatenate([port_critical_times, vessel_positions, vessel_in_transit, travel_times, inv_at_arrival, inventory_effect_on_ports])
+        # current_vessel_class = np.array([vessel_simp['vessel_class']])        
         return encoded_state
     
     def find_legal_actions_for_vessel(self, state, vessel):
@@ -555,11 +586,11 @@ class MIRPSOEnv():
         if state['time'] == len(self.TIME_PERIOD_RANGE):
             return True
         
-    def check_state(self, state, experience_path, replay, agent):
+    def check_state(self, state, experience_path, replay, agent, INSTANCE, exploit):
         '''Evaluates the state and returns status and reward.'''
         total_reward_for_path  = 0
         if self.is_terminal(state):
-            experience_path, feasible_path = self.update_rewards_in_experience_path(experience_path, agent)
+            experience_path, feasible_path = self.update_rewards_in_experience_path(experience_path, agent, INSTANCE, exploit)
             for exp in experience_path:
                 action = exp[1]
                 time = exp[0]['time']
@@ -610,23 +641,27 @@ class MIRPSOEnv():
         exp[7] = first_infeasible_time
         
         
-    def update_rewards_in_experience_path(self, experience_path, agent):
+    def update_rewards_in_experience_path(self, experience_path, agent, INSTANCE, exploit):
         feasible_path = True
         first_infeasible_time = None
         horizon = len(self.TIME_PERIOD_RANGE)
         
-        # most_recent_visits_for_ports = {port.number : 0 for port in self.PORTS}
-        inf_counter = 0
+        infeasibility_counter = 0
+        infeasibility_dict = {}
+        
         for exp in experience_path:
             current_state, action, _, _, next_state, _, _, fi_time, terminal_flag = exp
             current_state_is_infeasible, infeasible_ports = self.sim_is_infeasible(current_state)
             # next_state_is_infeasible, _ = self.sim_is_infeasible(next_state)
             if current_state_is_infeasible:
-                feasible_path = False
-                first_infeasible_time = current_state['time']
-                break  # Exit the loop early if any infeasible state is found
-     
-            
+                if first_infeasible_time is None:
+                    feasible_path = False
+                    first_infeasible_time = current_state['time']
+                if current_state['time'] not in infeasibility_dict.keys():
+                    infeasibility_dict[current_state['time']] = True
+                    
+        infeasibility_counter = len(infeasibility_dict.keys())
+        
         if first_infeasible_time is None:
             for exp in experience_path:
                 current_state, action, _, _, next_state, _, _, fi_time, terminal_flag = exp
@@ -642,7 +677,8 @@ class MIRPSOEnv():
         extra_reward_for_feasible_path = horizon
         
         checkpoint_rew = True
-        horizon_checkpoints = [i for i in range(30, horizon, 10)]
+        checkpoint_step = 10
+        horizon_checkpoints = [i for i in range(30, horizon, checkpoint_step)]
         # Find the maximum number in horizon_checkpoints that is lower than or equal to first_infeasible_time
         lowest_cp = 0
         
@@ -650,15 +686,23 @@ class MIRPSOEnv():
             for cp in horizon_checkpoints:
                 if cp <= first_infeasible_time and cp > lowest_cp:
                     lowest_cp = cp
+                    if lowest_cp > self.current_checkpoint:
+                        self.current_checkpoint = lowest_cp
         else:
             # The path is feasible, so terminal reward is given instead
             checkpoint_rew = False
-                    
-        cp_factor = lowest_cp/horizon
-        extra_cp_reward = horizon*cp_factor
+        
+        if lowest_cp == self.current_checkpoint or lowest_cp == self.current_checkpoint - checkpoint_step:
+            cp_factor = lowest_cp/horizon
+            extra_cp_reward = horizon*cp_factor
+        else:
+            cp_factor = lowest_cp/(horizon*4)
+            extra_cp_reward = horizon*cp_factor
+            
                 
         
         for exp in experience_path:
+            
             current_state, action, vessel, reward_ph, next_state, earliest_vessel, feasible_path_ph, fi_time, terminal_flag = exp
             current_state_time = current_state['time']
                 
@@ -713,6 +757,16 @@ class MIRPSOEnv():
             
         if feasible_path:
             print('Feasible path')
+            
+        if infeasibility_counter<self.current_best_IC and infeasibility_counter<=20 and exploit:
+            # save the main and target networks
+            torch.save(agent.main_model.state_dict(), f'main_model_{INSTANCE}_INF_COUNTER_{infeasibility_counter}.pth')
+            torch.save(agent.target_model.state_dict(), f'target_model_{INSTANCE}_INF_COUNTER{infeasibility_counter}.pth')
+            self.current_best_IC = infeasibility_counter
+            print(f'New best IC: {infeasibility_counter}')
+            
+            
+   
         return experience_path, feasible_path
     
     def sim_all_vessels_finished(self, state):
@@ -897,7 +951,7 @@ class ReplayMemory:
         # Create a unique identifier for the experience
         exp_id = hash((encoded_state_tuple, operation_type, origin_port_number, destination_port))
         
-        if is_feasible or first_infeasible_time>= self.latest_infeasinble_time:
+        if is_feasible or first_infeasible_time>= env.current_checkpoint and env.current_checkpoint > 0:
             # Delete existing similar experience in both feasible and infeasible memory if it exists
             self.feasible_memory = deque([(id, exp) for id, exp in self.feasible_memory if id != exp_id])
             self.memory = deque([(id, exp) for id, exp in self.memory if id != exp_id])
@@ -947,16 +1001,16 @@ class ReplayMemory:
 class DQNAgent:
     def __init__(self, ports, vessels, TRAINING_FREQUENCY, TARGET_UPDATE_FREQUENCY, NON_RANDOM_ACTION_EPISODE_FREQUENCY, BATCH_SIZE, replay):
         # ports plus source and sink, vessel inventory, (vessel position, vessel in transit), time period, vessel_number
-        state_size = len(ports) + 2 * len(vessels) + len(ports)*2 
+        state_size = len(ports) + 2 * len(vessels) + len(ports)*3
         action_size = len(ports)
         self.state_size = state_size
         self.action_size = action_size
         self.memory = replay
-        self.gamma = 0.90    # discount rate feasible paths
+        self.gamma = 0.25    # discount rate feasible paths
         self.sigma = 0.5     # discount rate infeasible paths
-        self.epsilon = 0.5 # exploration rate
+        self.epsilon = 0.9 # exploration rate
         self.epsilon_min = 0.25
-        self.epsilon_decay = 0.99
+        self.epsilon_decay = 0.999
         self.main_model = DQN(state_size, action_size)
         self.target_model = DQN(state_size, action_size)
         self.optimizer = optim.Adam(self.main_model.parameters())
