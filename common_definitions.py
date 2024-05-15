@@ -29,6 +29,7 @@ class MIRPSOEnv():
         self.SPECIAL_NODES_DICT = special_nodes_dict
         self.TRAVEL_TIME_DICT = {}
         self.current_checkpoint = 0
+        self.inf_counter_updates = 0
         self.current_best_IC = TIME_PERIOD_RANGE[-1]
             
         for origin_port in self.PORT_DICT.values():
@@ -647,6 +648,7 @@ class MIRPSOEnv():
         horizon = len(self.TIME_PERIOD_RANGE)
         
         infeasibility_counter = 0
+        
         infeasibility_dict = {}
         
         for exp in experience_path:
@@ -683,48 +685,45 @@ class MIRPSOEnv():
         lowest_cp = 0
         
         if first_infeasible_time is not None:
-            for cp in horizon_checkpoints:
+            for idx, cp in enumerate(horizon_checkpoints):
                 if cp <= first_infeasible_time and cp > lowest_cp:
                     lowest_cp = cp
+                    cp_idx = idx
                     if lowest_cp > self.current_checkpoint:
                         self.current_checkpoint = lowest_cp
+                else:
+                    break
         else:
             # The path is feasible, so terminal reward is given instead
-            checkpoint_rew = False
+            checkpoint_rew = True
         
-        if lowest_cp == self.current_checkpoint or lowest_cp == self.current_checkpoint - checkpoint_step:
-            cp_factor = lowest_cp/horizon
-            extra_cp_reward = horizon*cp_factor
+        # if (lowest_cp == self.current_checkpoint or lowest_cp == self.current_checkpoint - checkpoint_step) and lowest_cp > 0:
+        if lowest_cp == self.current_checkpoint and lowest_cp > 0:
+            # Find the index of lowest_cp in horizon_checkpoint
+            extra_cp_reward = lowest_cp
         else:
-            cp_factor = lowest_cp/(horizon*4)
-            extra_cp_reward = horizon*cp_factor
-            
+            extra_cp_reward = 0
                 
         
         for exp in experience_path:
-            
+
             current_state, action, vessel, reward_ph, next_state, earliest_vessel, feasible_path_ph, fi_time, terminal_flag = exp
             current_state_time = current_state['time']
                 
             '''Immediate Reward'''
-            
-            # if not current_state['infeasible']:
-            #     reward = current_state_time
-            # else:
-            #     reward = -(horizon-current_state_time)
             if not current_state['infeasible']:
                 reward = 1
             else:
                 reward = -1
-                
             
             if current_state_time < lowest_cp and checkpoint_rew:
-                # reward += extra_cp_reward * agent.gamma ** (lowest_cp-current_state_time)     
-                reward += extra_cp_reward     
+                reward += extra_cp_reward * agent.gamma ** (lowest_cp-current_state_time)     
+                # reward += extra_cp_reward     
             
-            if first_infeasible_time:
-                if current_state_time == first_infeasible_time:
-                    reward -= (horizon-first_infeasible_time)
+            # if first_infeasible_time:
+            #     if current_state_time == first_infeasible_time:
+            #         # reward -= (horizon-first_infeasible_time)
+            #         reward -= horizon
             
             '''Future Reward'''
             # Future reward for the next state if the next state is not terminal
@@ -737,19 +736,19 @@ class MIRPSOEnv():
                 max_future_reward = np.max(future_rewards)
                 # Clip the future reward to be within the desired range, e.g., [-1, 1]
                 if current_state['infeasible']:
-                    max_future_reward = np.clip(max_future_reward, -horizon/2, 0)
-                else:
-                    max_future_reward = np.clip(max_future_reward, -horizon/2, horizon)
+                    max_future_reward = np.clip(max_future_reward, -10000, 0)
+                if not current_state['infeasible']:
+                    max_future_reward = np.clip(max_future_reward, -horizon, 1000)
                 # Update the reward using the clipped future reward
                 reward += max_future_reward
             
             '''Terminal Reward'''
             # If the whole path is feasible, add a huge reward discounted reward
             if feasible_path:
-                # current_time = current_state['time']
-                # time_until_terminal = horizon - current_time
-                # feasibility_reward = extra_reward_for_feasible_path * agent.gamma ** time_until_terminal
-                feasibility_reward = extra_reward_for_feasible_path
+                current_time = current_state['time']
+                time_until_terminal = horizon - current_time
+                feasibility_reward = extra_reward_for_feasible_path * agent.gamma ** time_until_terminal
+                # feasibility_reward = extra_reward_for_feasible_path
                 if action is not None:
                     reward += feasibility_reward
             
@@ -758,11 +757,14 @@ class MIRPSOEnv():
         if feasible_path:
             print('Feasible path')
             
-        if infeasibility_counter<self.current_best_IC and infeasibility_counter<=20 and exploit:
+        if (infeasibility_counter<self.current_best_IC and infeasibility_counter<=20 and exploit) or (infeasibility_counter<=10 and exploit):
             # save the main and target networks
-            torch.save(agent.main_model.state_dict(), f'main_model_{INSTANCE}_INF_COUNTER_{infeasibility_counter}.pth')
-            torch.save(agent.target_model.state_dict(), f'target_model_{INSTANCE}_INF_COUNTER{infeasibility_counter}.pth')
+            torch.save(agent.main_model.state_dict(), f'main_model_{INSTANCE}_INF_COUNTER_{infeasibility_counter}_{self.inf_counter_updates}.pth')
+            torch.save(agent.target_model.state_dict(), f'target_model_{INSTANCE}_INF_COUNTER{infeasibility_counter}_{self.inf_counter_updates}.pth')
+            with open(f'replay_buffer_{INSTANCE}_INF_COUNTER_{infeasibility_counter}_{self.inf_counter_updates}.pkl', 'wb') as f:
+                pickle.dump(agent.memory, f)
             self.current_best_IC = infeasibility_counter
+            self.inf_counter_updates += 1
             print(f'New best IC: {infeasibility_counter}')
             
             
@@ -955,12 +957,13 @@ class ReplayMemory:
             # Delete existing similar experience in both feasible and infeasible memory if it exists
             self.feasible_memory = deque([(id, exp) for id, exp in self.feasible_memory if id != exp_id])
             self.memory = deque([(id, exp) for id, exp in self.memory if id != exp_id])
-            # if len(self.feasible_memory) >= int(self.capacity):
-            #     self.feasible_memory.popleft()
+            if len(self.feasible_memory) >= int(self.capacity/2):
+                self.feasible_memory.popleft()
             self.feasible_memory.append((exp_id, exp))
             if first_infeasible_time > self.latest_infeasinble_time:
                 self.latest_infeasinble_time = first_infeasible_time
         else:
+
             # Check if the experience is already in the feasible memory
             if not any(id == exp_id for id, _ in self.feasible_memory):
                 # If not, add it to the infeasible memory. Substitute if similar exp already exists in infeasible memory
@@ -1006,11 +1009,11 @@ class DQNAgent:
         self.state_size = state_size
         self.action_size = action_size
         self.memory = replay
-        self.gamma = 0.25    # discount rate feasible paths
+        self.gamma = 0.99    # discount rate feasible paths
         self.sigma = 0.5     # discount rate infeasible paths
-        self.epsilon = 0.9 # exploration rate
-        self.epsilon_min = 0.25
-        self.epsilon_decay = 0.999
+        self.epsilon = 0.75 # exploration rate
+        self.epsilon_min = 0.1
+        self.epsilon_decay = 0.99
         self.main_model = DQN(state_size, action_size)
         self.target_model = DQN(state_size, action_size)
         self.optimizer = optim.Adam(self.main_model.parameters())
@@ -1021,6 +1024,15 @@ class DQNAgent:
             
     def select_action(self, state, legal_actions,  env, vessel_simp, exploit):  
         if not exploit:
+            # If the time is close to the checkpoint increase the exploration rate
+            # if env.current_checkpoint > 0 and env.current_checkpoint - 20 <=state['time'] <= env.current_checkpoint:
+            #     increased_epsilon = min(self.epsilon + 0.35, 0.75)
+            #     if np.random.rand() < increased_epsilon:
+            #         action = random.choice(legal_actions)
+            #         arc = action[3]
+            #         new_state = env.update_vessel_in_transition_and_inv_for_state(state = state, vessel = vessel_simp, destination_port = arc.destination_node.port, destination_time = arc.destination_node.time, origin_port = arc.origin_node.port, quantity = action[2], operation_type = action[1])
+            #         return action, new_state
+                
             if np.random.rand() < self.epsilon:
                 action = random.choice(legal_actions)
                 arc = action[3]
@@ -1060,6 +1072,12 @@ class DQNAgent:
             action = legal_actions[0]
             arc = action[3]
             # new_state = copy.deepcopy(state)
+            new_state = env.update_vessel_in_transition_and_inv_for_state(state = state, vessel = vessel_simp, destination_port = arc.destination_node.port, destination_time = arc.destination_node.time, origin_port = arc.origin_node.port, quantity = action[2], operation_type = action[1])
+            return action, new_state
+        
+        if np.random.rand() < self.epsilon:
+            action = random.choice(legal_actions)
+            arc = action[3]
             new_state = env.update_vessel_in_transition_and_inv_for_state(state = state, vessel = vessel_simp, destination_port = arc.destination_node.port, destination_time = arc.destination_node.time, origin_port = arc.origin_node.port, quantity = action[2], operation_type = action[1])
             return action, new_state
         

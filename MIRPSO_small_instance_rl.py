@@ -34,7 +34,7 @@ def evaluate_agent_until_solution_is_found(env, agent):
             state, total_reward_for_path, feasible_path = env.check_state(state=state, experience_path=experience_path, replay=agent.memory, agent=agent)
             
             if state['done']:
-                first_infeasible_time, infeasibility_counter = env.log_episode(attempts, total_reward_for_path, experience_path, state, cum_q_vals_main_net, cum_q_vals_target_net)
+                first_infeasible_time, infeasibility_counter = env.log_episode(attempts, total_reward_for_path, experience_path, state)
                 feasible_path = experience_path[0][6]
                 if not feasible_path:
                     break
@@ -198,7 +198,7 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
     
     
     TRAINING_FREQUENCY = 1
-    TARGET_UPDATE_FREQUENCY = 50
+    TARGET_UPDATE_FREQUENCY = 250
     NON_RANDOM_ACTION_EPISODE_FREQUENCY = 5
     BATCH_SIZE = 256
     BUFFER_SAVING_FREQUENCY = 1000
@@ -216,7 +216,7 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
                                              NODE_DICT = NODE_DICT, vessel_class_capacities = vessel_class_capacities)
     
     env = MIRPSOEnv(ports, vessels, vessel_arcs, NODES, TIME_PERIOD_RANGE, sourceNode, sinkNode, NODE_DICT, special_sink_arcs, special_nodes_dict)
-    replay = ReplayMemory(5000)
+    replay = ReplayMemory(10000)
     agent = DQNAgent(ports = ports, vessels=vessels, TRAINING_FREQUENCY = TRAINING_FREQUENCY, TARGET_UPDATE_FREQUENCY = TARGET_UPDATE_FREQUENCY, NON_RANDOM_ACTION_EPISODE_FREQUENCY = NON_RANDOM_ACTION_EPISODE_FREQUENCY, BATCH_SIZE = BATCH_SIZE, replay = replay)
     
     # '''Load main and target model.'''
@@ -271,24 +271,23 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
             actions = {vessel: env.find_legal_actions_for_vessel(state=state, vessel=vessel)[0] for vessel in state['vessels']}
             state = env.step(state=state, actions=actions, experience_path=experience_path, decision_basis_states=decision_basis_states)
             
+            state['time'] += 1
+            
             # All vessels have made their initial action.
             while not done:
                 # Increase time and make production ports produce.
-                if state['time'] <= 0:
-                    # increment time only
-                    state['time'] += 1
-                else:
-                    state = env.increment_time_and_produce(state=state)
-                
-                # Check if state is infeasible or terminal        
+                # increment time only
+                # Check if state is terminal        
                 state, total_reward_for_path, feasible_path = env.check_state(state=state, experience_path=experience_path, replay=replay, agent=agent, INSTANCE=INSTANCE, exploit=exploit)
-                # if state['infeasible'] or state['done']:
+                
                 if state['done']:
                     if feasible_path:
                         num_feasible_paths_with_random_actions += 1
                     if episode % NON_RANDOM_ACTION_EPISODE_FREQUENCY == 0 or LOG:
                         env.log_episode(episode, total_reward_for_path, experience_path, state)
                     break
+                
+                state = env.produce(state)
                 
                 # With the increased time, the vessels have moved and some of them have maybe reached their destination. Updating the vessel status based on this.
                 env.update_vessel_status(state=state)
@@ -313,9 +312,10 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
                     # Should check the feasibility of the state, even though no actions were performed. 
                     state = env.simple_step(state, experience_path)
                 # Make consumption ports consume regardless if any actions were performed
-                if state['time'] >= 0:
-                    state = env.consumption(state)
-                # state = env.consumption(state)
+                
+                state = env.consumption(state)
+                
+                state['time'] += 1
             
             if episode % BUFFER_SAVING_FREQUENCY == 0:
                 agent.save_replay_buffer(file_name=f"replay_buffer_{INSTANCE}_{episode}_NEW2.pkl")
