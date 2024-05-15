@@ -140,74 +140,98 @@ def extract_time_period_from_x_var_name(var_name):
         return None
     
     
-def evaluate_agent(env, agent):
-    experience_path = []
-    state = env.reset()
-    done = False
+def evaluate_agent(env, agent, INSTANCE):
+    best_solution = None
+    best_inf_counter = env.TIME_PERIOD_RANGE[-1]
+    # Need some randomization in order for the agent to produce different results
+    agent.epsilon = 0.1
     
-    port_inventory_dict = {}
-    vessel_inventory_dict = {}
-    decision_basis_states = {vessel.number: env.custom_deep_copy_of_state(state) for vessel in state['vessels']}
-    
-    actions = {vessel: env.find_legal_actions_for_vessel(state=state, vessel=vessel)[0] for vessel in state['vessels']}
-    state = env.step(state=state, actions=actions, experience_path=experience_path, decision_basis_states=decision_basis_states)
-    
-    while not done:
-        if state['time'] >= env.TIME_PERIOD_RANGE[-1]*(3/4):
-            agent.epsilon = 0.25
+    for i in range(10):
+        
+        experience_path = []
+        state = env.reset()
+        done = False
+        
+        port_inventory_dict = {}
+        vessel_inventory_dict = {}
+        decision_basis_states = {vessel.number: env.custom_deep_copy_of_state(state) for vessel in state['vessels']}
+        
+        actions = {vessel: env.find_legal_actions_for_vessel(state=state, vessel=vessel)[0] for vessel in state['vessels']}
+        state = env.step(state=state, actions=actions, experience_path=experience_path, decision_basis_states=decision_basis_states)
+        
+        # increment time only
+        state['time'] += 1
+        # state = env.increment_time_and_produce(state=state)
+        # Init port inventory is the inventory at this time. Time is 0 after the increment.
+        port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
+        # Init vessel inventory is the inventory at this time
+        vessel_inventory_dict[state['time']] = {vessel.number: vessel.inventory for vessel in state['vessels']}
+        
+        
+        while not done:
+            # Check if state is infeasible or terminal
+            state, total_reward_for_path, feasible_path = env.check_state(state=state, experience_path=experience_path, replay=agent.memory, agent=agent, INSTANCE=INSTANCE, exploit = False)
             
-        # Increase time and make production ports produce.
-        if state['time'] in env.TIME_PERIOD_RANGE:
-            state = env.increment_time_and_produce(state=state)
-        else:
-            #Only increment the time
+            if state['done']:
+                first_infeasible_time, infeasibility_counter = env.log_episode(None, total_reward_for_path, experience_path, state)
+                feasible_path = experience_path[0][6]
+                # state = env.consumption(state)
+                
+                # port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
+                # vessel_inventory_dict[state['time']] = {vessel.number: vessel.inventory for vessel in state['vessels']}
+                
+                if infeasibility_counter < best_inf_counter:
+                    best_inf_counter = infeasibility_counter
+                    best_solution = (experience_path, port_inventory_dict, vessel_inventory_dict)
+                break
+                # return experience_path, port_inventory_dict, vessel_inventory_dict
+                
+            # Increase time and make production ports produce.
+            state = env.produce(state)
+            
+            # port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
+            # vessel_inventory_dict[state['time']] = {vessel.number: vessel.inventory for vessel in state['vessels']}
+                
+                
+            # With the increased time, the vessels have moved and some of them have maybe reached their destination. Updating the vessel status based on this.
+            env.update_vessel_status(state=state)
+            # Find the vessels that are available to perform an action
+            available_vessels = env.find_available_vessels(state=state)
+            
+            if available_vessels:
+                    actions = {}
+                    decision_basis_states = {}
+                    actions_to_make = {}
+                    decision_basis_state = env.custom_deep_copy_of_state(state)
+                    for vessel in available_vessels:
+                        corresponding_vessel = decision_basis_state['vessel_dict'][vessel.number]
+                        decision_basis_states[corresponding_vessel['number']] = decision_basis_state
+                        legal_actions = env.sim_find_legal_actions_for_vessel(state=decision_basis_state, vessel=corresponding_vessel, queued_actions=actions_to_make, RUNNING_WPS = False)
+                        action, decision_basis_state = agent.select_action_for_eval(state=copy.deepcopy(decision_basis_state), legal_actions=legal_actions, env=env, vessel_simp=corresponding_vessel)
+                        _, _, _, _arc = action
+                        actions[vessel] = action
+                    # Perform the operation and routing actions and update the state based on this
+                    state = env.step(state=state, actions=actions, experience_path=experience_path, decision_basis_states=decision_basis_states)
+            else:
+                # Should check the feasibility of the state, even though no actions were performed. 
+                state = env.simple_step(state, experience_path)
+            # Make consumption ports consume regardless if any actions were performed
+            state = env.consumption(state)
+            # state = env.consumption(state)
+            
+            # # # Save the inventory levels for the ports and vessels at this time
+            # if state['time'] in env.TIME_PERIOD_RANGE and state['time'] >= 1:
+            #     port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
+            #     vessel_inventory_dict[state['time']] = {vessel.number: vessel.inventory for vessel in state['vessels']}
+                
             state['time'] += 1
-                # Init port inventory is the inventory at this time. Time is 0 after the increment.
             port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
-            # Init vessel inventory is the inventory at this time
             vessel_inventory_dict[state['time']] = {vessel.number: vessel.inventory for vessel in state['vessels']}
                 
-        # Check if state is infeasible or terminal
-        state, total_reward_for_path, cum_q_vals_main_net, cum_q_vals_target_net, feasible_path = env.check_state(state=state, experience_path=experience_path, replay=agent.memory, agent=agent)
-        
-        if state['done']:
-            first_infeasible_time, infeasibility_counter = env.log_episode(None, total_reward_for_path, experience_path, state)
-            feasible_path = experience_path[0][6]
-            state = env.consumption(state)
-            
-            port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
-            vessel_inventory_dict[state['time']] = {vessel.number: vessel.inventory for vessel in state['vessels']}
-            return experience_path, port_inventory_dict, vessel_inventory_dict
-            
-        # With the increased time, the vessels have moved and some of them have maybe reached their destination. Updating the vessel status based on this.
-        env.update_vessel_status(state=state)
-        # Find the vessels that are available to perform an action
-        available_vessels = env.find_available_vessels(state=state)
-        
-        if available_vessels:
-                actions = {}
-                decision_basis_states = {}
-                actions_to_make = {}
-                decision_basis_state = env.custom_deep_copy_of_state(state)
-                for vessel in available_vessels:
-                    corresponding_vessel = decision_basis_state['vessel_dict'][vessel.number]
-                    decision_basis_states[corresponding_vessel['number']] = decision_basis_state
-                    legal_actions = env.sim_find_legal_actions_for_vessel(state=decision_basis_state, vessel=corresponding_vessel, queued_actions=actions_to_make, RUNNING_WPS = False)
-                    action, decision_basis_state = agent.select_action_for_eval(state=copy.deepcopy(decision_basis_state), legal_actions=legal_actions, env=env, vessel_simp=corresponding_vessel)
-                    _, _, _, _arc = action
-                    actions[vessel] = action
-                # Perform the operation and routing actions and update the state based on this
-                state = env.step(state=state, actions=actions, experience_path=experience_path, decision_basis_states=decision_basis_states)
-        else:
-            # Should check the feasibility of the state, even though no actions were performed. 
-            state = env.simple_step(state, experience_path)
-        # Make consumption ports consume regardless if any actions were performed
-        state = env.consumption(state)
-        
-        # Save the inventory levels for the ports and vessels at this time
-        if state['time'] in env.TIME_PERIOD_RANGE and state['time'] != 0:
-            port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
-            vessel_inventory_dict[state['time']] = {vessel.number: vessel.inventory for vessel in state['vessels']}
+    experience_path = best_solution[0]
+    port_inventory_dict = best_solution[1]
+    vessel_inventory_dict = best_solution[2]
+    return experience_path, port_inventory_dict, vessel_inventory_dict
             
             
 def convert_path_to_MIRPSO_solution(env, experience_path, port_inventory_dict):
@@ -275,7 +299,7 @@ def convert_path_to_MIRPSO_solution(env, experience_path, port_inventory_dict):
     return active_X_keys, S_values, alpha_values
 
 
-def warm_start_model(m, active_X_keys, S_values, alpha_values):
+def warm_start_model(m, active_X_keys, S_values, alpha_values, source_node):
     # Initialize all 'x', 'a' variables to 0 to ensure a complete warm start
     for var in m.getVars():
         # if var.VarName.startswith('x') or var.VarName.startswith('o') or var.VarName.startswith('q'):
@@ -284,12 +308,30 @@ def warm_start_model(m, active_X_keys, S_values, alpha_values):
             var.Start = 0  # Default start value for all variables not explicitly set
         elif var.VarName.startswith('alpha'):
             var.Start = 0
+    m.update()
+            
+    # # Setting initial values for 'x' variables based on active_X_keys
+    # for (arc_tuple, vessel_class) in active_X_keys:
+    #     # Check if the arc is interregional or not
+    #     origin_node, destination_node = arc_tuple
+    #     if origin_node.port == destination_node.port or origin_node == source_node:
+    #         # Arc is not interregional, name is therefore f"x_non_interregional_{arc.tuple}_{arc.vessel_class}"
+    #         x_var_name = f"x_non_interregional_{arc_tuple}_{vessel_class}" 
+    #     else:
+    #         x_var_name = f"x_interregional_{arc_tuple}_{vessel_class}"
+            
+    #     # x_var_name = f"x[{arc_tuple},{vessel}]"
+    #     x_var = m.getVarByName(x_var_name)
+    #     # Set the start value to 0 if the variable is found
+    #     if x_var is not None:
+    #         x_var.Start = 0
+    # m.update()
             
     # Setting initial values for 'x' variables based on active_X_keys
     for (arc_tuple, vessel_class) in active_X_keys:
         # Check if the arc is interregional or not
         origin_node, destination_node = arc_tuple
-        if origin_node.port == destination_node.port:
+        if origin_node.port == destination_node.port or origin_node == source_node:
             # Arc is not interregional, name is therefore f"x_non_interregional_{arc.tuple}_{arc.vessel_class}"
             x_var_name = f"x_non_interregional_{arc_tuple}_{vessel_class}" 
         else:
@@ -297,8 +339,12 @@ def warm_start_model(m, active_X_keys, S_values, alpha_values):
             
         # x_var_name = f"x[{arc_tuple},{vessel}]"
         x_var = m.getVarByName(x_var_name)
-        if x_var is not None:
+        # Set the start value to 0 if the variable is found
+        if x_var.start == 0:
             x_var.Start = 1
+        elif x_var.start >= 1:
+            x_var.Start += 1
+        m.update()
     
     # For 's' and 'w' variables, since you believe all values are set already, we maintain your original logic
     for (port_number, time), s_value in S_values.items():
@@ -347,7 +393,7 @@ def perform_proximity_search(ps_data, RUNNING_NPS_AND_RH, window_end, time_limit
     current_best_obj = model.getObjective().getValue()
     
     PERCENTAGE_DECREASE = 0.1
-    PERCENTAGE_CHANGE_FACTOR = 1.5 #MAX 2
+    PERCENTAGE_CHANGE_FACTOR = 1.3 #MAX 2
     PERCENTAGE_CHANGE_FACTOR_AFTER_INF = PERCENTAGE_CHANGE_FACTOR / 4
     # PERCENTAGE_DECREASE_AFTER_INFISIBILITY = PERCENTAGE_DECREASE/2
     # INFEASIBILITY_MULTIPLIER = 0.1
@@ -379,11 +425,15 @@ def perform_proximity_search(ps_data, RUNNING_NPS_AND_RH, window_end, time_limit
         update_objective_to_minimize_hamming_distance(model, y, current_solution_vars_x, current_solution_vals_x, None)
         model.setParam(gp.GRB.Param.SolutionLimit, 1)
         time_left = time_limit - time_passed(start_time)
-        model.setParam(gp.GRB.Param.TimeLimit, min(60, time_left) if time_left >= 0 else 10)
+        if cutoff_value < 1:
+            model.setParam(gp.GRB.Param.TimeLimit, time_left if time_left >= 0 else 10)
+        else:
+            model.setParam(gp.GRB.Param.TimeLimit, min(90, time_left) if time_left >= 0 else 10)
         model.optimize()
 
         # Check if a new solution is found with the lowest amount of changes to the structure as possible
         if model.Status ==  GRB.SOLUTION_LIMIT:
+            last_feasible_solution_time = time_passed(start_time)
             if print_info or has_been_infeasible:
                 print("Hamming Distance from previous solution:", model.objVal)
             current_solution_vals_x = get_current_x_solution_vals(model)
@@ -408,7 +458,7 @@ def perform_proximity_search(ps_data, RUNNING_NPS_AND_RH, window_end, time_limit
             time_diff = current_time - start_time
             if time_diff > time_limit:
                 remove_cutoff_constraints(model)
-                return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs
+                return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs, last_feasible_solution_time
             
         elif model.Status == GRB.TIME_LIMIT or model.Status == GRB.INFEASIBLE:
             has_been_infeasible = True
@@ -418,13 +468,13 @@ def perform_proximity_search(ps_data, RUNNING_NPS_AND_RH, window_end, time_limit
             print(f'Best objective value is {current_best_obj}.')
             if cutoff_value < 1:
                 remove_cutoff_constraints(model)
-                return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs
+                return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs, last_feasible_solution_time
             else:
                 current_time = time.time()
                 if start_time:
                     if current_time - start_time > time_limit:
                         remove_cutoff_constraints(model)
-                        return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs
+                        return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs, last_feasible_solution_time
             
         
         
@@ -470,8 +520,6 @@ def update_objective_to_minimize_hamming_distance(model, y, x_variables, current
         if var_name not in y.keys():
             continue
         initial_value = current_solution[var_name]
-        if initial_value>=2:
-            print('Hello')
         if initial_value == 0:
             model.addConstr(y[var_name] >= var - initial_value, name=f'y_{var_name}_Hamming_distance')
         else:

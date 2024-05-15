@@ -926,7 +926,7 @@ def build_model(vessels, regularNodes, ports, TIME_PERIOD_RANGE, sourceNode, sin
             key = (sourceNode, destination_node)
             source_arc = vessel.all_arcs_v[key]
             # All arcs from the source node must be used. Every vessel has only one arc from the source node
-            m.addConstr(x[(source_arc.tuple), vessel.vessel_class] == start_node_counter[vessel.vessel_class][destination_node], name = 'SourceFlow')
+            m.addConstr(x[(source_arc.tuple), vessel.vessel_class] == start_node_counter[vessel.vessel_class][destination_node], name = f'SourceFlow_Vnum:{vessel.number}_dnode:{destination_node.tuple}')
     m.update()
 
     # Constraint (3)
@@ -1532,7 +1532,7 @@ import logging
 def save_solution(INSTANCE, HORIZON, model, time_limit, elapsed_time, costs, P,
                   RUNNING_MIRPSO, best_obj_val, solution_vals_x,
                   solution_vals_s, solution_vals_alpha, active_arcs, vessel_classes,
-                  NPS, WPS, RH, WPS_AND_RH, NPS_AND_RH, VESSEL_CLASSES, vessels, sourceNode, sinkNode, NODE_DICT):
+                  NPS, WPS, RH, WPS_AND_RH, NPS_AND_RH, VESSEL_CLASSES, vessels, sourceNode, sinkNode, NODE_DICT, last_feasible_solution_time):
 
     method_map = {"NPS": NPS, "WPS": WPS, "RH": RH, "WPS_AND_RH": WPS_AND_RH, "NPS_AND_RH": NPS_AND_RH}
     method = next((method_name for method_name, condition in method_map.items() if condition), "SOLVER")
@@ -1568,6 +1568,7 @@ def save_solution(INSTANCE, HORIZON, model, time_limit, elapsed_time, costs, P,
         'gap':gap,
         "elapsed_time": elapsed_time,
         "time_limit": time_limit if model.status == gp.GRB.TIME_LIMIT else None,
+        "last_feasible_solution_time" : last_feasible_solution_time if method == 'NPS' or method == 'WPS' else None,
         "costs": costs_str_keys,
         "P": P_str_keys,
         "solution_x": {str(var_name): var_val for var_name, var_val in solution_vals_x.items()},
@@ -1591,8 +1592,8 @@ def save_solution(INSTANCE, HORIZON, model, time_limit, elapsed_time, costs, P,
     flattened_routes["vessel_routes_flattened"] = reformatted_routes
     
     # Save to a JSON file for easy parsing and readability
-    filename = f"group2_solutions/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_3_b.json"
-    filename_readable_routes = f"group2_routes/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_routes_3_b.txt"
+    filename = f"PS_param/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_13_120sek.json"
+    filename_readable_routes = f"PS_param/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_13_120sek.txt"
     with open(filename, 'w') as file:
         json.dump(solution_data, file, indent=4)
     with open(filename_readable_routes, 'w') as file:
@@ -1601,7 +1602,7 @@ def save_solution(INSTANCE, HORIZON, model, time_limit, elapsed_time, costs, P,
         file.close()
             
 
-def proximity_search_using_agent(ps_data, agent, env, RUNNING_WPS_AND_RH, window_end, RUNNING_MIRPSO, time_limit):
+def proximity_search_using_agent(ps_data, agent, env, RUNNING_WPS_AND_RH, window_end, RUNNING_MIRPSO, time_limit, INSTANCE):
 
     WEIGHT_UPDATE_FREQUENCY = 10
     PERCENTAGE_DECREASE = 0.005
@@ -1617,12 +1618,20 @@ def proximity_search_using_agent(ps_data, agent, env, RUNNING_WPS_AND_RH, window
     
     if not RUNNING_WPS_AND_RH:
         "Do not use construction heuristic in RH"
-        experience_path, port_inventory_dict, vessel_inventory_dict = evaluate_agent(env, agent)
+        experience_path, port_inventory_dict, vessel_inventory_dict = evaluate_agent(env, agent, INSTANCE)
         active_X_keys, S_values, alpha_values = convert_path_to_MIRPSO_solution(env, experience_path, port_inventory_dict)
-        current_solution_vals_x, model, warm_start_sol = warm_start_model(model, active_X_keys, S_values, alpha_values)
+        current_solution_vals_x, model, warm_start_sol = warm_start_model(model, active_X_keys, S_values, alpha_values, env.SOURCE_NODE)
         current_solution_vars_x = {v.VarName: v for v in model.getVars() if v.VarName.startswith('x')}
         # Find the interregional arcs
         interregional_vars_keys = {k for k, v in current_solution_vars_x.items() if k.startswith('x_interregional')}
+        
+        # Turn off heuristics.
+        model.setParam('Heuristics', 0)  
+        model.setParam('Presolve', 0)
+        model.setParam(gp.GRB.Param.SolutionLimit, 1)
+        model.setParam(gp.GRB.Param.TimeLimit, 300)
+        # start_time = time.time()
+        model.optimize()
         
         y = model.addVars(interregional_vars_keys, vtype=GRB.BINARY, name="y")
         # y = model.addVars(current_solution_vars_x.keys(), vtype=GRB.BINARY, name="y")
@@ -1777,7 +1786,7 @@ def main():
     # RUNNING_WPS_AND_RH = True
     
     # GROUP 2
-    INSTANCE = 'LR1_DR02_VC01_V6a'
+    # INSTANCE = 'LR1_DR02_VC01_V6a'
     # INSTANCE = 'LR1_DR02_VC02_V6a'
     # INSTANCE = 'LR1_DR02_VC03_V7a'
     
@@ -1789,11 +1798,11 @@ def main():
     # INSTANCE = 'LR1_DR03_VC03_V10b'
     
     'RUN 2'
-    # INSTANCE = 'LR1_DR05_VC05_V25a'
+    INSTANCE = 'LR1_DR05_VC05_V25a'
     'RUN 3'
     # INSTANCE = 'LR1_DR08_VC10_V40a' 
     
-    TIME_LIMIT = 10800
+    TIME_LIMIT = 7200
     
     problem_data = build_problem(INSTANCE, RUNNING_MIRPSO)
     
@@ -1830,20 +1839,20 @@ def main():
         replay = ReplayMemory(3000)
         
         agent = DQNAgent(ports = ports, vessels=vessels, TRAINING_FREQUENCY = None, TARGET_UPDATE_FREQUENCY = None, NON_RANDOM_ACTION_EPISODE_FREQUENCY = None, BATCH_SIZE = None, replay = replay)
-        replay = agent.load_replay_buffer(file_name= 'replay_buffer_LR1_DR03_VC03_V10b_4000.pkl')
+        replay = agent.load_replay_buffer(file_name= 'replay_buffer_LR1_DR02_VC03_V8a_11000_NEW2.pkl')
         
         agent.memory = replay
         
-        agent.main_model.load_state_dict(torch.load('main_model_LR1_DR03_VC03_V10b_4000.pth'))
-        agent.target_model.load_state_dict(torch.load('target_model_LR1_DR03_VC03_V10b_4000.pth'))
+        agent.main_model.load_state_dict(torch.load('main_model_LR1_DR02_VC03_V8a_INF_COUNTER_6.pth'))
+        agent.target_model.load_state_dict(torch.load('target_model_LR1_DR02_VC03_V8a_INF_COUNTER6.pth'))
         
-        current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs = proximity_search_using_agent(ps_data=ps_data, agent=agent, env=env, RUNNING_WPS_AND_RH=RUNNING_WPS_AND_RH, window_end=None, RUNNING_MIRPSO=RUNNING_MIRPSO, time_limit=TIME_LIMIT)
+        current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs = proximity_search_using_agent(ps_data=ps_data, agent=agent, env=env, RUNNING_WPS_AND_RH=RUNNING_WPS_AND_RH, window_end=None, RUNNING_MIRPSO=RUNNING_MIRPSO, time_limit=TIME_LIMIT, INSTANCE=INSTANCE)
 
         
         
     elif RUNNING_NORMAL_PS:
         # Perform the proximity search using the initial solution
-        current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs = perform_proximity_search(ps_data=ps_data, RUNNING_NPS_AND_RH=RUNNING_NPS_AND_RH, window_end=None, time_limit=TIME_LIMIT)
+        current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs, last_feasible_solution_time = perform_proximity_search(ps_data=ps_data, RUNNING_NPS_AND_RH=RUNNING_NPS_AND_RH, window_end=None, time_limit=TIME_LIMIT)
         
     elif RUNNING_RH or RUNNING_NPS_AND_RH:
         # Define your window size and execute rolling horizon optimization
@@ -1879,7 +1888,7 @@ def main():
     save_solution(INSTANCE=INSTANCE, HORIZON=HORIZON, model = model, time_limit = TIME_LIMIT, elapsed_time=elapsed_time, costs=costs, P=P,
                   RUNNING_MIRPSO=RUNNING_MIRPSO, best_obj_val=current_best_obj, solution_vals_x = current_solution_vals_x,
                   solution_vals_s = current_solution_s, solution_vals_alpha = current_solution_alpha, active_arcs = active_arcs, vessel_classes=VESSEL_CLASSES,
-                  NPS = RUNNING_NORMAL_PS, WPS = RUNNING_WEIGHTED_PS, RH = RUNNING_RH, WPS_AND_RH = RUNNING_WPS_AND_RH, NPS_AND_RH=RUNNING_NPS_AND_RH, VESSEL_CLASSES = VESSEL_CLASSES, vessels = vessels, sourceNode = sourceNode, sinkNode = sinkNode, NODE_DICT = NODE_DICT)
+                  NPS = RUNNING_NORMAL_PS, WPS = RUNNING_WEIGHTED_PS, RH = RUNNING_RH, WPS_AND_RH = RUNNING_WPS_AND_RH, NPS_AND_RH=RUNNING_NPS_AND_RH, VESSEL_CLASSES = VESSEL_CLASSES, vessels = vessels, sourceNode = sourceNode, sinkNode = sinkNode, NODE_DICT = NODE_DICT, last_feasible_solution_time=last_feasible_solution_time)
     
     print('Finished')
     
