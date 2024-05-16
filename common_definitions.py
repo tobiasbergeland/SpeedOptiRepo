@@ -1025,13 +1025,13 @@ class DQNAgent:
     def select_action(self, state, legal_actions,  env, vessel_simp, exploit):  
         if not exploit:
             # If the time is close to the checkpoint increase the exploration rate
-            # if env.current_checkpoint > 0 and env.current_checkpoint - 20 <=state['time'] <= env.current_checkpoint:
-            #     increased_epsilon = min(self.epsilon + 0.35, 0.75)
-            #     if np.random.rand() < increased_epsilon:
-            #         action = random.choice(legal_actions)
-            #         arc = action[3]
-            #         new_state = env.update_vessel_in_transition_and_inv_for_state(state = state, vessel = vessel_simp, destination_port = arc.destination_node.port, destination_time = arc.destination_node.time, origin_port = arc.origin_node.port, quantity = action[2], operation_type = action[1])
-            #         return action, new_state
+            if env.current_checkpoint > 0 and env.current_checkpoint - 20 <=state['time'] <= env.current_checkpoint:
+                increased_epsilon = min(self.epsilon + 0.15, 0.75)
+                if np.random.rand() < increased_epsilon:
+                    action = random.choice(legal_actions)
+                    arc = action[3]
+                    new_state = env.update_vessel_in_transition_and_inv_for_state(state = state, vessel = vessel_simp, destination_port = arc.destination_node.port, destination_time = arc.destination_node.time, origin_port = arc.origin_node.port, quantity = action[2], operation_type = action[1])
+                    return action, new_state
                 
             if np.random.rand() < self.epsilon:
                 action = random.choice(legal_actions)

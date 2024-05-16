@@ -1592,8 +1592,8 @@ def save_solution(INSTANCE, HORIZON, model, time_limit, elapsed_time, costs, P,
     flattened_routes["vessel_routes_flattened"] = reformatted_routes
     
     # Save to a JSON file for easy parsing and readability
-    filename = f"PS_param/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_13_120sek.json"
-    filename_readable_routes = f"PS_param/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_13_120sek.txt"
+    filename = f"PS_param/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_17_90sek.json"
+    filename_readable_routes = f"PS_param/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_17_90sek.txt"
     with open(filename, 'w') as file:
         json.dump(solution_data, file, indent=4)
     with open(filename_readable_routes, 'w') as file:
@@ -1798,9 +1798,9 @@ def main():
     # INSTANCE = 'LR1_DR03_VC03_V10b'
     
     'RUN 2'
-    INSTANCE = 'LR1_DR05_VC05_V25a'
+    # INSTANCE = 'LR1_DR05_VC05_V25a'
     'RUN 3'
-    # INSTANCE = 'LR1_DR08_VC10_V40a' 
+    INSTANCE = 'LR1_DR08_VC10_V40a' 
     
     TIME_LIMIT = 7200
     
