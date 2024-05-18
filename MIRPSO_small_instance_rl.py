@@ -279,7 +279,7 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
                 # increment time only
                 # Check if state is terminal
                 # if env.is_infeasible(state):
-                    # print(env.is_infeasible(state))
+                    # print(state['time'])
                 
                 state, total_reward_for_path, feasible_path = env.check_state(state=state, experience_path=experience_path, replay=replay, agent=agent, INSTANCE=INSTANCE, exploit=exploit)
                 
@@ -297,7 +297,7 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
                 # Find the vessels that are available to perform an action
                 available_vessels = env.find_available_vessels(state=state)
                 # Randomize the order of the vessels
-                random.shuffle(available_vessels)
+                # random.shuffle(available_vessels)
             
                 # If some vessels are available, select actions for them
                 if available_vessels:
