@@ -173,7 +173,7 @@ def unpack_env_data(env_data):
     return vessels, vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, non_operational, sourceNode, sinkNode, waiting_arcs, OPERATING_COST, OPERATING_SPEED, ports_dict, NODE_DICT, vessel_dict
 
 
-
+import random
 def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
     LOG =True
     RUNNING_MIRPSO =False
@@ -192,14 +192,14 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
     # INSTANCE = 'LR1_DR03_VC03_V10b'
     
     'Trene agent på desse. mange iterasjoner.'
-    INSTANCE = 'LR1_DR02_VC03_V8a'
-    # INSTANCE = 'LR1_DR05_VC05_V25a'
+    # INSTANCE = 'LR1_DR02_VC03_V8a'
+    INSTANCE = 'LR1_DR05_VC05_V25a'
     # INSTANCE = 'LR1_DR08_VC10_V40a'
     
     
     TRAINING_FREQUENCY = 1
     TARGET_UPDATE_FREQUENCY = 250
-    NON_RANDOM_ACTION_EPISODE_FREQUENCY = 5
+    NON_RANDOM_ACTION_EPISODE_FREQUENCY = 10
     BATCH_SIZE = 256
     BUFFER_SAVING_FREQUENCY = 1000
     problem_data = build_problem(INSTANCE, RUNNING_MIRPSO)
@@ -277,7 +277,10 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
             while not done:
                 # Increase time and make production ports produce.
                 # increment time only
-                # Check if state is terminal        
+                # Check if state is terminal
+                # if env.is_infeasible(state):
+                    # print(env.is_infeasible(state))
+                
                 state, total_reward_for_path, feasible_path = env.check_state(state=state, experience_path=experience_path, replay=replay, agent=agent, INSTANCE=INSTANCE, exploit=exploit)
                 
                 if state['done']:
@@ -293,6 +296,8 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
                 env.update_vessel_status(state=state)
                 # Find the vessels that are available to perform an action
                 available_vessels = env.find_available_vessels(state=state)
+                # Randomize the order of the vessels
+                random.shuffle(available_vessels)
             
                 # If some vessels are available, select actions for them
                 if available_vessels:
