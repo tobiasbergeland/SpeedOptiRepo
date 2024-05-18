@@ -360,12 +360,12 @@ class MIRPSOEnv():
         
         
         if port['isLoadingPort'] == 1:
-            # Rate is added as to account for alpha slack
+            # The production has already been added to the inventory. Therefore, we only need to check if the inventory is less than the capacity
             if port['inventory'] >= vessel['capacity']:
                 return True
         else:
-            # Rate is added as to account for alpha slack
-            if port['inventory'] + vessel['inventory'] <= port['capacity']:
+            # Rate is subtracted to account for the consumption. It is the status at the end of the time period that is important.
+            if port['inventory'] + vessel['inventory'] - port['rate'] <= port['capacity']:
                 return True
         return False
     
@@ -483,13 +483,13 @@ class MIRPSOEnv():
         legal_arcs = [arc for arc in potential_arcs if arc.is_waiting_arc]
         port = vessel.position
         if port.isLoadingPort == 1:
-            # Rate is added as to account for alpha slack
-            if port.inventory + port.rate >= vessel.capacity:
+            # Rate is already added, since production is added to the inventory.
+            if port.inventory >= vessel.capacity:
                 # Append arcs to all discharging ports to the legal arcs list
                 legal_arcs += [arc for arc in potential_arcs if arc.destination_node.port.isLoadingPort == -1]
         else:
-            # Rate is added as to account for alpha slack
-            if port.inventory + vessel.inventory <= port.capacity:
+            # Rate is subtracted to account for consumption.
+            if port.inventory + vessel.inventory - port.rate <= port.capacity:
                 # Append arcs to all loading ports to the legal arcs list
                 legal_arcs += [arc for arc in potential_arcs if arc.destination_node.port.isLoadingPort == 1]
         return legal_arcs
@@ -615,10 +615,11 @@ class MIRPSOEnv():
         infeasibility_counter = 0
         infeasibility_dict = {}
         for exp in experience_path:
-            current_state = exp[0]
+            next_state = exp[4]
+            # current_state = exp[0]
             # result_state = exp[4]
-            time = current_state['time']
-            if current_state['infeasible']:
+            time = next_state['time']
+            if next_state['infeasible']:
                 if time not in infeasibility_dict.keys():
                     infeasibility_dict[time] = True
                     
@@ -651,16 +652,27 @@ class MIRPSOEnv():
         
         infeasibility_dict = {}
         
+        # for exp in experience_path:
+        #     current_state, action, _, _, next_state, _, _, fi_time, terminal_flag = exp
+        #     current_state_is_infeasible, infeasible_ports = self.sim_is_infeasible(current_state)
+        #     # next_state_is_infeasible, _ = self.sim_is_infeasible(next_state)
+        #     if current_state_is_infeasible:
+        #         if first_infeasible_time is None:
+        #             feasible_path = False
+        #             first_infeasible_time = current_state['time']
+        #         if current_state['time'] not in infeasibility_dict.keys():
+        #             infeasibility_dict[current_state['time']] = True
+        
         for exp in experience_path:
             current_state, action, _, _, next_state, _, _, fi_time, terminal_flag = exp
-            current_state_is_infeasible, infeasible_ports = self.sim_is_infeasible(current_state)
+            next_state_is_infeasible, infeasible_ports = self.sim_is_infeasible(next_state)
             # next_state_is_infeasible, _ = self.sim_is_infeasible(next_state)
-            if current_state_is_infeasible:
+            if next_state_is_infeasible:
                 if first_infeasible_time is None:
                     feasible_path = False
-                    first_infeasible_time = current_state['time']
-                if current_state['time'] not in infeasibility_dict.keys():
-                    infeasibility_dict[current_state['time']] = True
+                    first_infeasible_time = next_state['time']
+                if next_state['time'] not in infeasibility_dict.keys():
+                    infeasibility_dict[next_state['time']] = True
                     
         infeasibility_counter = len(infeasibility_dict.keys())
         
@@ -697,8 +709,8 @@ class MIRPSOEnv():
             # The path is feasible, so terminal reward is given instead
             checkpoint_rew = True
         
-        # if (lowest_cp == self.current_checkpoint or lowest_cp == self.current_checkpoint - checkpoint_step) and lowest_cp > 0:
-        if lowest_cp == self.current_checkpoint and lowest_cp > 0:
+        if (lowest_cp == self.current_checkpoint or lowest_cp == self.current_checkpoint - checkpoint_step) and lowest_cp > 0:
+        # if lowest_cp == self.current_checkpoint and lowest_cp > 0:
             # Find the index of lowest_cp in horizon_checkpoint
             extra_cp_reward = lowest_cp
         else:
@@ -757,7 +769,7 @@ class MIRPSOEnv():
         if feasible_path:
             print('Feasible path')
             
-        if (infeasibility_counter<self.current_best_IC and infeasibility_counter<=20 and exploit) or (infeasibility_counter<=10 and exploit):
+        if (infeasibility_counter<self.current_best_IC and infeasibility_counter<=50 and exploit) or (infeasibility_counter<=10 and exploit):
             # save the main and target networks
             torch.save(agent.main_model.state_dict(), f'main_model_{INSTANCE}_INF_COUNTER_{infeasibility_counter}_{self.inf_counter_updates}.pth')
             torch.save(agent.target_model.state_dict(), f'target_model_{INSTANCE}_INF_COUNTER{infeasibility_counter}_{self.inf_counter_updates}.pth')
@@ -766,9 +778,6 @@ class MIRPSOEnv():
             self.current_best_IC = infeasibility_counter
             self.inf_counter_updates += 1
             print(f'New best IC: {infeasibility_counter}')
-            
-            
-   
         return experience_path, feasible_path
     
     def sim_all_vessels_finished(self, state):
@@ -1013,7 +1022,7 @@ class DQNAgent:
         self.sigma = 0.5     # discount rate infeasible paths
         self.epsilon = 0.75 # exploration rate
         self.epsilon_min = 0.1
-        self.epsilon_decay = 0.99
+        self.epsilon_decay = 0.999
         self.main_model = DQN(state_size, action_size)
         self.target_model = DQN(state_size, action_size)
         self.optimizer = optim.Adam(self.main_model.parameters())
