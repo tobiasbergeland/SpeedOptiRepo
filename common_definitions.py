@@ -365,7 +365,7 @@ class MIRPSOEnv():
                 return True
         else:
             # Rate is added as to account for alpha slack
-            if port['inventory'] + vessel['inventory'] <= port['capacity'] + port['rate']:
+            if port['inventory'] + vessel['inventory'] <= port['capacity']:
                 return True
         return False
     
@@ -489,7 +489,7 @@ class MIRPSOEnv():
                 legal_arcs += [arc for arc in potential_arcs if arc.destination_node.port.isLoadingPort == -1]
         else:
             # Rate is added as to account for alpha slack
-            if port.inventory + vessel.inventory <= port.capacity + port.rate:
+            if port.inventory + vessel.inventory <= port.capacity:
                 # Append arcs to all loading ports to the legal arcs list
                 legal_arcs += [arc for arc in potential_arcs if arc.destination_node.port.isLoadingPort == 1]
         return legal_arcs

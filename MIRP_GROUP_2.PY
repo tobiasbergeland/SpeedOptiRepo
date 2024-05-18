@@ -1532,7 +1532,7 @@ import logging
 def save_solution(INSTANCE, HORIZON, model, time_limit, elapsed_time, costs, P,
                   RUNNING_MIRPSO, best_obj_val, solution_vals_x,
                   solution_vals_s, solution_vals_alpha, active_arcs, vessel_classes,
-                  NPS, WPS, RH, WPS_AND_RH, NPS_AND_RH, VESSEL_CLASSES, vessels, sourceNode, sinkNode, NODE_DICT, last_feasible_solution_time):
+                  NPS, WPS, RH, WPS_AND_RH, NPS_AND_RH, VESSEL_CLASSES, vessels, sourceNode, sinkNode, NODE_DICT, window_size, step_size):
 
     method_map = {"NPS": NPS, "WPS": WPS, "RH": RH, "WPS_AND_RH": WPS_AND_RH, "NPS_AND_RH": NPS_AND_RH}
     method = next((method_name for method_name, condition in method_map.items() if condition), "SOLVER")
@@ -1563,12 +1563,14 @@ def save_solution(INSTANCE, HORIZON, model, time_limit, elapsed_time, costs, P,
         "instance": INSTANCE,
         "horizon": HORIZON,
         'method': method,
+        'window_size': window_size,
+        'step_size': step_size,
         "status": model_status,
         "objective_value": best_obj_val,
         'gap':gap,
         "elapsed_time": elapsed_time,
         "time_limit": time_limit if model.status == gp.GRB.TIME_LIMIT else None,
-        "last_feasible_solution_time" : last_feasible_solution_time if method == 'NPS' or method == 'WPS' else None,
+        # "last_feasible_solution_time" : last_feasible_solution_time if method == 'NPS' or method == 'WPS' else None,
         "costs": costs_str_keys,
         "P": P_str_keys,
         "solution_x": {str(var_name): var_val for var_name, var_val in solution_vals_x.items()},
@@ -1592,8 +1594,8 @@ def save_solution(INSTANCE, HORIZON, model, time_limit, elapsed_time, costs, P,
     flattened_routes["vessel_routes_flattened"] = reformatted_routes
     
     # Save to a JSON file for easy parsing and readability
-    filename = f"PS_param/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_17_90sek.json"
-    filename_readable_routes = f"PS_param/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_17_90sek.txt"
+    filename = f"RH_param/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_WS={window_size}_SS={step_size}.json"
+    filename_readable_routes = f"RH_param/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_WS={window_size}_SS={step_size}.txt"
     with open(filename, 'w') as file:
         json.dump(solution_data, file, indent=4)
     with open(filename_readable_routes, 'w') as file:
@@ -1617,7 +1619,6 @@ def proximity_search_using_agent(ps_data, agent, env, RUNNING_WPS_AND_RH, window
     model.setParam(gp.GRB.Param.SolutionLimit, 1)
     
     if not RUNNING_WPS_AND_RH:
-        "Do not use construction heuristic in RH"
         experience_path, port_inventory_dict, vessel_inventory_dict = evaluate_agent(env, agent, INSTANCE)
         active_X_keys, S_values, alpha_values = convert_path_to_MIRPSO_solution(env, experience_path, port_inventory_dict)
         current_solution_vals_x, model, warm_start_sol = warm_start_model(model, active_X_keys, S_values, alpha_values, env.SOURCE_NODE)
@@ -1656,6 +1657,9 @@ def proximity_search_using_agent(ps_data, agent, env, RUNNING_WPS_AND_RH, window
         vessel_classes = vessel_class_arcs.keys()
         
     else:
+        # Construction heuristic for this window.
+        
+        
         model.setParam(gp.GRB.Param.SolutionLimit, 1)
         start_time = time.time()
         time_left = time_limit - time_passed(start_time)
@@ -1780,8 +1784,8 @@ def main():
     RUNNING_MIRPSO = True
     
     # RUNNING_WEIGHTED_PS = True
-    RUNNING_NORMAL_PS = True
-    # RUNNING_RH = True
+    # RUNNING_NORMAL_PS = True
+    RUNNING_RH = True
     # RUNNING_NPS_AND_RH = True
     # RUNNING_WPS_AND_RH = True
     
@@ -1791,7 +1795,7 @@ def main():
     # INSTANCE = 'LR1_DR02_VC03_V7a'
     
     'RUN 1'
-    # INSTANCE = 'LR1_DR02_VC03_V8a'
+    INSTANCE = 'LR1_DR02_VC03_V8a'
     # INSTANCE = 'LR1_DR02_VC04_V8a'
     
     # INSTANCE = 'LR1_DR02_VC05_V8a'
@@ -1800,7 +1804,7 @@ def main():
     'RUN 2'
     # INSTANCE = 'LR1_DR05_VC05_V25a'
     'RUN 3'
-    INSTANCE = 'LR1_DR08_VC10_V40a' 
+    # INSTANCE = 'LR1_DR08_VC10_V40a' 
     
     TIME_LIMIT = 7200
     
@@ -1863,6 +1867,15 @@ def main():
         # Print objective function value
         print(f'Objective function value: {current_best_obj}')
         
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+    
+        save_solution(INSTANCE=INSTANCE, HORIZON=HORIZON, model = model, time_limit = TIME_LIMIT, elapsed_time=elapsed_time, costs=costs, P=P,
+                  RUNNING_MIRPSO=RUNNING_MIRPSO, best_obj_val=current_best_obj, solution_vals_x = current_solution_vals_x,
+                  solution_vals_s = current_solution_s, solution_vals_alpha = current_solution_alpha, active_arcs = active_arcs, vessel_classes=VESSEL_CLASSES,
+                  NPS = RUNNING_NORMAL_PS, WPS = RUNNING_WEIGHTED_PS, RH = RUNNING_RH, WPS_AND_RH = RUNNING_WPS_AND_RH, NPS_AND_RH=RUNNING_NPS_AND_RH, VESSEL_CLASSES = VESSEL_CLASSES, vessels = vessels, sourceNode = sourceNode, sinkNode = sinkNode, NODE_DICT = NODE_DICT, window_size = window_size, step_size = step_size)
+    
+        
     elif RUNNING_WPS_AND_RH:
         env = MIRPSOEnv(ports, vessels, vessel_arcs, NODES, TIME_PERIOD_RANGE, sourceNode, sinkNode, NODE_DICT, special_sink_arcs, special_nodes_dict)
         replay = ReplayMemory(3000)
@@ -1882,13 +1895,6 @@ def main():
     else:
         current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs = solve_model(model=model, costs=costs, P=P, RUNNING_MIRPSO=RUNNING_MIRPSO, INSTANCE= INSTANCE, HORIZON=HORIZON, ps_data=ps_data, time_limit=TIME_LIMIT)
         
-    end_time = time.time()
-    elapsed_time = end_time - start_time
-    
-    save_solution(INSTANCE=INSTANCE, HORIZON=HORIZON, model = model, time_limit = TIME_LIMIT, elapsed_time=elapsed_time, costs=costs, P=P,
-                  RUNNING_MIRPSO=RUNNING_MIRPSO, best_obj_val=current_best_obj, solution_vals_x = current_solution_vals_x,
-                  solution_vals_s = current_solution_s, solution_vals_alpha = current_solution_alpha, active_arcs = active_arcs, vessel_classes=VESSEL_CLASSES,
-                  NPS = RUNNING_NORMAL_PS, WPS = RUNNING_WEIGHTED_PS, RH = RUNNING_RH, WPS_AND_RH = RUNNING_WPS_AND_RH, NPS_AND_RH=RUNNING_NPS_AND_RH, VESSEL_CLASSES = VESSEL_CLASSES, vessels = vessels, sourceNode = sourceNode, sinkNode = sinkNode, NODE_DICT = NODE_DICT, last_feasible_solution_time=last_feasible_solution_time)
     
     print('Finished')
     
