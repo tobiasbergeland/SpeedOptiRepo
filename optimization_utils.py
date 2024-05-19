@@ -139,6 +139,172 @@ def extract_time_period_from_x_var_name(var_name):
     else:
         return None
     
+def find_vessel_destinations(vessels_in_vc, vc_active_arcs, end_time):
+    destination_nodes = {}
+    # Find all arcs crossing the end time
+    arcs_crossing_end_time = [arc for arc in vc_active_arcs if arc.origin_node.time <= end_time and arc.destination_node.time > end_time]
+    crossing_traveling_arcs = [arc for arc in arcs_crossing_end_time if arc.origin_node.port != arc.destination_node.port]
+    crossing_waiting_arcs = [arc for arc in arcs_crossing_end_time if arc.origin_node.port == arc.destination_node.port]
+    taken_traveling_arcs = []
+    vessels_assigned = []
+    for v in vessels_in_vc:
+        for arc in crossing_traveling_arcs:
+            if arc not in taken_traveling_arcs:
+                destination_nodes[v] = arc.destination_node
+                taken_traveling_arcs.append(arc)
+                vessels_assigned.append(v)
+                break
+    
+    for v in vessels_in_vc:
+        if v not in vessels_assigned:
+            for arc in crossing_waiting_arcs:
+                destination_nodes[v] = arc.destination_node
+                vessels_assigned.append(v)
+                break
+    if len(vessels_assigned) != len(vessels_in_vc):
+        raise ValueError("Not all vessels have been assigned a destination node")
+    if len(destination_nodes) != len(vessels_in_vc):
+        raise ValueError("Not all vessels have been assigned a destination node")
+    if len(crossing_traveling_arcs) != len(taken_traveling_arcs):
+        raise ValueError("Not all vessels have been assigned a destination node")
+            
+    return destination_nodes
+    
+    
+    
+def construction_heuristic_for_window(env, agent, window_start, window_end, combined_solution, INSTANCE, experience_path, port_inventory_dict, vessel_inventory_dict, current_solution_vars_x, current_solution_vals_x, active_arcs, VESSEL_CLASSES, vessel_class_arcs, model, current_solution_vals_s):
+    best_solution = None
+    best_inf_counter = env.TIME_PERIOD_RANGE[-1]
+    # Need some randomization in order for the agent to produce different results
+    agent.epsilon = 0.1
+    
+    for i in range(1):
+        if not combined_solution:
+            # Window start is 0, so we need to start from scratch
+            experience_path = []
+            state = env.reset()
+            done = False
+            port_inventory_dict = {}
+            vessel_inventory_dict = {}
+            decision_basis_states = {vessel.number: env.custom_deep_copy_of_state(state) for vessel in state['vessels']}
+            actions = {vessel: env.find_legal_actions_for_vessel(state=state, vessel=vessel)[0] for vessel in state['vessels']}
+            state = env.step(state=state, actions=actions, experience_path=experience_path, decision_basis_states=decision_basis_states)
+            # increment time only
+            state['time'] += 1
+            # state = env.increment_time_and_produce(state=state)
+            # Init port inventory is the inventory at this time. Time is 0 after the increment.
+            port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
+            # Init vessel inventory is the inventory at this time
+            vessel_inventory_dict[state['time']] = {vessel.number: vessel.inventory for vessel in state['vessels']}
+            
+        else:
+            
+            # We need to recreate the state from the combined solution and start from the window start
+            state = env.reset()
+            # s_solution = get_current_s_solution_vars(model)
+            experience_path = []
+            
+            
+            
+            # Set the inventory levels for the ports and vessels at the window start
+            for port_number, port_inventory in port_inventory_dict[window_start+1].items(): #S_31
+                # Get the value of the s variable from current_solution_vals_s
+                s_var_value = current_solution_vals_s[f's[{port_number},{window_start+1}]']
+                # s_var_name = f"s[{port_number},{window_start+1}]"
+                # s_var = model.getVarByName(s_var_name)
+                # s_var_value = s_var.X
+                port = env.PORTS[port_number -1]
+                port.inventory = s_var_value
+            # for vessel_number, vessel_inventory in vessel_inventory_dict[window_start].items():
+            #     vessel = env.VESSELS[vessel_number -1]
+            #     vessel.inventory = vessel_inventory
+            # Set the time to the window start
+            state['time'] = window_start +1
+            state['done'] = False
+            done = state['done']
+            
+            for vc in VESSEL_CLASSES:
+                vessels_in_class = [vessel for vessel in state['vessels'] if vessel.vessel_class == vc]
+                vc_active_arcs = active_arcs[vc]
+                destination_nodes = find_vessel_destinations(vessels_in_class, vc_active_arcs, window_start)
+                for v, node in destination_nodes.items():
+                    v.position = None
+                    v.in_transit_towards = (node.port, node.time)
+                    if node.port.isLoadingPort == 1:
+                        v.inventory = 0
+                    else:
+                        v.inventory = v.capacity
+                        
+            # Should check the feasibility of the state, even though no actions were performed. 
+            state = env.simple_step(state, experience_path)
+            
+            port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
+            vessel_inventory_dict[state['time']] = {vessel.number: vessel.inventory for vessel in state['vessels']}
+            
+            # state['time'] += 1
+            
+        while not done:
+            # Check if state is infeasible or terminal
+            state, total_reward_for_path, feasible_path = env.check_state(state=state, experience_path=experience_path, replay=agent.memory, agent=agent, INSTANCE=INSTANCE, exploit = False)
+            
+            # # Manual termination
+            # if state['time'] == window_end + 1:
+            #     state['done'] = True
+            
+            if state['done']:
+                first_infeasible_time, infeasibility_counter = env.log_window(None, total_reward_for_path, experience_path, state, window_start, window_end)
+                feasible_path = experience_path[0][6]
+                
+                if infeasibility_counter < best_inf_counter:
+                    best_inf_counter = infeasibility_counter
+                    best_solution = (experience_path, port_inventory_dict, vessel_inventory_dict)
+                break
+                
+            # Increase time and make production ports produce.
+            state = env.produce(state)
+                
+            # With the increased time, the vessels have moved and some of them have maybe reached their destination. Updating the vessel status based on this.
+            env.update_vessel_status(state=state)
+            # Find the vessels that are available to perform an action
+            available_vessels = env.find_available_vessels(state=state)
+            
+            if available_vessels:
+                    actions = {}
+                    decision_basis_states = {}
+                    actions_to_make = {}
+                    decision_basis_state = env.custom_deep_copy_of_state(state)
+                    for vessel in available_vessels:
+                        corresponding_vessel = decision_basis_state['vessel_dict'][vessel.number]
+                        decision_basis_states[corresponding_vessel['number']] = decision_basis_state
+                        legal_actions = env.sim_find_legal_actions_for_vessel(state=decision_basis_state, vessel=corresponding_vessel, queued_actions=actions_to_make, RUNNING_WPS = False)
+                        action, decision_basis_state = agent.select_action_for_RH(state=copy.deepcopy(decision_basis_state), legal_actions=legal_actions, env=env, vessel_simp=corresponding_vessel, window_end=window_end, vessel_class_arcs=vessel_class_arcs)
+                        _, _, _, _arc = action
+                        actions[vessel] = action
+                        actions_to_make[vessel] = action
+                    # Perform the operation and routing actions and update the state based on this
+                    state = env.step(state=state, actions=actions, experience_path=experience_path, decision_basis_states=decision_basis_states)
+            else:
+                # Should check the feasibility of the state, even though no actions were performed. 
+                state = env.simple_step(state, experience_path)
+            # Make consumption ports consume regardless if any actions were performed
+            state = env.consumption(state)
+                
+            # if state['time'] == window_start + 1 and combined_solution:
+            #     port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
+            #     vessel_inventory_dict[state['time']] = {vessel.number: vessel.inventory for vessel in state['vessels']}
+            # else:
+            state['time'] += 1
+            port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
+            vessel_inventory_dict[state['time']] = {vessel.number: vessel.inventory for vessel in state['vessels']}
+                    
+    experience_path = best_solution[0]
+    port_inventory_dict = best_solution[1]
+    vessel_inventory_dict = best_solution[2]
+    
+    return experience_path, port_inventory_dict, vessel_inventory_dict
+    
+    
+    
     
 def evaluate_agent(env, agent, INSTANCE):
     best_solution = None
@@ -238,7 +404,6 @@ def convert_path_to_MIRPSO_solution(env, experience_path, port_inventory_dict):
     # Create a dict with vesselnumber as key, and an empty list as value
     active_arcs = {vessel.number: [] for vessel in env.VESSELS}
     
-    #add source arcs at the beginning of the each vessel's active arcs
     for vessel in env.VESSELS:
         # Find the source arc for the vessel
         arcs = env.VESSEL_ARCS[vessel]
@@ -279,8 +444,7 @@ def convert_path_to_MIRPSO_solution(env, experience_path, port_inventory_dict):
                     alpha_values[(port.number, time-1)] = alpha
                     accumulated_alpha[port.number] += alpha
                 S_values[(port.number, time)] = invs_at_time[port.number] - accumulated_alpha[port.number]
-                # else:
-                    # S_values[(port.number, time)] = invs_at_time[port.number]
+                
             else:
                 if inventory < 0:
                     alpha = abs(inventory)
@@ -288,13 +452,6 @@ def convert_path_to_MIRPSO_solution(env, experience_path, port_inventory_dict):
                     accumulated_alpha[port.number] += alpha
                     
                 S_values[(port.number, time)] = invs_at_time[port.number] + accumulated_alpha[port.number]
-                # else:    
-                    # S_values[(port.number, time)] = invs_at_time[port.number]
-            
-    # W_values = {}
-    # for time, invs_at_time in vessel_inventory_dict.items():
-    #     for vessel in env.VESSELS:
-    #         W_values[(time, vessel)] = invs_at_time[vessel.number]
         
     return active_X_keys, S_values, alpha_values
 
@@ -309,23 +466,6 @@ def warm_start_model(m, active_X_keys, S_values, alpha_values, source_node):
         elif var.VarName.startswith('alpha'):
             var.Start = 0
     m.update()
-            
-    # # Setting initial values for 'x' variables based on active_X_keys
-    # for (arc_tuple, vessel_class) in active_X_keys:
-    #     # Check if the arc is interregional or not
-    #     origin_node, destination_node = arc_tuple
-    #     if origin_node.port == destination_node.port or origin_node == source_node:
-    #         # Arc is not interregional, name is therefore f"x_non_interregional_{arc.tuple}_{arc.vessel_class}"
-    #         x_var_name = f"x_non_interregional_{arc_tuple}_{vessel_class}" 
-    #     else:
-    #         x_var_name = f"x_interregional_{arc_tuple}_{vessel_class}"
-            
-    #     # x_var_name = f"x[{arc_tuple},{vessel}]"
-    #     x_var = m.getVarByName(x_var_name)
-    #     # Set the start value to 0 if the variable is found
-    #     if x_var is not None:
-    #         x_var.Start = 0
-    # m.update()
             
     # Setting initial values for 'x' variables based on active_X_keys
     for (arc_tuple, vessel_class) in active_X_keys:
@@ -346,18 +486,17 @@ def warm_start_model(m, active_X_keys, S_values, alpha_values, source_node):
             x_var.Start += 1
         m.update()
     
-    # For 's' and 'w' variables, since you believe all values are set already, we maintain your original logic
-    for (port_number, time), s_value in S_values.items():
-        s_var_name = f"s[{port_number},{time}]"
-        s_var = m.getVarByName(s_var_name)
-        if s_var is not None:
-            s_var.Start = s_value
+    # for (port_number, time), s_value in S_values.items():
+    #     s_var_name = f"s[{port_number},{time}]"
+    #     s_var = m.getVarByName(s_var_name)
+    #     if s_var is not None:
+    #         s_var.Start = s_value
             
-    for (port_number, time), alpha_value in alpha_values.items():
-        alpha_var_name = f"alpha[{port_number},{time}]"
-        alpha_var = m.getVarByName(alpha_var_name)
-        if alpha_var is not None:
-            alpha_var.Start = alpha_value
+    # for (port_number, time), alpha_value in alpha_values.items():
+    #     alpha_var_name = f"alpha[{port_number},{time}]"
+    #     alpha_var = m.getVarByName(alpha_var_name)
+    #     if alpha_var is not None:
+    #         alpha_var.Start = alpha_value
     
     # Finally, update the model to apply these start values
     m.update()
@@ -428,7 +567,7 @@ def perform_proximity_search(ps_data, RUNNING_NPS_AND_RH, window_end, time_limit
         if cutoff_value < 1:
             model.setParam(gp.GRB.Param.TimeLimit, time_left if time_left >= 0 else 10)
         else:
-            model.setParam(gp.GRB.Param.TimeLimit, min(90, time_left) if time_left >= 0 else 10)
+            model.setParam(gp.GRB.Param.TimeLimit, min(20, time_left) if time_left >= 0 else 10)
         model.optimize()
 
         # Check if a new solution is found with the lowest amount of changes to the structure as possible
@@ -458,7 +597,7 @@ def perform_proximity_search(ps_data, RUNNING_NPS_AND_RH, window_end, time_limit
             time_diff = current_time - start_time
             if time_diff > time_limit:
                 remove_cutoff_constraints(model)
-                return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs, last_feasible_solution_time
+                return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs
             
         elif model.Status == GRB.TIME_LIMIT or model.Status == GRB.INFEASIBLE:
             has_been_infeasible = True
@@ -468,13 +607,13 @@ def perform_proximity_search(ps_data, RUNNING_NPS_AND_RH, window_end, time_limit
             print(f'Best objective value is {current_best_obj}.')
             if cutoff_value < 1:
                 remove_cutoff_constraints(model)
-                return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs, last_feasible_solution_time
+                return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs
             else:
                 current_time = time.time()
                 if start_time:
                     if current_time - start_time > time_limit:
                         remove_cutoff_constraints(model)
-                        return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs, last_feasible_solution_time
+                        return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs
             
         
         

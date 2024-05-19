@@ -637,6 +637,32 @@ class MIRPSOEnv():
         first_infeasible_time = experience_path[0][7]
         return first_infeasible_time, infeasibility_counter
     
+    def log_window(self, episode, total_reward_for_path, experience_path, state, window_start, window_end):
+        infeasibility_counter = 0
+        infeasibility_dict = {}
+        for exp in experience_path:
+            next_state = exp[4]
+            # current_state = exp[0]
+            # result_state = exp[4]
+            time = next_state['time']
+            if next_state['infeasible']:
+                if time not in infeasibility_dict.keys() and window_start <= time <= window_end:
+                    infeasibility_dict[time] = True
+                    
+        # Check also the final state
+        if state['infeasible']:
+            infeasibility_dict[len(self.TIME_PERIOD_RANGE)] = True
+            
+        infeasibility_counter = len(infeasibility_dict.keys())
+        print(f"Episode {episode}: Total Reward = {total_reward_for_path}\nInfeasibility Counter = {infeasibility_counter}")
+        if infeasibility_counter > 0:
+            # Sort the dict by time
+            infeasibility_dict = dict(sorted(infeasibility_dict.items()))
+            print('Infeasible time periods:', infeasibility_dict.keys())
+        print('-----------------------------------')
+        first_infeasible_time = experience_path[0][7]
+        return first_infeasible_time, infeasibility_counter
+    
     def apply_reward(self, exp, feasible_path, first_infeasible_time, reward):
         exp[3] = reward
         exp[6] = feasible_path
@@ -922,19 +948,33 @@ class MIRPSOEnv():
         return available_vessels
     
 class DQN(nn.Module):
+    # def __init__(self, state_size, action_size):
+    #     super(DQN, self).__init__()
+    #     self.fc1 = nn.Linear(state_size, 64)     # First fully connected layer
+    #     self.fc2 = nn.Linear(64, 128)             # Second fully connected layer
+    #     self.fc3 = nn.Linear(128, 64)             # Third fully connected layer, newly added
+    #     self.fc4 = nn.Linear(64, action_size)    # Output layer
+    #     self.relu = nn.ReLU()                    # ReLU activation
+
+    # def forward(self, state):
+    #     x = self.relu(self.fc1(state))
+    #     x = self.relu(self.fc2(x))
+    #     x = self.relu(self.fc3(x))               # Activation for the newly added layer
+    #     return self.fc4(x)
+    
     def __init__(self, state_size, action_size):
         super(DQN, self).__init__()
         self.fc1 = nn.Linear(state_size, 64)     # First fully connected layer
         self.fc2 = nn.Linear(64, 128)             # Second fully connected layer
-        self.fc3 = nn.Linear(128, 64)             # Third fully connected layer, newly added
-        self.fc4 = nn.Linear(64, action_size)    # Output layer
+        self.fc3 = nn.Linear(128, action_size)    # Output layer
         self.relu = nn.ReLU()                    # ReLU activation
 
     def forward(self, state):
         x = self.relu(self.fc1(state))
         x = self.relu(self.fc2(x))
-        x = self.relu(self.fc3(x))               # Activation for the newly added layer
-        return self.fc4(x)
+        return self.fc3(x)
+    
+    
     
 class ReplayMemory:
     def __init__(self, capacity, feasibility_priority=0.5):
@@ -1032,6 +1072,15 @@ class DQNAgent:
         self.BATCH_SIZE = BATCH_SIZE
             
     def select_action(self, state, legal_actions,  env, vessel_simp, exploit):  
+        
+         # If there is only one legal action, choose it
+        if len(legal_actions) == 1:
+            action = legal_actions[0]
+            arc = action[3]
+            # new_state = copy.deepcopy(state)
+            new_state = env.update_vessel_in_transition_and_inv_for_state(state = state, vessel = vessel_simp, destination_port = arc.destination_node.port, destination_time = arc.destination_node.time, origin_port = arc.origin_node.port, quantity = action[2], operation_type = action[1])
+            return action, new_state
+        
         if not exploit:
             # If the time is close to the checkpoint increase the exploration rate
             if env.current_checkpoint > 0 and env.current_checkpoint - 20 <=state['time'] <= env.current_checkpoint:
@@ -1048,13 +1097,7 @@ class DQNAgent:
                 new_state = env.update_vessel_in_transition_and_inv_for_state(state = state, vessel = vessel_simp, destination_port = arc.destination_node.port, destination_time = arc.destination_node.time, origin_port = arc.origin_node.port, quantity = action[2], operation_type = action[1])
                 return action, new_state
             
-        # If there is only one legal action, choose it
-        if len(legal_actions) == 1:
-            action = legal_actions[0]
-            arc = action[3]
-            # new_state = copy.deepcopy(state)
-            new_state = env.update_vessel_in_transition_and_inv_for_state(state = state, vessel = vessel_simp, destination_port = arc.destination_node.port, destination_time = arc.destination_node.time, origin_port = arc.origin_node.port, quantity = action[2], operation_type = action[1])
-            return action, new_state
+       
         
         # Encode state and add vessel number
         encoded_state = env.encode_state(state, vessel_simp)
@@ -1112,6 +1155,70 @@ class DQNAgent:
                 new_state = env.update_vessel_in_transition_and_inv_for_state(state = state, vessel = vessel_simp, destination_port = arc.destination_node.port, destination_time = arc.destination_node.time, origin_port = arc.origin_node.port, quantity = action[2], operation_type = action[1])
                 return action, new_state
             
+    def select_action_for_RH(self, state, legal_actions, env, vessel_simp, window_end, vessel_class_arcs):
+        # If there is only one legal action, choose it
+        if len(legal_actions) == 1:
+            action = legal_actions[0]
+            arc = action[3]
+            # if arc.destination_node.time > window_end:
+            #     a_0, a_1, a_2, arc = action
+            #     # Find the sink arc from the same origin node
+            #     vc = vessel_simp['vessel_class']
+            #     for vc_arc in vessel_class_arcs[vc]:
+            #         if arc.origin_node == vc_arc.origin_node and vc_arc.destination_node == env.SINK_NODE:
+            #             action = (a_0, a_1, a_2, vc_arc)
+            #             arc = vc_arc
+            #             break
+                
+            new_state = env.update_vessel_in_transition_and_inv_for_state(state = state, vessel = vessel_simp, destination_port = arc.destination_node.port, destination_time = arc.destination_node.time, origin_port = arc.origin_node.port, quantity = action[2], operation_type = action[1])
+            return action, new_state
+        
+        if np.random.rand() < self.epsilon:
+            action = random.choice(legal_actions)
+            arc = action[3]
+            # if arc.destination_node.time > window_end:
+            #     a_0, a_1, a_2, arc = action
+            #     # Find the sink arc from the same origin node
+            #     vc = vessel_simp['vessel_class']
+            #     for vc_arc in vessel_class_arcs[vc]:
+            #         if arc.origin_node == vc_arc.origin_node and vc_arc.destination_node == env.SINK_NODE:
+            #             action = (a_0, a_1, a_2, vc_arc)
+            #             arc = vc_arc
+            #             break
+                    
+            new_state = env.update_vessel_in_transition_and_inv_for_state(state = state, vessel = vessel_simp, destination_port = arc.destination_node.port, destination_time = arc.destination_node.time, origin_port = arc.origin_node.port, quantity = action[2], operation_type = action[1])
+            return action, new_state
+        
+        # Encode state and add vessel number
+        encoded_state = env.encode_state(state, vessel_simp)
+        # Convert the state to a tensor
+        state_tensor = torch.tensor(encoded_state, dtype=torch.float32).unsqueeze(0)
+        q_values = self.main_model(state_tensor).detach().numpy()
+        q_values = q_values[0]
+        # Sort the q-values, but keep track of the original indices
+        q_values = [(q_value, index +1) for index, q_value in enumerate(q_values)]
+        q_values.sort(reverse=True)
+        a = 10   
+        # Find all unique destination port numbers
+        unique_ports = {action[3].destination_node.port.number for action in legal_actions}
+        # Choose the action with the highest q-value that is legal
+        for q_value, destination_port_number in q_values:
+            if destination_port_number in unique_ports:
+                # Find all actions with the same destination port number in legal actions
+                possible_actions = [action for action in legal_actions if action[3].destination_node.port.number == destination_port_number]
+                action = max(possible_actions, key=lambda x: x[3].speed)
+                arc = action[3]
+                # if arc.destination_node.time > window_end:
+                #     a_0, a_1, a_2, arc = action
+                #     # Find the sink arc from the same origin node
+                #     vc = vessel_simp['vessel_class']
+                #     for vc_arc in vessel_class_arcs[vc]:
+                #         if arc.origin_node == vc_arc.origin_node and vc_arc.destination_node == env.SINK_NODE:
+                #             action = (a_0, a_1, a_2, vc_arc)
+                #             arc = vc_arc
+                #             break
+                new_state = env.update_vessel_in_transition_and_inv_for_state(state = state, vessel = vessel_simp, destination_port = arc.destination_node.port, destination_time = arc.destination_node.time, origin_port = arc.origin_node.port, quantity = action[2], operation_type = action[1])
+                return action, new_state
                 
                 
     def select_action_for_ps(self, state, legal_actions, env, vessel_simp, RUNNING_MIRPSO):  

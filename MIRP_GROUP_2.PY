@@ -1785,9 +1785,9 @@ def main():
     
     # RUNNING_WEIGHTED_PS = True
     # RUNNING_NORMAL_PS = True
-    RUNNING_RH = True
+    # RUNNING_RH = True
     # RUNNING_NPS_AND_RH = True
-    # RUNNING_WPS_AND_RH = True
+    RUNNING_WPS_AND_RH = True
     
     # GROUP 2
     # INSTANCE = 'LR1_DR02_VC01_V6a'
@@ -1806,7 +1806,7 @@ def main():
     'RUN 3'
     # INSTANCE = 'LR1_DR08_VC10_V40a' 
     
-    TIME_LIMIT = 7200
+    TIME_LIMIT = 120
     
     problem_data = build_problem(INSTANCE, RUNNING_MIRPSO)
     
@@ -1859,11 +1859,19 @@ def main():
         current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs, last_feasible_solution_time = perform_proximity_search(ps_data=ps_data, RUNNING_NPS_AND_RH=RUNNING_NPS_AND_RH, window_end=None, time_limit=TIME_LIMIT)
         
     elif RUNNING_RH or RUNNING_NPS_AND_RH:
+        env = MIRPSOEnv(ports, vessels, vessel_arcs, NODES, TIME_PERIOD_RANGE, sourceNode, sinkNode, NODE_DICT, special_sink_arcs, special_nodes_dict)
+        replay = ReplayMemory(3000)
+        agent = DQNAgent(ports = ports, vessels=vessels, TRAINING_FREQUENCY = None, TARGET_UPDATE_FREQUENCY = None, NON_RANDOM_ACTION_EPISODE_FREQUENCY = None, BATCH_SIZE = None, replay = replay)
+        replay = agent.load_replay_buffer(file_name= 'replay_buffer_LR1_DR02_VC03_V8a_25_NEW2.pkl')
+        agent.memory = replay
+        agent.main_model.load_state_dict(torch.load('main_model_LR1_DR02_VC03_V8a_25_NEW2.pth'))
+        agent.target_model.load_state_dict(torch.load('target_model_LR1_DR02_VC03_V8a_25_NEW2.pth'))
+        
         # Define your window size and execute rolling horizon optimization
         window_size = 60  # example window size
         step_size = 30
         TIME_LIMIT_PER_WINDOW = calc_time_limit_per_window(TIME_LIMIT, HORIZON, window_size, step_size)
-        current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs = rolling_horizon_optimization(model=model, horizon_length=HORIZON, window_size=window_size, step_size=step_size, TIME_LIMIT_PER_WINDOW=TIME_LIMIT_PER_WINDOW, ps_data=ps_data, agent=None, env=None, RUNNING_WPS_AND_RH=RUNNING_WPS_AND_RH, RUNNING_NPS_AND_RH=RUNNING_NPS_AND_RH, proximity_search_using_agent=proximity_search_using_agent, RUNNING_MIRPSO=RUNNING_MIRPSO)
+        current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs = rolling_horizon_optimization(model=model, horizon_length=HORIZON, window_size=window_size, step_size=step_size, TIME_LIMIT_PER_WINDOW=TIME_LIMIT_PER_WINDOW, ps_data=ps_data, agent=agent, env=env, RUNNING_WPS_AND_RH=RUNNING_WPS_AND_RH, RUNNING_NPS_AND_RH=RUNNING_NPS_AND_RH, proximity_search_using_agent=proximity_search_using_agent, RUNNING_MIRPSO=RUNNING_MIRPSO, VESSEL_CLASSES = VESSEL_CLASSES, INSTANCE=INSTANCE, vessel_class_arcs=vessel_class_arcs)
         # Print objective function value
         print(f'Objective function value: {current_best_obj}')
         
@@ -1881,16 +1889,16 @@ def main():
         replay = ReplayMemory(3000)
         
         agent = DQNAgent(ports = ports, vessels=vessels, TRAINING_FREQUENCY = None, TARGET_UPDATE_FREQUENCY = None, NON_RANDOM_ACTION_EPISODE_FREQUENCY = None, BATCH_SIZE = None, replay = replay)
-        replay = agent.load_replay_buffer(file_name= 'replay_buffer_LR1_DR03_VC03_V10b_4000.pkl')
+        replay = agent.load_replay_buffer(file_name= 'replay_buffer_LR1_DR02_VC03_V8a_25_NEW2.pkl')
         agent.memory = replay
         
-        agent.main_model.load_state_dict(torch.load('main_model_LR1_DR03_VC03_V10b_4000.pth'))
-        agent.target_model.load_state_dict(torch.load('target_model_LR1_DR03_VC03_V10b_4000.pth'))
+        agent.main_model.load_state_dict(torch.load('main_model_LR1_DR02_VC03_V8a_25_NEW2.pth'))
+        agent.target_model.load_state_dict(torch.load('target_model_LR1_DR02_VC03_V8a_25_NEW2.pth'))
         
         window_size = 60  # example window size
         step_size = 30
         TIME_LIMIT_PER_WINDOW = calc_time_limit_per_window(TIME_LIMIT, HORIZON, window_size, step_size)
-        current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs = rolling_horizon_optimization(model =model, horizon_length=HORIZON, window_size=window_size, step_size=step_size, TIME_LIMIT_PER_WINDOW=TIME_LIMIT_PER_WINDOW, ps_data=ps_data, agent=agent, env=env, RUNNING_WPS_AND_RH=RUNNING_WPS_AND_RH, RUNNING_NPS_AND_RH=RUNNING_NPS_AND_RH, proximity_search_using_agent=proximity_search_using_agent, RUNNING_MIRPSO=RUNNING_MIRPSO)
+        current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs = rolling_horizon_optimization(model =model, horizon_length=HORIZON, window_size=window_size, step_size=step_size, TIME_LIMIT_PER_WINDOW=TIME_LIMIT_PER_WINDOW, ps_data=ps_data, agent=agent, env=env, RUNNING_WPS_AND_RH=RUNNING_WPS_AND_RH, RUNNING_NPS_AND_RH=RUNNING_NPS_AND_RH, proximity_search_using_agent=proximity_search_using_agent, RUNNING_MIRPSO=RUNNING_MIRPSO, VESSEL_CLASSES = VESSEL_CLASSES, INSTANCE=INSTANCE, vessel_class_arcs=vessel_class_arcs)
         
     else:
         current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs = solve_model(model=model, costs=costs, P=P, RUNNING_MIRPSO=RUNNING_MIRPSO, INSTANCE= INSTANCE, HORIZON=HORIZON, ps_data=ps_data, time_limit=TIME_LIMIT)

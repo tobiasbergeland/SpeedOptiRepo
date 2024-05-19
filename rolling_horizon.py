@@ -39,7 +39,7 @@ def extract_time_period_from_x_var_name(var_name):
         return None
 
         
-def set_warm_start(model, warm_start_solution, window_start):
+def fix_prior_vars(model, warm_start_solution, window_start):
     x_solution, s_solution, alpha_solution, _, _, _ = get_var_data(model)
     """
     Set the warm start for the model based on a given solution.
@@ -48,7 +48,7 @@ def set_warm_start(model, warm_start_solution, window_start):
     for varname, var in x_solution.items():
         time = extract_time_period_from_x_var_name(varname)[0]
         val = round(warm_start_solution[varname])
-        if time < window_start:
+        if time <= window_start:
             # Round the value to the nearest integer
             var.start = val
             var.lb = val
@@ -57,7 +57,7 @@ def set_warm_start(model, warm_start_solution, window_start):
     for varname, var in s_solution.items():
         time = extract_time_period_from_s_or_alpha_var_name(varname)
         val = round(warm_start_solution[varname])
-        if time < window_start:
+        if time <= window_start + 1:
             var.start = val
             var.lb = val
             var.ub = val
@@ -65,7 +65,7 @@ def set_warm_start(model, warm_start_solution, window_start):
     for varname, var in alpha_solution.items():
         time = extract_time_period_from_s_or_alpha_var_name(varname)
         val = round(warm_start_solution[varname])
-        if time < window_start:
+        if time <= window_start + 1:
             var.start = val
             var.lb = val
             var.ub = val
@@ -110,9 +110,18 @@ def solve_window(model, ps_data, TIME_LIMIT_PER_WINDOW):
     """
     Solve the optimization model for a specific time window.
     """
-    # Solve the model for the current window
+    def callback(model, where):
+        if where == gp.GRB.Callback.MIPSOL:
+            print("Feasible solution found")
+            model.terminate()
+
+    # Turn off heuristics.
+    model.setParam('Heuristics', 0)  
+    model.setParam('Presolve', 0)
     model.setParam('TimeLimit', TIME_LIMIT_PER_WINDOW)
-    model.optimize()
+    model.update()
+    
+    model.optimize(callback)
     
     # Check if the model is infeasible or unbounded
     if model.status == gp.GRB.INFEASIBLE:
@@ -126,24 +135,54 @@ def solve_window(model, ps_data, TIME_LIMIT_PER_WINDOW):
         print("Model is unbounded")
         return None
     
-    elif model.status == gp.GRB.TIME_LIMIT:
-        print("Time limit reached")
-        current_solution_vars_x = get_current_x_solution_vars(model)
-        current_solution_vals_x = get_current_x_solution_vals(model)
-        current_solution_vals_s = get_current_s_solution_vals(model)
-        current_solution_vals_alpha = get_current_alpha_solution_vals(model)
-        active_arcs = find_corresponding_arcs(current_solution_vals_x, vessel_class_arcs)
-        return model.objVal, current_solution_vars_x, current_solution_vals_x, current_solution_vals_s, current_solution_vals_alpha, active_arcs
+    elif model.status == gp.GRB.OPTIMAL or model.status == gp.GRB.TIME_LIMIT or model.status == gp.GRB.INTERRUPTED:
+        print("Feasible solution found in Phase 1")
+
+        # Phase 2: Turn on heuristics and re-optimize with time limit
+        model.setParam('Heuristics', 1)
+        model.setParam('TimeLimit', TIME_LIMIT_PER_WINDOW)  # Set the time limit for Phase 2
+        model.optimize()
         
-    elif model.status == gp.GRB.OPTIMAL:
-        print("Optimal solution found")
-        current_solution_vars_x = get_current_x_solution_vars(model)
-        current_solution_vals_x = get_current_x_solution_vals(model)
-        current_solution_vals_s = get_current_s_solution_vals(model)
-        current_solution_vals_alpha = get_current_alpha_solution_vals(model)
-        active_arcs = find_corresponding_arcs(current_solution_vals_x, vessel_class_arcs)
-        # Extract the solution for the current window
-        return model.objVal, current_solution_vars_x, current_solution_vals_x, current_solution_vals_s, current_solution_vals_alpha, active_arcs
+        if model.status == gp.GRB.INFEASIBLE:
+            print("Model is infeasible in Phase 2")
+            model.computeIIS()
+            model.write('infeasible_window.ilp')
+            return None
+        elif model.status == gp.GRB.UNBOUNDED:
+            print("Model is unbounded in Phase 2")
+            return None
+        elif model.status == gp.GRB.TIME_LIMIT:
+            print("Time limit reached in Phase 2")
+        elif model.status == gp.GRB.OPTIMAL:
+            print("Optimal solution found in Phase 2")
+    
+    # Extract the solution after Phase 2
+    current_solution_vars_x = get_current_x_solution_vars(model)
+    current_solution_vals_x = get_current_x_solution_vals(model)
+    current_solution_vals_s = get_current_s_solution_vals(model)
+    current_solution_vals_alpha = get_current_alpha_solution_vals(model)
+    active_arcs = find_corresponding_arcs(current_solution_vals_x, vessel_class_arcs)
+    
+    return model.objVal, current_solution_vars_x, current_solution_vals_x, current_solution_vals_s, current_solution_vals_alpha, active_arcs
+    
+    # elif model.status == gp.GRB.TIME_LIMIT:
+    #     print("Time limit reached")
+    #     current_solution_vars_x = get_current_x_solution_vars(model)
+    #     current_solution_vals_x = get_current_x_solution_vals(model)
+    #     current_solution_vals_s = get_current_s_solution_vals(model)
+    #     current_solution_vals_alpha = get_current_alpha_solution_vals(model)
+    #     active_arcs = find_corresponding_arcs(current_solution_vals_x, vessel_class_arcs)
+    #     return model.objVal, current_solution_vars_x, current_solution_vals_x, current_solution_vals_s, current_solution_vals_alpha, active_arcs
+        
+    # elif model.status == gp.GRB.OPTIMAL:
+    #     print("Optimal solution found")
+    #     current_solution_vars_x = get_current_x_solution_vars(model)
+    #     current_solution_vals_x = get_current_x_solution_vals(model)
+    #     current_solution_vals_s = get_current_s_solution_vals(model)
+    #     current_solution_vals_alpha = get_current_alpha_solution_vals(model)
+    #     active_arcs = find_corresponding_arcs(current_solution_vals_x, vessel_class_arcs)
+    #     # Extract the solution for the current window
+    #     return model.objVal, current_solution_vars_x, current_solution_vals_x, current_solution_vals_s, current_solution_vals_alpha, active_arcs
 
 def fix_variable(var):
     """
@@ -171,22 +210,42 @@ def save_original_rhs(model):
     return {constr.ConstrName: constr.RHS for constr in model.getConstrs()}
 
 import time
-def rolling_horizon_optimization(model, horizon_length, window_size, step_size, TIME_LIMIT_PER_WINDOW, ps_data, agent, env, RUNNING_WPS_AND_RH, RUNNING_NPS_AND_RH, proximity_search_using_agent, RUNNING_MIRPSO):
+def rolling_horizon_optimization(model, horizon_length, window_size, step_size, TIME_LIMIT_PER_WINDOW, ps_data, agent, env, RUNNING_WPS_AND_RH, RUNNING_NPS_AND_RH, proximity_search_using_agent, RUNNING_MIRPSO, VESSEL_CLASSES, INSTANCE, vessel_class_arcs):
     
     # First save all constraints, but remove time-dependent constraints from the model.
     time_constraints = store_and_remove_time_constraints(model)
     
     combined_solution = None
+    experience_path = None
+    port_inventory_dict = None
+    vessel_inventory_dict = None
     for window_start in range(0, horizon_length + 1, step_size):
         
         # print('Stats after removing time-dependent constraints')
         window_end = window_start + window_size
         if window_end > horizon_length:
             window_end = horizon_length
+            
+            
+        # Construction heuristic for this window
+        if not combined_solution:
+            current_solution_vars_x, current_solution_vals_x, active_arcs, current_solution_vals_s = None, None, None, None
+            
+        experience_path, port_inventory_dict, vessel_inventory_dict = construction_heuristic_for_window(env, agent, window_start, window_end, combined_solution, INSTANCE, experience_path, port_inventory_dict, vessel_inventory_dict, current_solution_vars_x, current_solution_vals_x, active_arcs, VESSEL_CLASSES, vessel_class_arcs, model,current_solution_vals_s)
+        # Need to manually set sink arcs for every vessel
+        
+        active_X_keys, S_values, alpha_values = convert_path_to_MIRPSO_solution(env, experience_path, port_inventory_dict)
+        print(f'S_values from construction heuristic: ')
+        # for key, value in S_values.items():
+            # print(f'{key}: {value}')
+        current_solution_vals_x, model, warm_start_sol = warm_start_model(model, active_X_keys, S_values, alpha_values, env.SOURCE_NODE)
+        current_solution_vars_x = {v.VarName: v for v in model.getVars() if v.VarName.startswith('x')}
+        # Find the interregional arcs
+        interregional_vars_keys = {k for k, v in current_solution_vars_x.items() if k.startswith('x_interregional')}
         
         if combined_solution:
-            # Apply warm start based on previous solution
-            set_warm_start(model, combined_solution, window_start)
+            # Fix the variabels prior to the current window.
+            fix_prior_vars(model, combined_solution, window_start)
             
             x_solution, s_solution, alpha_solution, x_bounds, s_bounds, alpha_bounds = get_var_data(model)
             # Prepare the model for the current window
@@ -199,7 +258,7 @@ def rolling_horizon_optimization(model, horizon_length, window_size, step_size, 
         if RUNNING_WPS_AND_RH:
             ps_data['model'] = model
             # Solve the model for the current window with WPS
-            current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_vals_s, current_solution_vals_alpha, active_arcs = proximity_search_using_agent(ps_data=ps_data, agent=agent, env=env, RUNNING_WPS_AND_RH=RUNNING_WPS_AND_RH, window_end=window_end, RUNNING_MIRPSO = RUNNING_MIRPSO, time_limit = TIME_LIMIT_PER_WINDOW)
+            current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_vals_s, current_solution_vals_alpha, active_arcs = proximity_search_using_agent(ps_data=ps_data, agent=agent, env=env, RUNNING_WPS_AND_RH=RUNNING_WPS_AND_RH, window_end=window_end, RUNNING_MIRPSO = RUNNING_MIRPSO, time_limit = TIME_LIMIT_PER_WINDOW, INSTANCE = INSTANCE)
             combined_solution = {**current_solution_vals_x, **current_solution_vals_s, **current_solution_vals_alpha}
         elif RUNNING_NPS_AND_RH:
             ps_data['model'] = model
@@ -230,6 +289,8 @@ def adjust_constraints_for_window(model, window_end, time_constraints):
     for name, info in time_constraints.items():
         time = int(name.split('_Time')[1])
         if time <= window_end:
+            # if time == window_end and 'Berth' in name:
+            #     continue
             # Add the constraint
             lhs, sense, rhs, name = info
             c = model.addConstr(lhs, sense, rhs, name)

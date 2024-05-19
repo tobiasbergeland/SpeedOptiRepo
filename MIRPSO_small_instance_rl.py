@@ -184,7 +184,7 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
     # random.seed(1)
     gc.enable()
     
-    # INSTANCE = 'LR1_DR02_VC01_V6a'
+    INSTANCE = 'LR1_DR02_VC01_V6a'
     # INSTANCE = 'LR1_DR02_VC02_V6a'
     # INSTANCE = 'LR1_DR02_VC03_V7a'
     # INSTANCE = 'LR1_DR02_VC04_V8a'
@@ -193,14 +193,14 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
     
     'Trene agent på desse. mange iterasjoner.'
     # INSTANCE = 'LR1_DR02_VC03_V8a'
-    INSTANCE = 'LR1_DR05_VC05_V25a'
+    # INSTANCE = 'LR1_DR05_VC05_V25a'
     # INSTANCE = 'LR1_DR08_VC10_V40a'
     
     
     TRAINING_FREQUENCY = 1
-    TARGET_UPDATE_FREQUENCY = 250
-    NON_RANDOM_ACTION_EPISODE_FREQUENCY = 10
-    BATCH_SIZE = 256
+    TARGET_UPDATE_FREQUENCY = 100
+    NON_RANDOM_ACTION_EPISODE_FREQUENCY = 5
+    BATCH_SIZE = 500
     BUFFER_SAVING_FREQUENCY = 1000
     problem_data = build_problem(INSTANCE, RUNNING_MIRPSO)
     
@@ -246,7 +246,7 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
         # agent.target_model.load_state_dict(torch.load('target_model_LR1_DR02_VC03_V8a_5000_NEW2.pth'))
         
         for episode in range(1, NUM_EPISODES):
-            if episode % NON_RANDOM_ACTION_EPISODE_FREQUENCY == 0:
+            if episode % NON_RANDOM_ACTION_EPISODE_FREQUENCY == 0 or episode in {100, 101, 102, 103, 104, 105, 106, 107, 108, 109}:
                 exploit = True
                 print(f"NON Random Action Episode: {episode}")
                 num_feasible_paths_with_random_actions = 0
@@ -296,11 +296,11 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
                 env.update_vessel_status(state=state)
                 # Find the vessels that are available to perform an action
                 available_vessels = env.find_available_vessels(state=state)
-                # Randomize the order of the vessels
-                # random.shuffle(available_vessels)
             
                 # If some vessels are available, select actions for them
                 if available_vessels:
+                    # Randomize the order of the vessels
+                    # random.shuffle(available_vessels)
                     actions = {}
                     decision_basis_states = {}
                     decision_basis_state = env.custom_deep_copy_of_state(state)
