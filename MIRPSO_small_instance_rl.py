@@ -184,7 +184,7 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
     # random.seed(1)
     gc.enable()
     
-    INSTANCE = 'LR1_DR02_VC01_V6a'
+    # INSTANCE = 'LR1_DR02_VC01_V6a'
     # INSTANCE = 'LR1_DR02_VC02_V6a'
     # INSTANCE = 'LR1_DR02_VC03_V7a'
     # INSTANCE = 'LR1_DR02_VC04_V8a'
@@ -192,7 +192,7 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
     # INSTANCE = 'LR1_DR03_VC03_V10b'
     
     'Trene agent på desse. mange iterasjoner.'
-    # INSTANCE = 'LR1_DR02_VC03_V8a'
+    INSTANCE = 'LR1_DR02_VC03_V8a'
     # INSTANCE = 'LR1_DR05_VC05_V25a'
     # INSTANCE = 'LR1_DR08_VC10_V40a'
     
@@ -201,7 +201,7 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
     TARGET_UPDATE_FREQUENCY = 100
     NON_RANDOM_ACTION_EPISODE_FREQUENCY = 5
     BATCH_SIZE = 500
-    BUFFER_SAVING_FREQUENCY = 1000
+    BUFFER_SAVING_FREQUENCY = 50
     problem_data = build_problem(INSTANCE, RUNNING_MIRPSO)
     
     vessels, vessel_arcs, arc_dict, regularNodes, ports, TIME_PERIOD_RANGE, sourceNode, sinkNode, waiting_arcs, NODES, NODE_DICT, VESSEL_CLASSES, vessel_class_capacities, special_sink_arcs, special_nodes_dict = unpack_problem_data(problem_data)
