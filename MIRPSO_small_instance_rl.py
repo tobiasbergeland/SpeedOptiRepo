@@ -198,10 +198,10 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
     
     
     TRAINING_FREQUENCY = 1
-    TARGET_UPDATE_FREQUENCY = 100
+    TARGET_UPDATE_FREQUENCY = 200
     NON_RANDOM_ACTION_EPISODE_FREQUENCY = 5
     BATCH_SIZE = 500
-    BUFFER_SAVING_FREQUENCY = 50
+    BUFFER_SAVING_FREQUENCY = 200
     problem_data = build_problem(INSTANCE, RUNNING_MIRPSO)
     
     vessels, vessel_arcs, arc_dict, regularNodes, ports, TIME_PERIOD_RANGE, sourceNode, sinkNode, waiting_arcs, NODES, NODE_DICT, VESSEL_CLASSES, vessel_class_capacities, special_sink_arcs, special_nodes_dict = unpack_problem_data(problem_data)

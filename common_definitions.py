@@ -204,8 +204,6 @@ class MIRPSOEnv():
                             
     def encode_state(self, state, vessel_simp):
         # Skip the sink port
-        # time = state['time']
-        # time = np.array([time])
         port_dict = {k: port for k, port in state['port_dict'].items() if port['capacity'] is not None}
         vessel_dict = state['vessel_dict']
         
@@ -214,11 +212,9 @@ class MIRPSOEnv():
         for port in port_dict.values()
         for rate, current_inventory in [(port['rate'], port['inventory'])]])
 
-        # vessel_inventories = np.array([vessel['inventory'] / vessel['capacity'] for vessel in vessel_dict.values()])
-        # current_vessel_number = np.array([vessel_simp['number']])
+     
         current_vessel_position = np.array([vessel_simp['position']])
-        current_vessel_class = np.array([vessel_simp['vessel_class']])
-        # inventory_effect_on_ports = np.array([(vessel_simp['capacity'] / port['rate']) for port in port_dict.values()])
+        # current_vessel_class = np.array([vessel_simp['vessel_class']])
         
         inventory_effect_on_ports = []
         current_port_is_loading = port_dict[vessel_simp['position']]['isLoadingPort'] == 1
@@ -733,7 +729,7 @@ class MIRPSOEnv():
                     break
         else:
             # The path is feasible, so terminal reward is given instead
-            checkpoint_rew = True
+            checkpoint_rew = False
         
         if (lowest_cp == self.current_checkpoint or lowest_cp == self.current_checkpoint - checkpoint_step) and lowest_cp > 0:
         # if lowest_cp == self.current_checkpoint and lowest_cp > 0:
@@ -747,19 +743,26 @@ class MIRPSOEnv():
 
             current_state, action, vessel, reward_ph, next_state, earliest_vessel, feasible_path_ph, fi_time, terminal_flag = exp
             current_state_time = current_state['time']
+            # next_state_time = next_state['time']
                 
+            # '''Immediate Reward'''
+            # if not current_state['infeasible']:
+            #     reward = 1
+            # else:
+            #     reward = -1
             '''Immediate Reward'''
-            if not current_state['infeasible']:
-                reward = 1
+            if not next_state['infeasible']:
+                reward = 10
             else:
-                reward = -1
+                reward = -10
             
+            # checkpoint_rew = False
             if current_state_time < lowest_cp and checkpoint_rew:
                 reward += extra_cp_reward * agent.gamma ** (lowest_cp-current_state_time)     
                 # reward += extra_cp_reward     
             
             # if first_infeasible_time:
-            #     if current_state_time == first_infeasible_time:
+            #     if next_state_time == first_infeasible_time:
             #         # reward -= (horizon-first_infeasible_time)
             #         reward -= horizon
             
@@ -773,10 +776,10 @@ class MIRPSOEnv():
                 # Select the maximum future Q-value as an indicator of the next state's potential
                 max_future_reward = np.max(future_rewards)
                 # Clip the future reward to be within the desired range, e.g., [-1, 1]
-                if current_state['infeasible']:
-                    max_future_reward = np.clip(max_future_reward, -100000, 0)
-                if not current_state['infeasible']:
-                    max_future_reward = np.clip(max_future_reward, -horizon, 10000)
+                if next_state['infeasible']:
+                    max_future_reward = np.clip(max_future_reward, -1000, 0)
+                if not next_state['infeasible']:
+                    max_future_reward = np.clip(max_future_reward, -1000, 1000)
                 # Update the reward using the clipped future reward
                 reward += max_future_reward
             
@@ -784,7 +787,7 @@ class MIRPSOEnv():
             # If the whole path is feasible, add a huge reward discounted reward
             if feasible_path:
                 current_time = current_state['time']
-                time_until_terminal = horizon - current_tim
+                time_until_terminal = horizon - current_time
                 feasibility_reward = extra_reward_for_feasible_path * agent.gamma ** time_until_terminal
                 # feasibility_reward = extra_reward_for_feasible_path
                 if action is not None:
@@ -1018,8 +1021,9 @@ class ReplayMemory:
             if len(self.feasible_memory) >= int(self.capacity/2):
                 self.feasible_memory.popleft()
             self.feasible_memory.append((exp_id, exp))
-            if first_infeasible_time > self.latest_infeasinble_time:
-                self.latest_infeasinble_time = first_infeasible_time
+            if first_infeasible_time is not None:
+                if first_infeasible_time > self.latest_infeasinble_time:
+                    self.latest_infeasinble_time = first_infeasible_time
         else:
 
             # Check if the experience is already in the feasible memory
@@ -1062,6 +1066,7 @@ class ReplayMemory:
 class DQNAgent:
     def __init__(self, ports, vessels, TRAINING_FREQUENCY, TARGET_UPDATE_FREQUENCY, NON_RANDOM_ACTION_EPISODE_FREQUENCY, BATCH_SIZE, replay):
         # ports plus source and sink, vessel inventory, (vessel position, vessel in transit), time period, vessel_number
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         state_size = len(ports) + 2 * len(vessels) + len(ports)*3
         action_size = len(ports)
         self.state_size = state_size
@@ -1074,12 +1079,15 @@ class DQNAgent:
         self.epsilon_decay = 0.999
         self.main_model = DQN(state_size, action_size)
         self.target_model = DQN(state_size, action_size)
-        self.optimizer = optim.Adam(self.main_model.parameters(), lr=0.001)
+        self.optimizer = optim.Adam(self.main_model.parameters(), lr=0.0001)
         # agent.optimizer = optim.Adam(agent.main_model.parameters(), lr=0.0001)
         self.TRAINING_FREQUENCY = TRAINING_FREQUENCY
         self.TARGET_UPDATE_FREQUENCY = TARGET_UPDATE_FREQUENCY
         self.NON_RANDOM_ACTION_EPISODE_FREQUENCY = NON_RANDOM_ACTION_EPISODE_FREQUENCY
         self.BATCH_SIZE = BATCH_SIZE
+        # Ensure your models are moved to the correct device
+        self.main_model.to(self.device)
+        self.target_model.to(self.device)
             
     def select_action(self, state, legal_actions,  env, vessel_simp, exploit):  
         
@@ -1280,25 +1288,63 @@ class DQNAgent:
             return  # Not enough samples to train
         
         total_loss = 0
+        gradient_norms = []
         minibatch = self.memory.sample(self.BATCH_SIZE)
         for _, exp in minibatch:
             state, action, vessel, reward, next_state, _, _, _, terminal_flag= exp
             vessel_simp = state['vessel_dict'][vessel.number]
             encoded_state = env.encode_state(state, vessel_simp)
-            encoded_state = torch.FloatTensor(encoded_state).unsqueeze(0)
+            # encoded_state = torch.FloatTensor(encoded_state).unsqueeze(0)
+            encoded_state = torch.FloatTensor(encoded_state).unsqueeze(0).to(self.device)
+            
             _, _, _, arc = action
             destination_port = arc.destination_node.port
             if destination_port.number == env.SINK_NODE.port.number:
                 continue
             action_idx = destination_port.number - 1
-            # Reward is already adjusted in the experience path, so use it directly
-            target_q = torch.FloatTensor([reward]).to(encoded_state.device)
+            
             # Predicted Q-values for the current state
             q_values = self.main_model(encoded_state)
-            # Extract the Q-value for the action taken. This time keeping it connected to the graph.
-            q_value = q_values.gather(1, torch.tensor([[action_idx]], dtype=torch.long).to(encoded_state.device)).squeeze()
-            # Use the adjusted_reward directly as the target
-            target_q = target_q.squeeze()
+            q_value = q_values.gather(1, torch.tensor([[action_idx]], dtype=torch.long).to(self.device)).squeeze()
+            
+            if terminal_flag:
+                # target_q = torch.FloatTensor([reward]).to(self.device)
+                target_q = torch.FloatTensor([reward]).to(self.device).squeeze()
+            elif not terminal_flag and action is not None:
+                # Find the vessel with the lowest vessel number that is docked in a port
+                earliest_vessel = next((v for v in next_state['vessel_dict'].values() if v['position'] is not None), None)
+                encoded_next_state = env.encode_state(next_state, earliest_vessel)
+                encoded_next_state = torch.FloatTensor(encoded_next_state).unsqueeze(0).to(self.device)
+                # encoded_next_state = self.encode_state(next_state, earliest_vessel)
+                # Use the target model to predict the future Q-values for the next state
+                # future_rewards = self.target_model(torch.FloatTensor(encoded_next_state)).detach()
+                future_rewards = self.target_model(encoded_next_state).detach()
+                max_future_reward = future_rewards.max(1)[0]
+                if next_state['infeasible']:
+                    max_future_reward = np.clip(max_future_reward, -1000, 0)
+                if not next_state['infeasible']:
+                    max_future_reward = np.clip(max_future_reward, -1000, 1000)
+                    
+                target_q = reward + max_future_reward
+                target_q = torch.FloatTensor([target_q]).to(self.device).squeeze()
+                # Select the maximum future Q-value as an indicator of the next state's potential
+                # max_future_reward = np.max(future_rewards)
+                # Clip the future reward to be within the desired range, e.g., [-1, 1]
+                
+                # Update the reward using the clipped future reward
+                # reward += max_future_reward
+            else:
+                continue
+                
+                
+            # # Reward is already adjusted in the experience path, so use it directly
+            # target_q = torch.FloatTensor([reward]).to(encoded_state.device)
+            # # Predicted Q-values for the current state
+            # q_values = self.main_model(encoded_state)
+            # # Extract the Q-value for the action taken. This time keeping it connected to the graph.
+            # q_value = q_values.gather(1, torch.tensor([[action_idx]], dtype=torch.long).to(encoded_state.device)).squeeze()
+            # # Use the adjusted_reward directly as the target
+            # target_q = target_q.squeeze()
             # Compute loss
             loss = F.mse_loss(q_value, target_q)
             # Print the actual loss value
@@ -1306,9 +1352,26 @@ class DQNAgent:
             # Optimize the model
             self.optimizer.zero_grad()
             loss.backward()
+            
+             # Calculate and print gradient norms
+            total_norm = 0
+            for p in self.main_model.parameters():
+                if p.grad is not None:
+                    param_norm = p.grad.data.norm(2)
+                    total_norm += param_norm.item() ** 2
+            total_norm = total_norm ** (1. / 2)
+            gradient_norms.append(total_norm)
+            
+             # Apply gradient clipping
+            torch.nn.utils.clip_grad_norm_(self.main_model.parameters(), max_norm=1.0)
+        
             self.optimizer.step()
+            
+        # Calculate average gradient norm
+        avg_gradient_norm = sum(gradient_norms) / len(gradient_norms)
         # Update epsilon
         self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
+        print(f"Total loss: {total_loss}, Average Gradient Norm: {avg_gradient_norm}")
         
     def update_target_network(self):
         self.target_model.load_state_dict(self.main_model.state_dict())   
