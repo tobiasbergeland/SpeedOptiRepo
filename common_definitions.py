@@ -10,6 +10,7 @@ import torch.nn.functional as F
 import copy
 
 
+
 class MIRPSOEnv():
     def __init__(self, PORTS, VESSELS, VESSEL_ARCS, NODES, TIME_PERIOD_RANGE, SOURCE_NODE, SINK_NODE, NODE_DICT, special_sink_arcs, special_nodes_dict):
         # Ports have initial inventory and rate of consumption/production
@@ -489,6 +490,7 @@ class MIRPSOEnv():
                 legal_arcs += [arc for arc in potential_arcs if arc.destination_node.port.isLoadingPort == -1]
         else:
             # Rate is subtracted to account for consumption.
+            # if port.inventory + vessel.inventory <= port.capacity:
             if port.inventory + vessel.inventory - port.rate <= port.capacity:
                 # Append arcs to all loading ports to the legal arcs list
                 legal_arcs += [arc for arc in potential_arcs if arc.destination_node.port.isLoadingPort == 1]
@@ -771,9 +773,9 @@ class MIRPSOEnv():
             
         if (infeasibility_counter<self.current_best_IC and infeasibility_counter<=50 and exploit) or (infeasibility_counter<=10 and exploit):
             # save the main and target networks
-            torch.save(agent.main_model.state_dict(), f'main_model_{INSTANCE}_INF_COUNTER_{infeasibility_counter}_{self.inf_counter_updates}.pth')
-            torch.save(agent.target_model.state_dict(), f'target_model_{INSTANCE}_INF_COUNTER{infeasibility_counter}_{self.inf_counter_updates}.pth')
-            with open(f'replay_buffer_{INSTANCE}_INF_COUNTER_{infeasibility_counter}_{self.inf_counter_updates}.pkl', 'wb') as f:
+            torch.save(agent.main_model.state_dict(), f'main_model_{INSTANCE}_INF_COUNTER_{infeasibility_counter}_{self.inf_counter_updates}HEI__.pth')
+            torch.save(agent.target_model.state_dict(), f'target_model_{INSTANCE}_INF_COUNTER{infeasibility_counter}_{self.inf_counter_updates}HEI__.pth')
+            with open(f'replay_buffer_{INSTANCE}_INF_COUNTER_{infeasibility_counter}_{self.inf_counter_updates}HEI__.pkl', 'wb') as f:
                 pickle.dump(agent.memory, f)
             self.current_best_IC = infeasibility_counter
             self.inf_counter_updates += 1
@@ -922,26 +924,119 @@ class MIRPSOEnv():
         return available_vessels
     
 class DQN(nn.Module):
+    #ef __init__(self, state_size, action_size):
     def __init__(self, state_size, action_size):
         super(DQN, self).__init__()
+        self.fc1 = nn.Linear(state_size, 32)
+        self.bn1 = nn.BatchNorm1d(32)
+        self.fc2 = nn.Linear(32, 64)
+        self.bn2 = nn.BatchNorm1d(64)
+
+        # Value stream
+        self.value_fc = nn.Linear(64, 32)
+        self.value = nn.Linear(32, 1)
+
+        # Advantage stream
+        self.advantage_fc = nn.Linear(64, 32)
+        self.advantage = nn.Linear(32, action_size)
+
+        """
+        self.fc1 = nn.Linear(state_size, 64)
+        self.bn1 = nn.BatchNorm1d(64)
+        self.fc2 = nn.Linear(64, 128)
+        self.bn2 = nn.BatchNorm1d(128)
+
+        # Value stream
+        self.value_fc = nn.Linear(128, 64)
+        self.value = nn.Linear(64, 1)
+
+        # Advantage stream
+        self.advantage_fc = nn.Linear(128, 64)
+        self.advantage = nn.Linear(64, action_size)
+        """
+
+        self.relu = nn.ReLU()
+
+    def forward(self, state):
+        x = self.fc1(state)
+        if len(x.shape) == 1:
+            x = x.unsqueeze(0)
+        if x.size(0) > 1:
+            x = self.bn1(x)
+        x = self.relu(x)
+
+        x = self.fc2(x)
+        if len(x.shape) == 1:
+            x = x.unsqueeze(0)
+        if x.size(0) > 1:
+            x = self.bn2(x)
+        x = self.relu(x)
+
+        value = self.relu(self.value_fc(x))
+        value = self.value(value)
+
+        advantage = self.relu(self.advantage_fc(x))
+        advantage = self.advantage(advantage)
+
+        q_values = value + (advantage - advantage.mean(dim=1, keepdim=True))
+        return q_values
+
+        """    
+        super(DQN, self).__init__()
         self.fc1 = nn.Linear(state_size, 64)     # First fully connected layer
+        self.bn1 = nn.BatchNorm1d(64)             # Batch normalization layer
         self.fc2 = nn.Linear(64, 128)             # Second fully connected layer
+        self.bn2 = nn.BatchNorm1d(128)            # Batch normalization layer
         self.fc3 = nn.Linear(128, 64)             # Third fully connected layer, newly added
+        self.bn3 = nn.BatchNorm1d(64)
         self.fc4 = nn.Linear(64, action_size)    # Output layer
         self.relu = nn.ReLU()                    # ReLU activation
 
+    #def forward(self, state):
+    #    x = self.relu(self.fc1(state))
+    #    x = self.relu(self.fc2(x))
+    #    x = self.relu(self.fc3(x))               # Activation for the newly added layer
+    #    return self.fc4(x)
+    #def forward(self, state):
+    #    x = self.relu(self.bn1(self.fc1(state)))
+    #    x = self.relu(self.bn2(self.fc2(x)))
+    #    x = self.relu(self.bn3(self.fc3(x)))
+    #    return self.fc4(x)
+
     def forward(self, state):
-        x = self.relu(self.fc1(state))
-        x = self.relu(self.fc2(x))
-        x = self.relu(self.fc3(x))               # Activation for the newly added layer
-        return self.fc4(x)
+        x = self.fc1(state)
+        if len(x.shape) == 1:  # If the input is 1D, add a batch dimension
+            x = x.unsqueeze(0)
+        if x.size(0) > 1:  # Apply BatchNorm only if batch size > 1
+            x = self.bn1(x)
+        x = self.relu(x)
+
+        x = self.fc2(x)
+        if len(x.shape) == 1:  # If the input is 1D, add a batch dimension
+            x = x.unsqueeze(0)
+        if x.size(0) > 1:  # Apply BatchNorm only if batch size > 1
+            x = self.bn2(x)
+        x = self.relu(x)
+
+        x = self.fc3(x)
+        if len(x.shape) == 1:  # If the input is 1D, add a batch dimension
+            x = x.unsqueeze(0)
+        if x.size(0) > 1:  # Apply BatchNorm only if batch size > 1
+            x = self.bn3(x)
+        x = self.relu(x)
+
+        x = self.fc4(x)
+        return x
+    """
+
+        
     
 class ReplayMemory:
     def __init__(self, capacity, feasibility_priority=0.5):
         self.capacity = capacity  # Total capacity of the memory
         self.feasibility_priority = feasibility_priority  # Priority for feasible experiences
-        self.memory = deque()  # Memory for infeasible experiences
-        self.feasible_memory = deque()  # Memory for feasible experiences
+        self.memory = deque(maxlen=capacity)  # Memory for infeasible experiences
+        self.feasible_memory = deque(maxlen=capacity // 2)  # Memory for feasible experiences
         self.latest_infeasinble_time = 0
 
     def push(self, exp, env):
@@ -969,8 +1064,9 @@ class ReplayMemory:
             if len(self.feasible_memory) >= int(self.capacity/2):
                 self.feasible_memory.popleft()
             self.feasible_memory.append((exp_id, exp))
-            if first_infeasible_time > self.latest_infeasinble_time:
-                self.latest_infeasinble_time = first_infeasible_time
+            if first_infeasible_time is not None:
+                if first_infeasible_time > self.latest_infeasinble_time:
+                    self.latest_infeasinble_time = first_infeasible_time
         else:
 
             # Check if the experience is already in the feasible memory
@@ -1022,10 +1118,11 @@ class DQNAgent:
         self.sigma = 0.5     # discount rate infeasible paths
         self.epsilon = 0.75 # exploration rate
         self.epsilon_min = 0.1
-        self.epsilon_decay = 0.999
+        self.epsilon_decay = 0.99
         self.main_model = DQN(state_size, action_size)
         self.target_model = DQN(state_size, action_size)
-        self.optimizer = optim.Adam(self.main_model.parameters())
+        #self.optimizer = optim.Adam(self.main_model.parameters())
+        self.optimizer = optim.AdamW(self.main_model.parameters())
         self.TRAINING_FREQUENCY = TRAINING_FREQUENCY
         self.TARGET_UPDATE_FREQUENCY = TARGET_UPDATE_FREQUENCY
         self.NON_RANDOM_ACTION_EPISODE_FREQUENCY = NON_RANDOM_ACTION_EPISODE_FREQUENCY
@@ -1156,9 +1253,56 @@ class DQNAgent:
                     arc = action[3]
                     if arc.destination_node.port.number == destination_port_number:
                         return action
+
+
+
                     
-                
     def train_main_network(self, env):
+        if len(self.memory) < self.BATCH_SIZE:
+            return  # Not enough samples to train
+
+        total_loss = 0
+        minibatch = self.memory.sample(self.BATCH_SIZE)
+        for _, exp in minibatch:
+            state, action, vessel, reward, next_state, _, _, _, terminal_flag = exp
+            vessel_simp = state['vessel_dict'][vessel.number]
+            encoded_state = env.encode_state(state, vessel_simp)
+            encoded_state = torch.FloatTensor(encoded_state).unsqueeze(0)
+            _, _, _, arc = action
+            destination_port = arc.destination_node.port
+            if destination_port.number == env.SINK_NODE.port.number:
+                continue
+            action_idx = destination_port.number - 1
+            
+            # Compute the target Q value using the Double DQN technique
+            with torch.no_grad():
+                next_state_encoded = env.encode_state(next_state, vessel_simp)
+                next_state_encoded = torch.FloatTensor(next_state_encoded).unsqueeze(0)
+                
+                # Use main model to select the best action
+                best_action_idx = self.main_model(next_state_encoded).argmax().item()
+                
+                # Use target model to compute the Q value of the best action
+                target_q = reward + (1 - terminal_flag) * self.gamma * self.target_model(next_state_encoded)[0][best_action_idx].item()
+                target_q = torch.FloatTensor([target_q])  # Ensure target_q is FloatTensor
+            
+            # Predicted Q-values for the current state
+            q_values = self.main_model(encoded_state)
+            q_value = q_values[0][action_idx]
+            
+            # Compute loss
+            loss = F.mse_loss(q_value, target_q)
+            total_loss += loss.item()
+            
+            # Optimize the model
+            self.optimizer.zero_grad()
+            loss.backward()
+            self.optimizer.step()
+        
+        # Update epsilon
+        self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)                
+                
+    def train_main_network_old(self, env):
         if len(self.memory) < self.BATCH_SIZE:
             return  # Not enough samples to train
         

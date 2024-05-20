@@ -180,7 +180,7 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
     # RUNNING_MIRPSO =True
     
     # Set a higher recursion limit (be cautious with this)
-    sys.setrecursionlimit(5000) 
+    sys.setrecursionlimit(10000) 
     # random.seed(1)
     gc.enable()
     
@@ -192,15 +192,15 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
     # INSTANCE = 'LR1_DR03_VC03_V10b'
     
     'Trene agent på desse. mange iterasjoner.'
-    # INSTANCE = 'LR1_DR02_VC03_V8a'
-    INSTANCE = 'LR1_DR05_VC05_V25a'
+    INSTANCE = 'LR1_DR02_VC03_V8a'
+    # INSTANCE = 'LR1_DR05_VC05_V25a'
     # INSTANCE = 'LR1_DR08_VC10_V40a'
     
     
     TRAINING_FREQUENCY = 1
-    TARGET_UPDATE_FREQUENCY = 250
-    NON_RANDOM_ACTION_EPISODE_FREQUENCY = 10
-    BATCH_SIZE = 256
+    TARGET_UPDATE_FREQUENCY = 100
+    NON_RANDOM_ACTION_EPISODE_FREQUENCY = 20
+    BATCH_SIZE = 512
     BUFFER_SAVING_FREQUENCY = 1000
     problem_data = build_problem(INSTANCE, RUNNING_MIRPSO)
     
@@ -216,7 +216,7 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
                                              NODE_DICT = NODE_DICT, vessel_class_capacities = vessel_class_capacities)
     
     env = MIRPSOEnv(ports, vessels, vessel_arcs, NODES, TIME_PERIOD_RANGE, sourceNode, sinkNode, NODE_DICT, special_sink_arcs, special_nodes_dict)
-    replay = ReplayMemory(10000)
+    replay = ReplayMemory(50000)
     agent = DQNAgent(ports = ports, vessels=vessels, TRAINING_FREQUENCY = TRAINING_FREQUENCY, TARGET_UPDATE_FREQUENCY = TARGET_UPDATE_FREQUENCY, NON_RANDOM_ACTION_EPISODE_FREQUENCY = NON_RANDOM_ACTION_EPISODE_FREQUENCY, BATCH_SIZE = BATCH_SIZE, replay = replay)
     
     # '''Load main and target model.'''
@@ -323,9 +323,9 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
                 state['time'] += 1
             
             if episode % BUFFER_SAVING_FREQUENCY == 0:
-                agent.save_replay_buffer(file_name=f"replay_buffer_{INSTANCE}_{episode}_NEW2.pkl")
-                torch.save(agent.main_model.state_dict(), f'main_model_{INSTANCE}_{episode}_NEW2.pth')
-                torch.save(agent.target_model.state_dict(), f'target_model_{INSTANCE}_{episode}_NEW2.pth')
+                agent.save_replay_buffer(file_name=f"replay_buffer_{INSTANCE}_{episode}_NEW5.pkl")
+                torch.save(agent.main_model.state_dict(), f'main_model_{INSTANCE}_{episode}_NEW5.pth')
+                torch.save(agent.target_model.state_dict(), f'target_model_{INSTANCE}_{episode}_NEW5.pth')
                 
     if TRAIN_AND_SAVE_ONLY:
         return
