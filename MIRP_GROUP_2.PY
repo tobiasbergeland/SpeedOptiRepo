@@ -1569,7 +1569,7 @@ def save_solution(INSTANCE, HORIZON, model, time_limit, elapsed_time, costs, P,
         "objective_value": best_obj_val,
         'gap':gap,
         "elapsed_time": elapsed_time,
-        "time_limit": time_limit if model.status == gp.GRB.TIME_LIMIT else None,
+        "time_limit": time_limit,
         # "last_feasible_solution_time" : last_feasible_solution_time if method == 'NPS' or method == 'WPS' else None,
         "costs": costs_str_keys,
         "P": P_str_keys,
@@ -1785,9 +1785,9 @@ def main():
     
     # RUNNING_WEIGHTED_PS = True
     # RUNNING_NORMAL_PS = True
-    # RUNNING_RH = True
+    RUNNING_RH = True
     # RUNNING_NPS_AND_RH = True
-    RUNNING_WPS_AND_RH = True
+    # RUNNING_WPS_AND_RH = True
     
     # GROUP 2
     # INSTANCE = 'LR1_DR02_VC01_V6a'
@@ -1806,7 +1806,7 @@ def main():
     'RUN 3'
     # INSTANCE = 'LR1_DR08_VC10_V40a' 
     
-    TIME_LIMIT = 120
+    TIME_LIMIT = 7200
     
     problem_data = build_problem(INSTANCE, RUNNING_MIRPSO)
     
@@ -1860,12 +1860,12 @@ def main():
         
     elif RUNNING_RH or RUNNING_NPS_AND_RH:
         env = MIRPSOEnv(ports, vessels, vessel_arcs, NODES, TIME_PERIOD_RANGE, sourceNode, sinkNode, NODE_DICT, special_sink_arcs, special_nodes_dict)
-        replay = ReplayMemory(3000)
+        replay = ReplayMemory(5000)
         agent = DQNAgent(ports = ports, vessels=vessels, TRAINING_FREQUENCY = None, TARGET_UPDATE_FREQUENCY = None, NON_RANDOM_ACTION_EPISODE_FREQUENCY = None, BATCH_SIZE = None, replay = replay)
-        replay = agent.load_replay_buffer(file_name= 'replay_buffer_LR1_DR02_VC03_V8a_25_NEW2.pkl')
+        replay = agent.load_replay_buffer(file_name= 'replay_buffer_LR1_DR02_VC03_V8a_INF_COUNTER_5_5.pkl')
         agent.memory = replay
-        agent.main_model.load_state_dict(torch.load('main_model_LR1_DR02_VC03_V8a_25_NEW2.pth'))
-        agent.target_model.load_state_dict(torch.load('target_model_LR1_DR02_VC03_V8a_25_NEW2.pth'))
+        agent.main_model.load_state_dict(torch.load('main_model_LR1_DR02_VC03_V8a_INF_COUNTER_5_5.pth'))
+        agent.target_model.load_state_dict(torch.load('target_model_LR1_DR02_VC03_V8a_INF_COUNTER5_5.pth'))
         
         # Define your window size and execute rolling horizon optimization
         window_size = 60  # example window size
@@ -1902,7 +1902,14 @@ def main():
         
     else:
         current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs = solve_model(model=model, costs=costs, P=P, RUNNING_MIRPSO=RUNNING_MIRPSO, INSTANCE= INSTANCE, HORIZON=HORIZON, ps_data=ps_data, time_limit=TIME_LIMIT)
-        
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        window_size, step_size = None, None
+        save_solution(INSTANCE=INSTANCE, HORIZON=HORIZON, model = model, time_limit = TIME_LIMIT, elapsed_time=elapsed_time, costs=costs, P=P,
+                  RUNNING_MIRPSO=RUNNING_MIRPSO, best_obj_val=current_best_obj, solution_vals_x = current_solution_vals_x,
+                  solution_vals_s = current_solution_s, solution_vals_alpha = current_solution_alpha, active_arcs = active_arcs, vessel_classes=VESSEL_CLASSES,
+                  NPS = RUNNING_NORMAL_PS, WPS = RUNNING_WEIGHTED_PS, RH = RUNNING_RH, WPS_AND_RH = RUNNING_WPS_AND_RH, NPS_AND_RH=RUNNING_NPS_AND_RH, VESSEL_CLASSES = VESSEL_CLASSES, vessels = vessels, sourceNode = sourceNode, sinkNode = sinkNode, NODE_DICT = NODE_DICT, window_size = window_size, step_size = step_size)
+    
     
     print('Finished')
     

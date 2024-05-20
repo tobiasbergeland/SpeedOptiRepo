@@ -178,7 +178,7 @@ def construction_heuristic_for_window(env, agent, window_start, window_end, comb
     # Need some randomization in order for the agent to produce different results
     agent.epsilon = 0.1
     
-    for i in range(1):
+    for i in range(10):
         if not combined_solution:
             # Window start is 0, so we need to start from scratch
             experience_path = []
@@ -203,8 +203,6 @@ def construction_heuristic_for_window(env, agent, window_start, window_end, comb
             state = env.reset()
             # s_solution = get_current_s_solution_vars(model)
             experience_path = []
-            
-            
             
             # Set the inventory levels for the ports and vessels at the window start
             for port_number, port_inventory in port_inventory_dict[window_start+1].items(): #S_31
@@ -241,15 +239,9 @@ def construction_heuristic_for_window(env, agent, window_start, window_end, comb
             port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
             vessel_inventory_dict[state['time']] = {vessel.number: vessel.inventory for vessel in state['vessels']}
             
-            # state['time'] += 1
-            
         while not done:
             # Check if state is infeasible or terminal
             state, total_reward_for_path, feasible_path = env.check_state(state=state, experience_path=experience_path, replay=agent.memory, agent=agent, INSTANCE=INSTANCE, exploit = False)
-            
-            # # Manual termination
-            # if state['time'] == window_end + 1:
-            #     state['done'] = True
             
             if state['done']:
                 first_infeasible_time, infeasibility_counter = env.log_window(None, total_reward_for_path, experience_path, state, window_start, window_end)
@@ -289,10 +281,6 @@ def construction_heuristic_for_window(env, agent, window_start, window_end, comb
             # Make consumption ports consume regardless if any actions were performed
             state = env.consumption(state)
                 
-            # if state['time'] == window_start + 1 and combined_solution:
-            #     port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
-            #     vessel_inventory_dict[state['time']] = {vessel.number: vessel.inventory for vessel in state['vessels']}
-            # else:
             state['time'] += 1
             port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
             vessel_inventory_dict[state['time']] = {vessel.number: vessel.inventory for vessel in state['vessels']}
