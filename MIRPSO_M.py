@@ -120,7 +120,7 @@ def adjust_vessel_classes(metadata):
     metadata['numTermVesselsInClass'] = [sum(vessels_in_classes)]
     return metadata
 
-def get_vesels_data(VESSELINFO_PATH):
+def get_vessels_data(VESSELINFO_PATH):
     ### Read the vessel data
     with open(VESSELINFO_PATH, 'r') as file:
         file_content = file.read()
@@ -678,8 +678,8 @@ def find_sink_arcs(vessels, vessel_arcs, sinkNode):
     return sink_arcs
 
 def build_problem(INSTANCE):    
-    INSTANCE_PATH = INSTANCE+'/'+INSTANCE+'.txt'
-    VESSELINFO_PATH = INSTANCE+'/vessel_data.txt'
+    INSTANCE_PATH = 'GROUP_1/'+INSTANCE+'/'+INSTANCE+'.txt'
+    VESSELINFO_PATH = 'GROUP_1/'+INSTANCE+'/vessel_data.txt'
     
     # Read file content
     with open(INSTANCE_PATH, 'r') as file:
@@ -689,7 +689,7 @@ def build_problem(INSTANCE):
     metadata = extract_metadata(content)
     metadata = adjust_vessel_classes(metadata)
     ORIGINAL_NUM_TIME_PERIODS = metadata['numPeriods']
-    vessel_data = get_vesels_data(VESSELINFO_PATH)
+    vessel_data = get_vessels_data(VESSELINFO_PATH)
     regions_info, ports_info = extract_region_and_port_info(content)
     all_ports, loading_regions, discharging_regions = create_ports_from_info_with_loading(ports_info)
     ports = get_ports(all_ports)
@@ -856,20 +856,25 @@ def build_model(vessels, vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, no
     m.setObjective(original_obj, GRB.MINIMIZE)
     m.update()
 
-    # Can fix some variables, to reduce the complexity of the model
-    for v in vessels:
-        for node in non_operational[v]:   
-            port_number = node.port.number
-            time = node.time
-            o[port_number, time, v] = 0
-            q[port_number, time, v] = 0
-    m.update()
+    # # Can fix some variables, to reduce the complexity of the model
+    # for v in vessels:
+    #     for node in non_operational[v]:   
+    #         port_number = node.port.number
+    #         time = node.time
+    #         o[port_number, time, v] = 0
+    #         q[port_number, time, v] = 0
+    # m.update()
 
     # Constraint (2)
     '''Must leave the source node'''
     for v in vessels:
         outgoing_from_source = [arc for arc in vessel_arcs[v] if arc.origin_node == sourceNode]
-        m.addConstr(gp.quicksum((x[arc.tuple, v]) for arc in outgoing_from_source) == 1, name = 'SourceFlow')
+        outgoing_arcs = [(arc.tuple, v) for arc in outgoing_from_source]  # Prepare arcs for this vessel
+        constraint_name = "SourceFlow_" + "_".join([f"{arc_tuple}_{v}" for arc_tuple, v in outgoing_arcs])
+        m.addConstr(gp.quicksum(x[arc_tuple, v] for arc_tuple, v in outgoing_arcs) == 1, name=constraint_name)
+
+
+        # m.addConstr(gp.quicksum((x[arc.tuple, v]) for arc in outgoing_from_source) == 1, name = f'SourceFlow_{arc.tuple}_{v}')
     m.update()
 
     # Constraint (3)
@@ -978,13 +983,13 @@ def build_model(vessels, vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, no
             m.addConstr(o[node.port.number, node.time, v] >= gp.quicksum((x[out_arc.tuple, v]) for out_arc in outgoing_from_node), name = 'Must_operate_in_every_port')
     m.update()
 
-    # Constraint (14) modification
-    # Ensure that q is at least 1/4 of the vessel's capacity if o is 1
-    for v in vessels:
-        for node in regularNodes:
-            m.addConstr(q[node.port.number, node.time, v] >= 1/4 * v.max_inventory * o[node.port.number, node.time, v], 
-                        name=f'q_{node.port.number}_{node.time}_{v}')
-    m.update()
+    # # Constraint (14) modification
+    # # Ensure that q is at least 1/4 of the vessel's capacity if o is 1
+    # for v in vessels:
+    #     for node in regularNodes:
+    #         m.addConstr(q[node.port.number, node.time, v] >= 1/4 * v.max_inventory * o[node.port.number, node.time, v], 
+    #                     name=f'q_{node.port.number}_{node.time}_{v}')
+    # m.update()
     
     return m, costs
 
@@ -992,11 +997,9 @@ def build_model(vessels, vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, no
 def build_simplified_RL_model(vessels, vessel_arcs, regularNodes, ports, TIME_PERIOD_RANGE, non_operational, sourceNode, sinkNode, waiting_arcs, OPERATING_COST, OPERATING_SPEED, NODES, NODE_DICT):
     m = gp.Model('Maritime Inventory Routing Problem Speed Optimization')
     port_dict = {port.number: port for port in ports}
-    print(port_dict)
     
     # Keep only the arcs that are using the operating speed
     vessel_arcs = get_operating_speed_and_waiting_arcs(vessel_arcs, OPERATING_SPEED, NODES, ports)
-    
     
     '''Creating the variables'''
     '''Binary first'''
@@ -1181,12 +1184,11 @@ def build_simplified_RL_model(vessels, vessel_arcs, regularNodes, ports, TIME_PE
 
     # Constraint (14) modification
     # Ensure that q is at least 1/4 of the vessel's capacity if o is 1
-    for v in vessels:
-        for node in regularNodes:
-            m.addConstr(q[node.port.number, node.time, v] >= 1/4 * v.max_inventory * o[node.port.number, node.time, v], 
-                        name=f'q_{node.port.number}_{node.time}_{v}')
-    m.update()
-    
+    # for v in vessels:
+    #     for node in regularNodes:
+    #         m.addConstr(q[node.port.number, node.time, v] >= 1/4 * v.max_inventory * o[node.port.number, node.time, v], 
+    #                     name=f'q_{node.port.number}_{node.time}_{v}')
+    # m.update()
     
     env_data = {
         'vessels': vessels,
@@ -1239,11 +1241,16 @@ def find_initial_solution(model):
     
 
 def solve_model(model):
-    H = 3600  # 1 hour in seconds
-    model.setParam(gp.GRB.Param.TimeLimit, 0.25*H)  # 3 hours limit
+    H = 3600
+    model.setParam(gp.GRB.Param.TimeLimit, 0.25*H)
 
+    try:
+        model.optimize()
+    except gp.GurobiError as e:
+        print(f"Gurobi Error: {e}")
     # Run the optimization
-    model.optimize()
+    # model.optimize()
+        
     
     # Check the status of the optimization
     if model.status == gp.GRB.OPTIMAL:

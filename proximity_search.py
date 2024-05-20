@@ -5,30 +5,35 @@ import time, random, math
 def get_current_x_solution(model):
     return {v.VarName: v.x for v in model.getVars() if v.VarName.startswith('x')}
 
+def get_current_x_solution_initial(model):
+    return {v.VarName: v.Start for v in model.getVars() if v.VarName.startswith('x')}
 
 def add_cutoff_constraint(model, current_best_obj, cutoff_value):
-    cutoff_constr = model.addConstr(model.getObjective() <= current_best_obj - cutoff_value,
-                                    f'cutoff: Current_best_obj: {current_best_obj} <= {current_best_obj - int(cutoff_value)}')
+    # Prefix for cutoff constraint names
+    cutoff_prefix = "cutoff_constraint"
+    
+    # Remove all existing cutoff constraints
+    for constr in model.getConstrs():  # Iterate over all constraints in the model
+        if constr.ConstrName.startswith(cutoff_prefix):
+            model.remove(constr)
+    
+    # Ensure the model is updated after removals
     model.update()
+    
+    # Add the new cutoff constraint with a unique name to avoid name conflicts
+    constraint_name = f"{cutoff_prefix}_{current_best_obj}_{cutoff_value}"
+    cutoff_constr = model.addConstr(model.getObjective() <= current_best_obj - cutoff_value, name=constraint_name)
+    
+    # Update the model to add the new constraint
+    model.update()
+    
     return cutoff_constr
 
-"""
 def update_objective_to_minimize_hamming_distance(model, y, x_variables, current_solution):
-    for var_name, var in x_variables.items():
-        initial_value = current_solution[var_name]
-        if initial_value == 0:
-            model.addConstr(y[var_name] >= var, name=f'y_{var_name}_Hamming_distance')
-        else:
-            model.addConstr(y[var_name] >= 1 - var, name=f'y_{var_name}_Hamming_distance')
-    model.setObjective(y.sum(), GRB.MINIMIZE)
-    model.update()
-    """
-
-def update_objective_to_minimize_hamming_distance(model, y, x_variables, current_solution):
-    to_remove = [constr for constr in model.getConstrs() if 'force_flip_' in constr.ConstrName or 'no_flip_' in constr.ConstrName or constr.ConstrName == "ensure_at_least_one_flip"]
-    for constr in to_remove:
-        model.remove(constr)
-    model.update()
+    #to_remove = [constr for constr in model.getConstrs() if 'force_flip_' in constr.ConstrName or 'no_flip_' in constr.ConstrName or constr.ConstrName == "ensure_at_least_one_flip"]
+    #for constr in to_remove:
+    #    model.remove(constr)
+    #model.update()
     # Remove previous Hamming distance constraints
     for constr in model.getConstrs():
         if 'Hamming_distance' in constr.ConstrName:
@@ -45,6 +50,198 @@ def update_objective_to_minimize_hamming_distance(model, y, x_variables, current
     model.setObjective(y.sum(), GRB.MINIMIZE)
     model.update()
 
+def evaluate_solution_with_original_objective(model, ps_data):
+    print("Evaluating solution with original objective")
+    costs = ps_data['costs']
+    regularNodes = ps_data['regularNodes']
+    vessels = ps_data['vessels']
+    # OPERATING_COST = ps_data['operating_cost']
+    
+    # Directly calculate arc costs using comprehension
+    x = {v.VarName: v.X for v in model.getVars() if v.VarName.startswith('x')}
+    arc_costs = sum(costs[key] * x[convert_key_to_varname(key)] for key in costs)
+    print(f'Arc costs: {arc_costs}')
+    
+    # Directly calculate operation costs using comprehension
+    o = {v.VarName: v.X for v in model.getVars() if v.VarName.startswith('o')}
+    operation_costs = sum(o[f'o[{node.port.number},{node.time},{vessel}]'] * OPERATING_COST for node in regularNodes for vessel in vessels)
+    print(f'Operating costs: {operation_costs}')
+    
+    new_obj_value = arc_costs + operation_costs
+    print('New objective value:', new_obj_value)
+    return new_obj_value
+
+def convert_key_to_varname(key):
+    inner = str(key[0])  # Convert the inner tuple to string and remove spaces
+    vessel = key[1]
+    return f"x[{inner},{vessel}]"
+
+# Function to update the Tabu list
+def update_tabu_list(tabu_list):
+    for var in list(tabu_list.keys()):
+        tabu_list[var] -= 1
+        if tabu_list[var] <= 0:
+            del tabu_list[var]
+
+# def perform_proximity_search(ps_data):  # Add other parameters as needed
+#     model = ps_data['model']
+#     model.setParam(gp.GRB.Param.SolutionLimit, 1)
+#     model.optimize()
+#     original_objective_function = model.getObjective()
+#     #cutoff_value = 100000
+#     current_solution = get_current_x_solution(model)
+#     #current_solution = get_current_x_solution_initial(model)
+#     #current_solution = ps_data['initial_solution']
+    
+#     current_best_obj = model.getObjective().getValue()
+#     x_variables = {v.VarName: v for v in model.getVars() if v.VarName.startswith('x')}
+
+#     initial_percentage_decrease = 0.0005
+#     discount_factor = 0.9
+#     cutoff_value = (initial_percentage_decrease * current_best_obj)
+    
+#     y = model.addVars(x_variables.keys(), vtype=GRB.BINARY, name="y")
+
+#      # Solution pool configuration for initial broad search
+#     #model.setParam(GRB.Param.PoolSearchMode, 2)  # Enhanced search for diverse solutions
+#     #model.setParam(GRB.Param.PoolSolutions, 10)  # Store up to 10 diverse solutions
+
+#     # Initialize the counter at the beginning of the perform_proximity_search function
+#     tabu_list = {}
+#     tabu_tenure = 10
+
+#     t = time.time()
+#     i = 1
+#     #tabu_list = []
+    
+#     # Start loop here:
+#     while time.time() - t < 300:
+#     #for i in range(1, 100):
+#         print(f'Proximity Search Iteration {i}')
+
+#         update_tabu_list(tabu_list)
+#         #if i % 10 == 0:
+#         #    initial_percentage_decrease *= 0.5
+        
+#         # Set the objective (back) to the original objective function
+#         model.setObjective(original_objective_function, GRB.MINIMIZE)
+#         model.update()
+
+#         cutoff_value = (initial_percentage_decrease * current_best_obj)*discount_factor
+        
+#         add_cutoff_constraint(model, current_best_obj, cutoff_value)
+
+#         #add_tabu_constraints(model, tabu_list, x_variables)  # Add constraints to avoid tabu solutions
+#         update_objective_to_minimize_hamming_distance(model, y, x_variables, current_solution)
+#         #find_alternative_solution_with_flip_limit(model, x_variables, current_solution, i, 100)
+
+#         #Stop optimization after finidng 1 solution
+#         # model.setParam(GRB.SolutionLimit, 1)
+#         model.setParam(gp.GRB.Param.SolutionLimit, 1)
+#         #model.setParam(gp.GRB.Param.MIPFocus, 1)
+#         # Set time limit
+#         #model.setParam(gp.GRB.Param.TimeLimit, 10)
+#         # Set heurstic exploration
+#         #model.setParam(gp.GRB.Param.Heuristics, 0.6)
+#         # Solve the modified problem
+#         model.optimize()
+#         i += 1
+
+#         if t == GRB.TIME_LIMIT:
+#             print("Optimization stopped due to time limit.")
+#             break
+
+#         #if model.Status == GRB.TIME_LIMIT:
+#             #diversified_restart(model, x_variables, method='perturb')
+#             #current_solution = get_current_x_solution(model)
+#             #update_objective_to_minimize_hamming_distance(model, y, x_variables, current_solution)
+#             #model.update()
+#             #cutoff_value = (initial_percentage_decrease * current_best_obj)*0.9
+        
+#             #add_cutoff_constraint(model, current_best_obj, cutoff_value)
+#             #print("Optimization stopped due to time limit.")
+#             #find_alternative_solution(model, x_variables, current_solution)
+#             #model.setObjective(original_objective_function, GRB.MINIMIZE)
+#             #model.setParam(gp.GRB.Param.TimeLimit, 900)
+#             #model.update()
+#             #model.optimize()
+            
+#             #update_objective_to_minimize_hamming_distance(model, y, x_variables, current_solution)
+
+#         # Check if a new solution is found with the lowest amount of changes to the structure as possible
+#         if model.Status ==  GRB.SOLUTION_LIMIT:
+#             print("Hamming Distance from previous solution:", model.objVal)
+            
+#             new_solution = {v.VarName: v.X for v in model.getVars()}
+
+#             # Assuming new_solution has been determined after an optimization run
+#             for var_name, new_value in new_solution.items():
+#                 if var_name.startswith('x') and current_solution.get(var_name, None) != new_value:
+#                     # Only update Tabu list for variables that have changed
+#                     # Ensure you're checking against a baseline where the variable exists
+#                     tabu_list[var_name] = tabu_tenure
+
+
+            
+#             new_obj_value = evaluate_solution_with_original_objective(model, ps_data)
+#             print("Found a better solution.")
+#             print(f'Previous objective value was {current_best_obj}. New objective value: {new_obj_value}')
+
+
+#             #abu_solution_representation = {var_name: int(new_solution[var_name]) for var_name, var in new_solution.items() if var_name.startswith('x')}
+            
+#             # Add the new solution's representation to the tabu list if not already present
+#             # Note: This is a simple approach; depending on your problem, you might need to check for duplicates more carefully
+#             #if tabu_solution_representation not in tabu_list:
+#             #    tabu_list.append(tabu_solution_representation)
+#             #    print("Added new solution to tabu list.")
+
+
+#             current_solution = new_solution
+#             current_best_obj = new_obj_value
+
+#             # Update current solution if improvement is found
+#             #    current_solution = new_solution
+#             #    current_best_obj = new_obj_value
+
+#                 #cutoff_value = (initial_percentage_decrease * current_best_obj)
+#                 #return current_solution, current_best_obj
+#             #    break
+                
+#     solution = {v.VarName: v for v in model.getVars()}
+
+#     return solution, new_obj_value
+
+"""
+def add_cutoff_constraint(model, current_best_obj, cutoff_value):
+    cutoff_constr = model.addConstr(model.getObjective() <= current_best_obj - cutoff_value,
+                                    f'cutoff: Current_best_obj: {current_best_obj} <= {current_best_obj - int(cutoff_value)}')
+    model.update()
+    return cutoff_constr
+"""
+
+"""
+def diversified_restart(model, x_variables, method='perturb', saved_solutions=None):
+    if method == 'perturb':
+        # Randomly perturb a subset of the variables
+        for var_name, var in x_variables.items():
+            if random.random() < 0.5:  # Adjust the probability as needed
+                var.Start = 1 - var.Start  # Flip binary variable
+"""
+
+"""
+def update_objective_to_minimize_hamming_distance(model, y, x_variables, current_solution):
+    for var_name, var in x_variables.items():
+        initial_value = current_solution[var_name]
+        if initial_value == 0:
+            model.addConstr(y[var_name] >= var, name=f'y_{var_name}_Hamming_distance')
+        else:
+            model.addConstr(y[var_name] >= 1 - var, name=f'y_{var_name}_Hamming_distance')
+    model.setObjective(y.sum(), GRB.MINIMIZE)
+    model.update()
+    """
+
+"""
 def find_alternative_solution(model, x_variables, current_solution):
 
     # Correct approach for removing constraints based on their names
@@ -77,29 +274,9 @@ def find_alternative_solution(model, x_variables, current_solution):
     model.addConstr(flip_indicators.sum() >= 1, "ensure_at_least_one_flip")
     model.update()
     model.optimize()
-    
+"""    
 
-def evaluate_solution_with_original_objective(model, ps_data):
-    print("Evaluating solution with original objective")
-    costs = ps_data['costs']
-    regularNodes = ps_data['regularNodes']
-    vessels = ps_data['vessels']
-    OPERATING_COST = ps_data['operating_cost']
-    
-    # Directly calculate arc costs using comprehension
-    x = {v.VarName: v.X for v in model.getVars() if v.VarName.startswith('x')}
-    arc_costs = sum(costs[key] * x[convert_key_to_varname(key)] for key in costs)
-    print(f'Arc costs: {arc_costs}')
-    
-    # Directly calculate operation costs using comprehension
-    o = {v.VarName: v.X for v in model.getVars() if v.VarName.startswith('o')}
-    operation_costs = sum(o[f'o[{node.port.number},{node.time},{vessel}]'] * OPERATING_COST for node in regularNodes for vessel in vessels)
-    print(f'Operating costs: {operation_costs}')
-    
-    new_obj_value = arc_costs + operation_costs
-    print('New objective value:', new_obj_value)
-    return new_obj_value
-
+"""
 def add_tabu_constraints(model, tabu_list, x_variables):
     for i, tabu_solution in enumerate(tabu_list):
         constr_expr = gp.LinExpr()
@@ -114,112 +291,7 @@ def add_tabu_constraints(model, tabu_list, x_variables):
         # Ensure the total expression does not equal the number of variables (to avoid repeating the tabu solution)
         model.addConstr(constr_expr <= len(tabu_solution) - 1, f'tabu_constraint_{i}')
     model.update()
-
-
-
-def convert_key_to_varname(key):
-    inner = str(key[0])  # Convert the inner tuple to string and remove spaces
-    vessel = key[1]
-    return f"x[{inner},{vessel}]"
-
-def diversified_restart(model, x_variables, method='perturb', saved_solutions=None):
-    if method == 'perturb':
-        # Randomly perturb a subset of the variables
-        for var_name, var in x_variables.items():
-            if random.random() < 0.5:  # Adjust the probability as needed
-                var.Start = 1 - var.Start  # Flip binary variable
-
-
-def perform_proximity_search(ps_data):  # Add other parameters as needed
-    model = ps_data['model']
-    original_objective_function = model.getObjective()
-    #cutoff_value = 100000
-    current_solution = get_current_x_solution(model)
-    
-    current_best_obj = model.getObjective().getValue()
-    x_variables = {v.VarName: v for v in model.getVars() if v.VarName.startswith('x')}
-
-    initial_percentage_decrease = 0.001
-    cutoff_value = (initial_percentage_decrease * current_best_obj)
-    
-    y = model.addVars(x_variables.keys(), vtype=GRB.BINARY, name="y")
-
-    t = time.time()
-    i = 1
-    #tabu_list = []
-    
-    # Start loop here:
-    while time.time() - t < 900:
-    #for i in range(1, 100):
-        print(f'Proximity Search Iteration {i}')
-        
-        # Set the objective (back) to the original objective function
-        model.setObjective(original_objective_function, GRB.MINIMIZE)
-        model.update()
-
-        cutoff_value = (initial_percentage_decrease * current_best_obj)
-        
-        add_cutoff_constraint(model, current_best_obj, cutoff_value)
-
-        #add_tabu_constraints(model, tabu_list, x_variables)  # Add constraints to avoid tabu solutions
-
-        
-        update_objective_to_minimize_hamming_distance(model, y, x_variables, current_solution)
-        #find_alternative_solution_with_flip_limit(model, x_variables, current_solution, i, 100)
-
-        #Stop optimization after finidng 1 solution
-        # model.setParam(GRB.SolutionLimit, 1)
-        model.setParam(gp.GRB.Param.SolutionLimit, 1)
-        # Set time limit
-        model.setParam(gp.GRB.Param.TimeLimit, 10)
-        # Set heurstic exploration
-        model.setParam(gp.GRB.Param.Heuristics, 0.8)
-        # Solve the modified problem
-        model.optimize()
-        i += 1
-
-        if model.Status == GRB.TIME_LIMIT:
-            diversified_restart(model, x_variables, method='perturb')
-            current_solution = get_current_x_solution(model)
-            update_objective_to_minimize_hamming_distance(model, y, x_variables, current_solution)
-            model.update()
-            #print("Optimization stopped due to time limit.")
-            #find_alternative_solution(model, x_variables, current_solution)
-            model.optimize()
-
-        # Check if a new solution is found with the lowest amount of changes to the structure as possible
-        if model.Status ==  GRB.SOLUTION_LIMIT:
-            print("Hamming Distance from previous solution:", model.objVal)
-            
-            new_solution = {v.VarName: v.X for v in model.getVars()}
-            
-            new_obj_value = evaluate_solution_with_original_objective(model, ps_data)
-            print("Found a better solution.")
-            print(f'Previous objective value was {current_best_obj}. New objective value: {new_obj_value}')
-
-            #abu_solution_representation = {var_name: int(new_solution[var_name]) for var_name, var in new_solution.items() if var_name.startswith('x')}
-            
-            # Add the new solution's representation to the tabu list if not already present
-            # Note: This is a simple approach; depending on your problem, you might need to check for duplicates more carefully
-            #if tabu_solution_representation not in tabu_list:
-            #    tabu_list.append(tabu_solution_representation)
-            #    print("Added new solution to tabu list.")
-
-
-            current_solution = new_solution
-            current_best_obj = new_obj_value
-
-            # Update current solution if improvement is found
-            #    current_solution = new_solution
-            #    current_best_obj = new_obj_value
-
-                #cutoff_value = (initial_percentage_decrease * current_best_obj)
-                #return current_solution, current_best_obj
-            #    break
-                
-    solution = {v.VarName: v for v in model.getVars()}
-
-    return solution, new_obj_value
+"""
 """
 def perform_proximity_search(ps_data):  # Add other parameters as needed
     model = ps_data['model']
@@ -309,7 +381,8 @@ def perform_proximity_search_with_simulated_annealing(ps_data):
     min_temp = 1  # Minimum temperature to halt the algorithm
     temperature = initial_temp
 
-    cutoff_constr = None
+    initial_percentage_decrease = 0.001
+    discount_factor = 0.9
 
     #best_solution = current_solution
     #best_obj_value = float('inf')  # Initialize with a high value
@@ -323,6 +396,8 @@ def perform_proximity_search_with_simulated_annealing(ps_data):
         model.setParam(gp.GRB.Param.SolutionLimit, 1)
         model.update()
 
+        cutoff_value = (initial_percentage_decrease * current_best_obj)*discount_factor
+
 
         #if cutoff_constr is not None:
         #    model.remove(cutoff_constr)
@@ -331,9 +406,10 @@ def perform_proximity_search_with_simulated_annealing(ps_data):
         #update_objective_to_minimize_hamming_distance(model, y, x_variables, current_solution)
         #model.optimize()
         # Periodically apply the cutoff constraint
-        if iteration % 100 == 0:  # Adjust the frequency as needed
-            if current_best_obj< float('inf'):
-                add_conditional_cutoff_constraint(model, current_best_obj)
+        #if iteration % 10 == 0:  # Adjust the frequency as needed
+        #    if current_best_obj< float('inf'):
+                #add_conditional_cutoff_constraint(model, current_best_obj)
+        add_cutoff_constraint(model, current_best_obj, cutoff_value)
         
         update_objective_to_minimize_hamming_distance(model, y, x_variables, current_solution)
         model.optimize()

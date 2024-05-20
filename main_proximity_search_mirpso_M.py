@@ -29,6 +29,8 @@ def main():
     # INSTANCE = 'LR1_1_DR1_4_VC3_V12b'
     # INSTANCE = 'LR2_11_DR2_22_VC3_V6a'
     # INSTANCE = 'LR2_11_DR2_33_VC4_V11a'
+    # GROUP 2
+    # INSTANCE = 'LR1_DR02_VC01_V6a'
 
     problem_data = build_problem(INSTANCE)
     
@@ -56,9 +58,9 @@ def main():
     ps_data = {'model': model, 'initial_solution':x_initial_solution, 'costs': costs, 'regularNodes': regularNodes, 'vessels': vessels, 'operating_cost':OPERATING_COST, 'vessel_arcs': vessel_arcs}
 
     # Perform the proximity search using the initial solution
-    #improved_solution, obj_value = perform_proximity_search(ps_data)
+    improved_solution, obj_value = perform_proximity_search(ps_data)
     #Perform proximity search with simulated annealing
-    improved_solution, obj_value = perform_proximity_search_with_simulated_annealing(ps_data)
+    #improved_solution, obj_value = perform_proximity_search_with_simulated_annealing(ps_data)
     # print("Final solution:", improved_solution)
     print("Objective value:", obj_value)
     
