@@ -784,7 +784,7 @@ class MIRPSOEnv():
             # If the whole path is feasible, add a huge reward discounted reward
             if feasible_path:
                 current_time = current_state['time']
-                time_until_terminal = horizon - current_time
+                time_until_terminal = horizon - current_tim
                 feasibility_reward = extra_reward_for_feasible_path * agent.gamma ** time_until_terminal
                 # feasibility_reward = extra_reward_for_feasible_path
                 if action is not None:
@@ -817,18 +817,26 @@ class MIRPSOEnv():
         vessels = state['vessels']
         return all(v.isFinished for v in vessels)
 
-    def execute_action(self, vessel, 
-                       action):
+    def execute_action(self, vessel, action):
         # Action is on the form (vessel_id, operation_type, quantity, arc)
         # Execute the action and update the state
         _, operation_type, quantity, arc = action
         port = arc.origin_node.port
         if operation_type == 1:
             #Loading
+            # If the port's inventory is less than one rate over the capacity, the port can sell up to one rate to the spot market before the vessel arrives
+            if port.capacity + port.rate >= port.inventory > port.capacity:
+                # First set the inventory to the capacity
+                port.inventory = port.capacity
+               
             vessel.inventory += quantity
             port.inventory -= quantity
+                
         elif operation_type == 2:
             #Unloading
+            if -port.rate <= port.inventory < 0:
+                port.inventory = 0
+                
             vessel.inventory -= quantity
             port.inventory += quantity
         
@@ -1061,7 +1069,7 @@ class DQNAgent:
         self.memory = replay
         self.gamma = 0.99    # discount rate feasible paths
         self.sigma = 0.5     # discount rate infeasible paths
-        self.epsilon = 0.9 # exploration rate
+        self.epsilon = 0.5 # exploration rate
         self.epsilon_min = 0.1
         self.epsilon_decay = 0.999
         self.main_model = DQN(state_size, action_size)
@@ -1084,8 +1092,6 @@ class DQNAgent:
             return action, new_state
         
         if not exploit:
-            if (env.current_checkpoint>0):
-                if (env.current_checkpoint - 30 <=state['time'] <= env.current_checkpoint):
             # If the time is close to the checkpoint increase the exploration rate
             # if env.current_checkpoint > 0 and env.current_checkpoint - 20 <=state['time'] <= env.current_checkpoint:
             #     increased_epsilon = min(self.epsilon + 0.15, 0.75)
@@ -1095,23 +1101,11 @@ class DQNAgent:
             #         new_state = env.update_vessel_in_transition_and_inv_for_state(state = state, vessel = vessel_simp, destination_port = arc.destination_node.port, destination_time = arc.destination_node.time, origin_port = arc.origin_node.port, quantity = action[2], operation_type = action[1])
             #         return action, new_state
                 
-                    if np.random.rand() < self.epsilon:
-                        action = random.choice(legal_actions)
-                        arc = action[3]
-                        new_state = env.update_vessel_in_transition_and_inv_for_state(state = state, vessel = vessel_simp, destination_port = arc.destination_node.port, destination_time = arc.destination_node.time, origin_port = arc.origin_node.port, quantity = action[2], operation_type = action[1])
-                        return action, new_state
-                else:
-                    if np.random.rand() < self.epsilon/2:
-                        action = random.choice(legal_actions)
-                        arc = action[3]
-                        new_state = env.update_vessel_in_transition_and_inv_for_state(state = state, vessel = vessel_simp, destination_port = arc.destination_node.port, destination_time = arc.destination_node.time, origin_port = arc.origin_node.port, quantity = action[2], operation_type = action[1])
-                        return action, new_state
-            else:
-                if np.random.rand() < self.epsilon:
-                    action = random.choice(legal_actions)
-                    arc = action[3]
-                    new_state = env.update_vessel_in_transition_and_inv_for_state(state = state, vessel = vessel_simp, destination_port = arc.destination_node.port, destination_time = arc.destination_node.time, origin_port = arc.origin_node.port, quantity = action[2], operation_type = action[1])
-                    return action, new_state
+            if np.random.rand() < self.epsilon:
+                action = random.choice(legal_actions)
+                arc = action[3]
+                new_state = env.update_vessel_in_transition_and_inv_for_state(state = state, vessel = vessel_simp, destination_port = arc.destination_node.port, destination_time = arc.destination_node.time, origin_port = arc.origin_node.port, quantity = action[2], operation_type = action[1])
+                return action, new_state
             
        
         

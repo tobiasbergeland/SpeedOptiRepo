@@ -180,7 +180,7 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
     # RUNNING_MIRPSO =True
     
     # Set a higher recursion limit (be cautious with this)
-    sys.setrecursionlimit(5000) 
+    sys.setrecursionlimit(100000) 
     # random.seed(1)
     gc.enable()
     
