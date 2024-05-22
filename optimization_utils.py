@@ -1,5 +1,6 @@
 import re
 import copy
+import math
 
 def get_current_x_solution_vars(model):
     return {v.varName : v for v in model.getVars() if v.VarName.startswith('x')}
@@ -17,7 +18,7 @@ def get_current_s_solution_vars(model):
     return {v.varName: v for v in model.getVars() if v.VarName.startswith('s')}
 
 def get_current_s_solution_vals(model):
-    return {v.varName: v.x for v in model.getVars() if v.VarName.startswith('s')}
+    return {v.varName: int(round(v.x)) for v in model.getVars() if v.VarName.startswith('s')}
 
 
 def find_corresponding_arcs(current_solution_x, vessel_class_arcs):
@@ -142,7 +143,7 @@ def extract_time_period_from_x_var_name(var_name):
 def find_vessel_destinations(vessels_in_vc, vc_active_arcs, end_time):
     destination_nodes = {}
     # Find all arcs crossing the end time
-    arcs_crossing_end_time = [arc for arc in vc_active_arcs if arc.origin_node.time <= end_time and arc.destination_node.time > end_time]
+    arcs_crossing_end_time = [arc for arc in vc_active_arcs if arc.origin_node.time < end_time and arc.destination_node.time >= end_time]
     crossing_traveling_arcs = [arc for arc in arcs_crossing_end_time if arc.origin_node.port != arc.destination_node.port]
     crossing_waiting_arcs = [arc for arc in arcs_crossing_end_time if arc.origin_node.port == arc.destination_node.port]
     taken_traveling_arcs = []
@@ -175,10 +176,11 @@ def find_vessel_destinations(vessels_in_vc, vc_active_arcs, end_time):
 def construction_heuristic_for_window(env, agent, window_start, window_end, combined_solution, INSTANCE, experience_path, port_inventory_dict, vessel_inventory_dict, current_solution_vars_x, current_solution_vals_x, active_arcs, VESSEL_CLASSES, vessel_class_arcs, model, current_solution_vals_s):
     best_solution = None
     best_inf_counter = env.TIME_PERIOD_RANGE[-1]
+    solutions = []
     # Need some randomization in order for the agent to produce different results
     agent.epsilon = 0.1
     
-    for i in range(10):
+    for i in range(40):
         if not combined_solution:
             # Window start is 0, so we need to start from scratch
             experience_path = []
@@ -193,9 +195,9 @@ def construction_heuristic_for_window(env, agent, window_start, window_end, comb
             state['time'] += 1
             # state = env.increment_time_and_produce(state=state)
             # Init port inventory is the inventory at this time. Time is 0 after the increment.
-            port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
-            # Init vessel inventory is the inventory at this time
-            vessel_inventory_dict[state['time']] = {vessel.number: vessel.inventory for vessel in state['vessels']}
+            # port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
+            # # Init vessel inventory is the inventory at this time
+            # vessel_inventory_dict[state['time']] = {vessel.number: vessel.inventory for vessel in state['vessels']}
             
         else:
             
@@ -203,11 +205,21 @@ def construction_heuristic_for_window(env, agent, window_start, window_end, comb
             state = env.reset()
             # s_solution = get_current_s_solution_vars(model)
             experience_path = []
+            # Reset the values in the port_inventory_dict but keep all keys
+            port_inventory_dict = {time: {port.number: 0 for port in state['ports']} for time in range(env.TIME_PERIOD_RANGE[-1])}
+            
+            # port_inventory_dict = {}
             
             # Set the inventory levels for the ports and vessels at the window start
-            for port_number, port_inventory in port_inventory_dict[window_start+1].items(): #S_31
+            # for port_number, port_inventory in port_inventory_dict[window_start+1].items(): #S_31
+            for port in state['ports']:
+                for time in range(window_start):
+                    port_inventory_dict[time][port.number] = current_solution_vals_s[f's[{port.number},{time}]']
+            
+            for port in state['ports']:
+                port_number = port.number
                 # Get the value of the s variable from current_solution_vals_s
-                s_var_value = current_solution_vals_s[f's[{port_number},{window_start+1}]']
+                s_var_value = current_solution_vals_s[f's[{port_number},{window_start}]']
                 # s_var_name = f"s[{port_number},{window_start+1}]"
                 # s_var = model.getVarByName(s_var_name)
                 # s_var_value = s_var.X
@@ -217,7 +229,7 @@ def construction_heuristic_for_window(env, agent, window_start, window_end, comb
             #     vessel = env.VESSELS[vessel_number -1]
             #     vessel.inventory = vessel_inventory
             # Set the time to the window start
-            state['time'] = window_start +1
+            state['time'] = window_start
             state['done'] = False
             done = state['done']
             
@@ -234,27 +246,31 @@ def construction_heuristic_for_window(env, agent, window_start, window_end, comb
                         v.inventory = v.capacity
                         
             # Should check the feasibility of the state, even though no actions were performed. 
-            state = env.simple_step(state, experience_path)
+            # state = env.simple_step(state, experience_path)
             
-            port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
-            vessel_inventory_dict[state['time']] = {vessel.number: vessel.inventory for vessel in state['vessels']}
+            # port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
+            # vessel_inventory_dict[state['time']] = {vessel.number: vessel.inventory for vessel in state['vessels']}
             
         while not done:
             # Check if state is infeasible or terminal
-            state, total_reward_for_path, feasible_path = env.check_state(state=state, experience_path=experience_path, replay=agent.memory, agent=agent, INSTANCE=INSTANCE, exploit = False)
+            state, total_reward_for_path, feasible_path = env.check_state(state=state, experience_path=experience_path, replay=agent.memory, agent=agent, INSTANCE=INSTANCE, exploit = False, port_inventory_dict=port_inventory_dict)
+            
+            port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
+            # vessel_inventory_dict[state['time']] = {vessel.number: vessel.inventory for vessel in state['vessels']}
             
             if state['done']:
                 first_infeasible_time, infeasibility_counter = env.log_window(None, total_reward_for_path, experience_path, state, window_start, window_end)
                 feasible_path = experience_path[0][6]
                 
-                if infeasibility_counter < best_inf_counter:
-                    best_inf_counter = infeasibility_counter
-                    best_solution = (experience_path, port_inventory_dict, vessel_inventory_dict)
+                # Check that the port inventories in port_inventory_dict are within the boundaries
+                
+                
+                # if (infeasibility_counter < best_inf_counter):
+                # best_inf_counter = infeasibility_counter
+                best_solution = (experience_path, port_inventory_dict)
+                solutions.append(best_solution)
                 break
-                
-            # Increase time and make production ports produce.
-            state = env.produce(state)
-                
+            
             # With the increased time, the vessels have moved and some of them have maybe reached their destination. Updating the vessel status based on this.
             env.update_vessel_status(state=state)
             # Find the vessels that are available to perform an action
@@ -278,18 +294,19 @@ def construction_heuristic_for_window(env, agent, window_start, window_end, comb
             else:
                 # Should check the feasibility of the state, even though no actions were performed. 
                 state = env.simple_step(state, experience_path)
+                
+            # Increase time and make production ports produce.
+            state = env.produce(state)
+            
             # Make consumption ports consume regardless if any actions were performed
             state = env.consumption(state)
                 
             state['time'] += 1
-            port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
-            vessel_inventory_dict[state['time']] = {vessel.number: vessel.inventory for vessel in state['vessels']}
                     
-    experience_path = best_solution[0]
-    port_inventory_dict = best_solution[1]
-    vessel_inventory_dict = best_solution[2]
+    # experience_path = best_solution[0]
+    # port_inventory_dict = best_solution[1]
     
-    return experience_path, port_inventory_dict, vessel_inventory_dict
+    return solutions
     
     
     
@@ -388,75 +405,161 @@ def evaluate_agent(env, agent, INSTANCE):
     return experience_path, port_inventory_dict, vessel_inventory_dict
             
             
-def convert_path_to_MIRPSO_solution(env, experience_path, port_inventory_dict):
-    # Create a dict with vesselnumber as key, and an empty list as value
-    active_arcs = {vessel.number: [] for vessel in env.VESSELS}
-    
-    for vessel in env.VESSELS:
-        # Find the source arc for the vessel
-        arcs = env.VESSEL_ARCS[vessel]
-        for arc in arcs:
-            if arc.origin_node == env.SOURCE_NODE and arc.destination_node != env.SINK_NODE:
-                source_arc = arc
-                active_arcs[vessel.number].append(source_arc)
-                break
+def convert_path_to_MIRPSO_solution(env, solutions, window_end, window_start):
+    best_solution = None
+    for solution in solutions:
+        experience_path, port_inventory_dict = solution
         
-    for exp in experience_path:
-        state, action, vessel, reward, next_state, earliest_vessel, feasible_path, first_infeasible_time, terminal_flag = exp
-        if action is None:
-            continue
-            
-        vessel_number, operation_type, quantity, arc = action
-        if arc.destination_node.time == env.SINK_NODE.time:
-            # Change to the sink arc
-            for vessel_arc in env.VESSEL_ARCS[vessel]:
-                if vessel_arc.origin_node == arc.origin_node and vessel_arc.destination_node == env.SINK_NODE:
-                    arc = vessel_arc
-                    break
-        active_arcs[vessel_number].append(arc)
+        # Create a dict with vesselnumber as key, and an empty list as value
+        active_arcs_from_exp_path = {vessel.number: [] for vessel in env.VESSELS}
         
-    active_X_keys = []
-    for vessel in env.VESSELS:
-        for arc in active_arcs[vessel.number]:
-            active_X_keys.append(((arc.tuple), vessel.vessel_class))
-            
-    S_values = {}
-    alpha_values = {}
-    accumulated_alpha = {port.number : 0 for port in env.PORTS}
-    for time, invs_at_time in port_inventory_dict.items():
-        for port in env.PORTS:
-            inventory = invs_at_time[port.number]
-            if port.isLoadingPort == 1:
-                if inventory > port.capacity:
-                    alpha = inventory - port.capacity
-                    alpha_values[(port.number, time-1)] = alpha
-                    accumulated_alpha[port.number] += alpha
-                S_values[(port.number, time)] = invs_at_time[port.number] - accumulated_alpha[port.number]
+        if window_start == 0:
+            for vessel in env.VESSELS:
+                # Find the source arc for the vessel
+                arcs = env.VESSEL_ARCS[vessel]
+                for arc in arcs:
+                    if arc.origin_node == env.SOURCE_NODE and arc.destination_node != env.SINK_NODE:
+                        source_arc = arc
+                        active_arcs_from_exp_path[vessel.number].append(source_arc)
+                        break
                 
-            else:
-                if inventory < 0:
-                    alpha = abs(inventory)
-                    alpha_values[(port.number, time-1)] = alpha
-                    accumulated_alpha[port.number] += alpha
+        # active_X_keys = []
+        for exp in experience_path:
+            state, action, vessel, reward, next_state, earliest_vessel, feasible_path, first_infeasible_time, terminal_flag, alpha_state = exp
+            if action is None:
+                continue
+                
+            vessel_number, operation_type, quantity, arc = action
+            if arc.destination_node.time == env.SINK_NODE.time:
+                # Change to the sink arc
+                for vessel_arc in env.VESSEL_ARCS[vessel]:
+                    if vessel_arc.origin_node == arc.origin_node and vessel_arc.destination_node == env.SINK_NODE:
+                        arc = vessel_arc
+                        break
+            active_arcs_from_exp_path[vessel_number].append(arc)
+            # active_X_keys.append(((arc.tuple), vessel.vessel_class))
+            
+            
+        active_X_keys = {}
+        for vessel in env.VESSELS:
+            for arc in active_arcs_from_exp_path[vessel.number]:
+                if ((arc.tuple), vessel.vessel_class) not in active_X_keys.keys():
+                    active_X_keys[((arc.tuple), vessel.vessel_class)] = 1
+                else:
+                    active_X_keys[((arc.tuple), vessel.vessel_class)] += 1
                     
-                S_values[(port.number, time)] = invs_at_time[port.number] + accumulated_alpha[port.number]
+        # Sum up the counters in the active_X_keys
+        sumcounter = 0
+        for key, counter in active_X_keys.items():
+            sumcounter += counter
+            
+        # Check if similar to the number of arcs in the active_arcs_from_exp_path
+        sum_aaiep = 0
+        for vessel in env.VESSELS:
+            active_arcs_from_exp_path_for_v = active_arcs_from_exp_path[vessel.number]
+            sum_aaiep += len(active_arcs_from_exp_path_for_v)
         
-    return active_X_keys, S_values, alpha_values
+        # print(f'The sum of the counters in active_X_keys is {sumcounter}. The sum of the number of arcs in active_arcs_from_exp_path is {sum_aaiep}')
+        if sumcounter != sum_aaiep:
+            raise ValueError('The number of arcs in active_arcs_from_exp_path is not equal to the sum of the counters in active_X_keys')
+            
+        
+            
+        
+                
+        alpha_states = set()
+        infeasibility_counter = 0
+        acc_alpha = {}
+        alpha_values = {}
+        S_values = {}
+        alpha_register = {time : {} for time in range(len(port_inventory_dict))}
+        for port in env.PORTS:
+            acc_alpha[port.number] = 0
+            # alpha_register[port.number] = {}
+            for time in range(len(env.TIME_PERIOD_RANGE) + 1):
+                alpha_register[time][port.number] = 0
+                inv = port_inventory_dict[time][port.number]
+                
+                if port.isLoadingPort == 1:
+                    if inv - acc_alpha[port.number] > port.capacity:
+                        alpha = inv - acc_alpha[port.number] - port.capacity
+                        acc_alpha[port.number] += alpha
+                        alpha_register[time][port.number] = alpha
+                        alpha_values[(port.number, time-1)] = alpha
+                        if time <= window_end:
+                            infeasibility_counter += 1
+                        alpha_states.add(time)
+                        S_values[(port.number, time)] = int(port.capacity)
+                        if first_infeasible_time is None:
+                            first_infeasible_time = time
+                        # if alpha > port.rate:
+                        #     raise ValueError('Alpha is greater than the rate')
+                    else:
+                        S_values[(port.number, time)] = int(inv - acc_alpha[port.number])
+                        alpha_values[(port.number, time-1)] = 0
+                            
+                else:
+                    if inv + acc_alpha[port.number] < 0:
+                        alpha = - (inv + acc_alpha[port.number])
+                        acc_alpha[port.number] += alpha
+                        alpha_register[time][port.number] = alpha
+                        alpha_values[(port.number, time-1)] = int(alpha)
+                        if time <= window_end:
+                            infeasibility_counter += 1
+                        alpha_states.add(time)
+                        S_values[(port.number, time)] = 0
+                        
+                        if first_infeasible_time is None:
+                            first_infeasible_time = time
+                        # if int(alpha) > port.rate:
+                        #     raise ValueError('Alpha is greater than the rate')
+                    else:
+                        S_values[(port.number, time)] = int(inv + acc_alpha[port.number])
+                        alpha_values[(port.number, time-1)] = 0
+                        
+        feasible_solution = True
+        for port in env.PORTS:
+            for time in range(len(env.TIME_PERIOD_RANGE) + 1):
+                if time > window_end:
+                    break
+                if S_values[(port.number, time)] > port.capacity or S_values[(port.number, time)] < 0:
+                    feasible_solution = False
+        
+        if best_solution is None:
+            best_solution = (active_X_keys, S_values, alpha_values, infeasibility_counter, feasible_solution, port_inventory_dict)
+        elif not best_solution[3] and feasible_solution:
+            best_solution = (active_X_keys, S_values, alpha_values, infeasibility_counter, feasible_solution, port_inventory_dict)
+        elif not best_solution[3] and not feasible_solution and infeasibility_counter < best_solution[3]:
+            best_solution = (active_X_keys, S_values, alpha_values, infeasibility_counter, feasible_solution, port_inventory_dict)
+        elif best_solution[3] and feasible_solution and infeasibility_counter < best_solution[3]:
+            best_solution = (active_X_keys, S_values, alpha_values, infeasibility_counter, feasible_solution, port_inventory_dict)
+                    
+    return best_solution, active_arcs_from_exp_path
 
 
 def warm_start_model(m, active_X_keys, S_values, alpha_values, source_node):
+    warm_start_vars = 0
+    vars_set = set()
     # Initialize all 'x', 'a' variables to 0 to ensure a complete warm start
     for var in m.getVars():
         # if var.VarName.startswith('x') or var.VarName.startswith('o') or var.VarName.startswith('q'):
         if var.VarName.startswith('x'):
             # print(var.VarName)
-            var.Start = 0  # Default start value for all variables not explicitly set
+            # if var is not fixed:
+            if var.lb != var.ub:
+                var.Start = 0
         elif var.VarName.startswith('alpha'):
-            var.Start = 0
+            if var.lb != var.ub:
+                var.Start = 0
+        elif var.VarName.startswith('s'):
+            if var.lb != var.ub:
+                var.Start = 0
     m.update()
             
+    waiting_arcs_taken_counter = {}
+    traveling_taken = {}
     # Setting initial values for 'x' variables based on active_X_keys
-    for (arc_tuple, vessel_class) in active_X_keys:
+    for (arc_tuple, vessel_class), counter in active_X_keys.items():
         # Check if the arc is interregional or not
         origin_node, destination_node = arc_tuple
         if origin_node.port == destination_node.port or origin_node == source_node:
@@ -468,29 +571,69 @@ def warm_start_model(m, active_X_keys, S_values, alpha_values, source_node):
         # x_var_name = f"x[{arc_tuple},{vessel}]"
         x_var = m.getVarByName(x_var_name)
         # Set the start value to 0 if the variable is found
-        if x_var.start == 0:
-            x_var.Start = 1
-        elif x_var.start >= 1:
-            x_var.Start += 1
+        if x_var is not None and (x_var.lb != x_var.ub):
+            x_var.Start = counter
+            print(f'Variable {x_var_name} has been set to {counter}')
+            # if "x_non_" in x_var_name:
+            #     if x_var_name in waiting_arcs_taken_counter.keys():
+            #         times_taken_before = waiting_arcs_taken_counter[x_var_name]
+            #         x_var.Start = times_taken_before + 1
+            #         waiting_arcs_taken_counter[x_var_name] += 1
+            #     else:
+            #         x_var.Start = 1
+            #         waiting_arcs_taken_counter[x_var_name] = 1
+            # elif x_var.start == 0 and x_var_name not in traveling_taken.keys():
+            #     x_var.Start = 1
+            #     traveling_taken[x_var_name] = 1
+            #     warm_start_vars += 1
+            #     vars_set.add(x_var.VarName)
+            #     # m.update()
+            # else:
+            #     print('Issue')
+                
+            # elif x_var.start >= 1:
+            #     x_var.Start += 1
+            #     warm_start_vars += 1
+            #     vars_set.add(x_var.VarName)
+            #     m.update()
+
+                
         m.update()
     
-    # for (port_number, time), s_value in S_values.items():
-    #     s_var_name = f"s[{port_number},{time}]"
-    #     s_var = m.getVarByName(s_var_name)
-    #     if s_var is not None:
-    #         s_var.Start = s_value
+    for (port_number, time), s_value in S_values.items():
+        s_var_name = f"s[{port_number},{time}]"
+        s_var = m.getVarByName(s_var_name)
+        if s_var is not None and (s_var.lb != s_var.ub):
+            s_var.Start = round(s_value)
+            warm_start_vars += 1
+            vars_set.add(s_var_name)
             
-    # for (port_number, time), alpha_value in alpha_values.items():
-    #     alpha_var_name = f"alpha[{port_number},{time}]"
-    #     alpha_var = m.getVarByName(alpha_var_name)
-    #     if alpha_var is not None:
-    #         alpha_var.Start = alpha_value
-    
+            
+    for (port_number, time), alpha_value in alpha_values.items():
+        alpha_var_name = f"alpha[{port_number},{time}]"
+        alpha_var = m.getVarByName(alpha_var_name)
+        if alpha_var is not None and (alpha_var.lb != alpha_var.ub):
+            alpha_var.Start = round(alpha_value)
+            warm_start_vars += 1
+            vars_set.add(alpha_var_name)
+            
     # Finally, update the model to apply these start values
     m.update()
     
     x_solution = {v.VarName: v.Start for v in m.getVars() if v.VarName.startswith('x')}
     warm_start_sol = {v.VarName: v.Start for v in m.getVars()}
+    
+    print(f'Warm start solution has {warm_start_vars} variables set. The total number of variables in the model is {len(m.getVars())}')
+    
+    # # Print all the vars that has not been set
+    # for var in m.getVars():
+    #     if var.VarName not in vars_set:
+    #         print(f'Variable {var.VarName} has not been set')
+            
+    # # Print the start values for the variables that have not been set
+    # for var in m.getVars():
+    #     if var.VarName not in vars_set:
+    #         print(f'Variable {var.VarName} has not been set. Start value is {var.Start}')
     
     return x_solution, m, warm_start_sol
 
