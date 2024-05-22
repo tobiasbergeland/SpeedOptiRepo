@@ -1532,7 +1532,7 @@ import logging
 def save_solution(INSTANCE, HORIZON, model, time_limit, elapsed_time, costs, P,
                   RUNNING_MIRPSO, best_obj_val, solution_vals_x,
                   solution_vals_s, solution_vals_alpha, active_arcs, vessel_classes,
-                  NPS, WPS, RH, WPS_AND_RH, NPS_AND_RH, VESSEL_CLASSES, vessels, sourceNode, sinkNode, NODE_DICT, window_size, step_size):
+                  NPS, WPS, RH, WPS_AND_RH, NPS_AND_RH, VESSEL_CLASSES, vessels, sourceNode, sinkNode, NODE_DICT, window_size, step_size, solver_and_chObj):
 
     method_map = {"NPS": NPS, "WPS": WPS, "RH": RH, "WPS_AND_RH": WPS_AND_RH, "NPS_AND_RH": NPS_AND_RH}
     method = next((method_name for method_name, condition in method_map.items() if condition), "SOLVER")
@@ -1570,6 +1570,7 @@ def save_solution(INSTANCE, HORIZON, model, time_limit, elapsed_time, costs, P,
         'gap':gap,
         "elapsed_time": elapsed_time,
         "time_limit": time_limit,
+        'solver_and_chObj': solver_and_chObj,
         # "last_feasible_solution_time" : last_feasible_solution_time if method == 'NPS' or method == 'WPS' else None,
         "costs": costs_str_keys,
         "P": P_str_keys,
@@ -1769,7 +1770,7 @@ def proximity_search_using_agent(ps_data, agent, env, RUNNING_WPS_AND_RH, window
                 return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs
             
 def calc_time_limit_per_window(TIME_LIMIT, HORIZON, window_size, step_size):
-    iterations = (HORIZON - window_size)//(step_size) + 1
+    iterations = math.ceil((HORIZON - window_size)/(step_size)) + 1
     return TIME_LIMIT / iterations
             
 
@@ -1781,7 +1782,7 @@ def main():
     RUNNING_NPS_AND_RH = False
     RUNNING_WPS_AND_RH = False
     
-    RUNNING_MIRPSO = True
+    # RUNNING_MIRPSO = True
     
     # RUNNING_WEIGHTED_PS = True
     # RUNNING_NORMAL_PS = True
@@ -1790,12 +1791,12 @@ def main():
     # RUNNING_WPS_AND_RH = True
     
     # GROUP 2
-    # INSTANCE = 'LR1_DR02_VC01_V6a'
+    INSTANCE = 'LR1_DR02_VC01_V6a'
     # INSTANCE = 'LR1_DR02_VC02_V6a'
     # INSTANCE = 'LR1_DR02_VC03_V7a'
     
     'RUN 1'
-    INSTANCE = 'LR1_DR02_VC03_V8a'
+    # INSTANCE = 'LR1_DR02_VC03_V8a'
     # INSTANCE = 'LR1_DR02_VC04_V8a'
     
     # INSTANCE = 'LR1_DR02_VC05_V8a'
@@ -1806,7 +1807,7 @@ def main():
     'RUN 3'
     # INSTANCE = 'LR1_DR08_VC10_V40a' 
     
-    TIME_LIMIT = 7200
+    TIME_LIMIT = 20
     
     problem_data = build_problem(INSTANCE, RUNNING_MIRPSO)
     
@@ -1837,7 +1838,6 @@ def main():
     ps_data = {'model': model, 'costs': costs, 'P':P, 'regularNodes': regularNodes, 'vessels': vessels, 'vessel_arcs': vessel_arcs, 'costs_namekey':costs_namekey, 'vessel_class_arcs': vessel_class_arcs, 'node_dict': NODE_DICT}
     
     # Take the time of solving the model
-    start_time = time.time()
     if RUNNING_WEIGHTED_PS:
         env = MIRPSOEnv(ports, vessels, vessel_arcs, NODES, TIME_PERIOD_RANGE, sourceNode, sinkNode, NODE_DICT, special_sink_arcs, special_nodes_dict)
         replay = ReplayMemory(3000)
@@ -1862,26 +1862,30 @@ def main():
         env = MIRPSOEnv(ports, vessels, vessel_arcs, NODES, TIME_PERIOD_RANGE, sourceNode, sinkNode, NODE_DICT, special_sink_arcs, special_nodes_dict)
         replay = ReplayMemory(5000)
         agent = DQNAgent(ports = ports, vessels=vessels, TRAINING_FREQUENCY = None, TARGET_UPDATE_FREQUENCY = None, NON_RANDOM_ACTION_EPISODE_FREQUENCY = None, BATCH_SIZE = None, replay = replay)
-        replay = agent.load_replay_buffer(file_name= 'replay_buffer_LR1_DR02_VC03_V8a_INF_COUNTER_5_5.pkl')
+        # replay = agent.load_replay_buffer(file_name= 'replay_buffer_LR1_DR02_VC03_V8a_INF_COUNTER_5_5.pkl')
         agent.memory = replay
-        agent.main_model.load_state_dict(torch.load('main_model_LR1_DR02_VC03_V8a_INF_COUNTER_5_5.pth'))
-        agent.target_model.load_state_dict(torch.load('target_model_LR1_DR02_VC03_V8a_INF_COUNTER5_5.pth'))
+        agent.main_model.load_state_dict(torch.load('main_model_LR1_DR02_VC01_V6a_INF_COUNTER_1_6.pth'))
+        agent.target_model.load_state_dict(torch.load('target_model_LR1_DR02_VC01_V6a_INF_COUNTER1_6.pth'))
         
         # Define your window size and execute rolling horizon optimization
-        window_size = 60  # example window size
-        step_size = 30
+        window_size = 90  # example window size
+        step_size = 45
         TIME_LIMIT_PER_WINDOW = calc_time_limit_per_window(TIME_LIMIT, HORIZON, window_size, step_size)
-        current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs = rolling_horizon_optimization(model=model, horizon_length=HORIZON, window_size=window_size, step_size=step_size, TIME_LIMIT_PER_WINDOW=TIME_LIMIT_PER_WINDOW, ps_data=ps_data, agent=agent, env=env, RUNNING_WPS_AND_RH=RUNNING_WPS_AND_RH, RUNNING_NPS_AND_RH=RUNNING_NPS_AND_RH, proximity_search_using_agent=proximity_search_using_agent, RUNNING_MIRPSO=RUNNING_MIRPSO, VESSEL_CLASSES = VESSEL_CLASSES, INSTANCE=INSTANCE, vessel_class_arcs=vessel_class_arcs)
+        if window_size == 120 and step_size == 60:
+            if TIME_LIMIT_PER_WINDOW != TIME_LIMIT:
+                raise ValueError('Time limit per window is not equal to the total time limit')
+        start_time = time.time()
+        
+        current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs, solver_and_chObj = rolling_horizon_optimization(model=model, horizon_length=HORIZON, window_size=window_size, step_size=step_size, TIME_LIMIT_PER_WINDOW=TIME_LIMIT_PER_WINDOW, ps_data=ps_data, agent=agent, env=env, RUNNING_WPS_AND_RH=RUNNING_WPS_AND_RH, RUNNING_NPS_AND_RH=RUNNING_NPS_AND_RH, proximity_search_using_agent=proximity_search_using_agent, RUNNING_MIRPSO=RUNNING_MIRPSO, VESSEL_CLASSES = VESSEL_CLASSES, INSTANCE=INSTANCE, vessel_class_arcs=vessel_class_arcs)
         # Print objective function value
         print(f'Objective function value: {current_best_obj}')
-        
         end_time = time.time()
         elapsed_time = end_time - start_time
     
         save_solution(INSTANCE=INSTANCE, HORIZON=HORIZON, model = model, time_limit = TIME_LIMIT, elapsed_time=elapsed_time, costs=costs, P=P,
                   RUNNING_MIRPSO=RUNNING_MIRPSO, best_obj_val=current_best_obj, solution_vals_x = current_solution_vals_x,
                   solution_vals_s = current_solution_s, solution_vals_alpha = current_solution_alpha, active_arcs = active_arcs, vessel_classes=VESSEL_CLASSES,
-                  NPS = RUNNING_NORMAL_PS, WPS = RUNNING_WEIGHTED_PS, RH = RUNNING_RH, WPS_AND_RH = RUNNING_WPS_AND_RH, NPS_AND_RH=RUNNING_NPS_AND_RH, VESSEL_CLASSES = VESSEL_CLASSES, vessels = vessels, sourceNode = sourceNode, sinkNode = sinkNode, NODE_DICT = NODE_DICT, window_size = window_size, step_size = step_size)
+                  NPS = RUNNING_NORMAL_PS, WPS = RUNNING_WEIGHTED_PS, RH = RUNNING_RH, WPS_AND_RH = RUNNING_WPS_AND_RH, NPS_AND_RH=RUNNING_NPS_AND_RH, VESSEL_CLASSES = VESSEL_CLASSES, vessels = vessels, sourceNode = sourceNode, sinkNode = sinkNode, NODE_DICT = NODE_DICT, window_size = window_size, step_size = step_size, solver_and_chObj = solver_and_chObj)
     
         
     elif RUNNING_WPS_AND_RH:
@@ -1901,7 +1905,7 @@ def main():
         current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs = rolling_horizon_optimization(model =model, horizon_length=HORIZON, window_size=window_size, step_size=step_size, TIME_LIMIT_PER_WINDOW=TIME_LIMIT_PER_WINDOW, ps_data=ps_data, agent=agent, env=env, RUNNING_WPS_AND_RH=RUNNING_WPS_AND_RH, RUNNING_NPS_AND_RH=RUNNING_NPS_AND_RH, proximity_search_using_agent=proximity_search_using_agent, RUNNING_MIRPSO=RUNNING_MIRPSO, VESSEL_CLASSES = VESSEL_CLASSES, INSTANCE=INSTANCE, vessel_class_arcs=vessel_class_arcs)
         
     else:
-        current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs = solve_model(model=model, costs=costs, P=P, RUNNING_MIRPSO=RUNNING_MIRPSO, INSTANCE= INSTANCE, HORIZON=HORIZON, ps_data=ps_data, time_limit=TIME_LIMIT)
+        current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs, construction_heuri = solve_model(model=model, costs=costs, P=P, RUNNING_MIRPSO=RUNNING_MIRPSO, INSTANCE= INSTANCE, HORIZON=HORIZON, ps_data=ps_data, time_limit=TIME_LIMIT)
         end_time = time.time()
         elapsed_time = end_time - start_time
         window_size, step_size = None, None

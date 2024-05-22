@@ -184,7 +184,7 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
     # random.seed(1)
     gc.enable()
     
-    # INSTANCE = 'LR1_DR02_VC01_V6a'
+    INSTANCE = 'LR1_DR02_VC01_V6a'
     # INSTANCE = 'LR1_DR02_VC02_V6a'
     # INSTANCE = 'LR1_DR02_VC03_V7a'
     # INSTANCE = 'LR1_DR02_VC04_V8a'
@@ -192,16 +192,16 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
     # INSTANCE = 'LR1_DR03_VC03_V10b'
     
     'Trene agent på desse. mange iterasjoner.'
-    INSTANCE = 'LR1_DR02_VC03_V8a'
+    # INSTANCE = 'LR1_DR02_VC03_V8a'
     # INSTANCE = 'LR1_DR05_VC05_V25a'
     # INSTANCE = 'LR1_DR08_VC10_V40a'
     
     
     TRAINING_FREQUENCY = 1
-    TARGET_UPDATE_FREQUENCY = 100
+    TARGET_UPDATE_FREQUENCY = 200
     NON_RANDOM_ACTION_EPISODE_FREQUENCY = 5
     BATCH_SIZE = 500
-    BUFFER_SAVING_FREQUENCY = 50
+    BUFFER_SAVING_FREQUENCY = 200
     problem_data = build_problem(INSTANCE, RUNNING_MIRPSO)
     
     vessels, vessel_arcs, arc_dict, regularNodes, ports, TIME_PERIOD_RANGE, sourceNode, sinkNode, waiting_arcs, NODES, NODE_DICT, VESSEL_CLASSES, vessel_class_capacities, special_sink_arcs, special_nodes_dict = unpack_problem_data(problem_data)
@@ -260,6 +260,9 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
                 agent.update_target_network()
                 print('Target network updated')
                 gc.collect()
+                
+            port_inventory_dict = {}
+            # vessel_inventory_dict = {}
                         
             experience_path = []
             state = env.reset()
@@ -281,16 +284,16 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
                 # if env.is_infeasible(state):
                     # print(state['time'])
                 
-                state, total_reward_for_path, feasible_path = env.check_state(state=state, experience_path=experience_path, replay=replay, agent=agent, INSTANCE=INSTANCE, exploit=exploit)
+                state, total_reward_for_path, feasible_path = env.check_state(state=state, experience_path=experience_path, replay=replay, agent=agent, INSTANCE=INSTANCE, exploit=exploit, port_inventory_dict=port_inventory_dict)
+                
+                port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
                 
                 if state['done']:
                     if feasible_path:
                         num_feasible_paths_with_random_actions += 1
                     if episode % NON_RANDOM_ACTION_EPISODE_FREQUENCY == 0 or LOG:
-                        env.log_episode(episode, total_reward_for_path, experience_path, state)
+                        env.log_episode(episode, total_reward_for_path, experience_path, state, port_inventory_dict)
                     break
-                
-                state = env.produce(state)
                 
                 # With the increased time, the vessels have moved and some of them have maybe reached their destination. Updating the vessel status based on this.
                 env.update_vessel_status(state=state)
@@ -316,6 +319,9 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
                 else:
                     # Should check the feasibility of the state, even though no actions were performed. 
                     state = env.simple_step(state, experience_path)
+                    
+                state = env.produce(state)
+                
                 # Make consumption ports consume regardless if any actions were performed
                 
                 state = env.consumption(state)
