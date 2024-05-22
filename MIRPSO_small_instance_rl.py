@@ -69,73 +69,73 @@ def evaluate_agent_until_solution_is_found(env, agent):
         attempts += 1
         
 
-import matplotlib.pyplot as plt
-from IPython.display import display, clear_output
-def train_from_pre_populated_buffer(env, agent, num_episodes):
-    TRAINING_FREQUENCY = 1
-    TARGET_UPDATE_FREQUENCY = 100
-    EVALUATION_FREQUENCY = 100
-    first_infeasible_times = []
-    infeasibility_counters = []
-    plt.figure(figsize=(10, 6))
-    ax1 = plt.gca()  # Get the current axis
-    ax2 = ax1.twinx()  # Create another axis that shares the same x-axis
+# import matplotlib.pyplot as plt
+# from IPython.display import display, clear_output
+# def train_from_pre_populated_buffer(env, agent, num_episodes):
+#     TRAINING_FREQUENCY = 1
+#     TARGET_UPDATE_FREQUENCY = 100
+#     EVALUATION_FREQUENCY = 100
+#     first_infeasible_times = []
+#     infeasibility_counters = []
+#     plt.figure(figsize=(10, 6))
+#     ax1 = plt.gca()  # Get the current axis
+#     ax2 = ax1.twinx()  # Create another axis that shares the same x-axis
     
-    for episode in range(1, num_episodes + 1):
-        # Training the agent's network with a batch from the replay buffer.
-        if episode % TRAINING_FREQUENCY == 0:
-            agent.train_main_network(env)
+#     for episode in range(1, num_episodes + 1):
+#         # Training the agent's network with a batch from the replay buffer.
+#         if episode % TRAINING_FREQUENCY == 0:
+#             agent.train_main_network(env)
 
-        # Updating the target network
-        if episode % TARGET_UPDATE_FREQUENCY == 0:
-            agent.update_target_network()
-            print('Target network updated')
+#         # Updating the target network
+#         if episode % TARGET_UPDATE_FREQUENCY == 0:
+#             agent.update_target_network()
+#             print('Target network updated')
         
-        if episode % EVALUATION_FREQUENCY == 0:
+#         if episode % EVALUATION_FREQUENCY == 0:
             
-            # first_inf_time,infeasibility_counter, _, _, _ = evaluate_agent(env=env, agent=agent)
-            experience_path, port_inventory_dict, vessel_inventory_dict = evaluate_agent(env=env, agent=agent)
+#             # first_inf_time,infeasibility_counter, _, _, _ = evaluate_agent(env=env, agent=agent)
+#             experience_path, port_inventory_dict, vessel_inventory_dict = evaluate_agent(env=env, agent=agent)
             
-            state, action, vessel, reward, next_state, earliest_vessel, feasible_path, first_infeasible_time, terminal_flag = experience_path[0]
-            if feasible_path:
-                print('Feasible path')
-            else:
-                first_inf_time = first_infeasible_time
+#             state, action, vessel, reward, next_state, earliest_vessel, feasible_path, first_infeasible_time, terminal_flag = experience_path[0]
+#             if feasible_path:
+#                 print('Feasible path')
+#             else:
+#                 first_inf_time = first_infeasible_time
                 
-            infeasibility_counter = 0
-            infeasibility_dict = {}
-            for exp in experience_path:
-                current_state = exp[0]
-                # result_state = exp[4]
-                time = current_state['time']
-                if current_state['infeasible']:
-                    if time not in infeasibility_dict.keys():
-                        infeasibility_dict[time] = True
+#             infeasibility_counter = 0
+#             infeasibility_dict = {}
+#             for exp in experience_path:
+#                 current_state = exp[0]
+#                 # result_state = exp[4]
+#                 time = current_state['time']
+#                 if current_state['infeasible']:
+#                     if time not in infeasibility_dict.keys():
+#                         infeasibility_dict[time] = True
                         
-            # Check also the final state
-            if state['infeasible']:
-                infeasibility_dict[len(env.TIME_PERIOD_RANGE)] = True
+#             # Check also the final state
+#             if state['infeasible']:
+#                 infeasibility_dict[len(env.TIME_PERIOD_RANGE)] = True
                 
-            infeasibility_counter = len(infeasibility_dict.keys())
+#             infeasibility_counter = len(infeasibility_dict.keys())
             
-            if first_inf_time is None:
-                first_inf_time = env.TIME_PERIOD_RANGE[-1]
+#             if first_inf_time is None:
+#                 first_inf_time = env.TIME_PERIOD_RANGE[-1]
             
-            first_infeasible_times.append(first_inf_time)
-            infeasibility_counters.append(infeasibility_counter)
-            clear_output(wait=True)  # Clear the previous output
-            ax1.plot(first_infeasible_times, '-ob', label='First Infeasible Time')
-            ax2.plot(infeasibility_counters, '-or', label='Infeasibility Counter')
-            if episode == EVALUATION_FREQUENCY:  # Add the legend only once
-                ax1.legend(loc='upper left')
-                ax2.legend(loc='upper right')
-            ax1.set_title('Development of First Infeasible Times and Infeasibility Counters Over Episodes')
-            ax1.set_xlabel('Episode')
-            ax1.set_ylabel('First Infeasible Time', color='b')
-            ax2.set_ylabel('Infeasibility Counter', color='r')
-            display(plt.gcf())  # Display the current figure
-            plt.pause(0.001)  # Pause for a short period to allow the plot to update
-    plt.close()  # Close the figure to prevent additional output
+#             first_infeasible_times.append(first_inf_time)
+#             infeasibility_counters.append(infeasibility_counter)
+#             clear_output(wait=True)  # Clear the previous output
+#             ax1.plot(first_infeasible_times, '-ob', label='First Infeasible Time')
+#             ax2.plot(infeasibility_counters, '-or', label='Infeasibility Counter')
+#             if episode == EVALUATION_FREQUENCY:  # Add the legend only once
+#                 ax1.legend(loc='upper left')
+#                 ax2.legend(loc='upper right')
+#             ax1.set_title('Development of First Infeasible Times and Infeasibility Counters Over Episodes')
+#             ax1.set_xlabel('Episode')
+#             ax1.set_ylabel('First Infeasible Time', color='b')
+#             ax2.set_ylabel('Infeasibility Counter', color='r')
+#             display(plt.gcf())  # Display the current figure
+#             plt.pause(0.001)  # Pause for a short period to allow the plot to update
+#     plt.close()  # Close the figure to prevent additional output
             
 def unpack_problem_data(problem_data):
     vessels = problem_data['vessels']
@@ -184,7 +184,7 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
     # random.seed(1)
     gc.enable()
     
-    INSTANCE = 'LR1_DR02_VC01_V6a'
+    # INSTANCE = 'LR1_DR02_VC01_V6a'
     # INSTANCE = 'LR1_DR02_VC02_V6a'
     # INSTANCE = 'LR1_DR02_VC03_V7a'
     # INSTANCE = 'LR1_DR02_VC04_V8a'
@@ -192,7 +192,7 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
     # INSTANCE = 'LR1_DR03_VC03_V10b'
     
     'Trene agent på desse. mange iterasjoner.'
-    # INSTANCE = 'LR1_DR02_VC03_V8a'
+    INSTANCE = 'LR1_DR02_VC03_V8a'
     # INSTANCE = 'LR1_DR05_VC05_V25a'
     # INSTANCE = 'LR1_DR08_VC10_V40a'
     
