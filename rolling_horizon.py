@@ -48,28 +48,31 @@ def fix_prior_vars(model, warm_start_solution, window_start):
     for varname, var in x_solution.items():
         time = extract_time_period_from_x_var_name(varname)[0]
         val = round(warm_start_solution[varname])
-        if time <= window_start:
+        if time < window_start:
             # Round the value to the nearest integer
             var.start = val
             var.lb = val
             var.ub = val
             num_vars_fixed += 1
+            print(f'Fixed variable {varname} to {val}')
     for varname, var in s_solution.items():
         time = extract_time_period_from_s_or_alpha_var_name(varname)
         val = round(warm_start_solution[varname])
-        if time <= window_start + 1:
+        if time <= window_start:
             var.start = val
             var.lb = val
             var.ub = val
             num_vars_fixed += 1
+            print(f'Fixed variable {varname} to {val}')
     for varname, var in alpha_solution.items():
         time = extract_time_period_from_s_or_alpha_var_name(varname)
         val = round(warm_start_solution[varname])
-        if time <= window_start + 1:
+        if time < window_start:
             var.start = val
             var.lb = val
             var.ub = val
             num_vars_fixed += 1
+            print(f'Fixed variable {varname} to {val}')
     model.update()
     return model
    
@@ -86,7 +89,7 @@ def prepare_window(model, window_start, window_end, x_vars, x_bounds, s_vars, s_
     
     for var_name, var in s_vars.items():
         time_period = extract_time_period_from_s_or_alpha_var_name(var_name)
-        if time_period >= window_start:
+        if time_period > window_start:
             # fix_variable(var)
         # else:
             # Assuming we have a dictionary 's_bounds' that contains the upper bounds for 's' variables
@@ -106,6 +109,7 @@ def prepare_window(model, window_start, window_end, x_vars, x_bounds, s_vars, s_
     
         
 def solve_window(model, ps_data, TIME_LIMIT_PER_WINDOW):
+    ch_obj = None
     vessel_class_arcs = ps_data['vessel_class_arcs']
     """
     Solve the optimization model for a specific time window.
@@ -118,7 +122,7 @@ def solve_window(model, ps_data, TIME_LIMIT_PER_WINDOW):
     # Turn off heuristics.
     model.setParam('Heuristics', 0)  
     model.setParam('Presolve', 0)
-    model.setParam('TimeLimit', TIME_LIMIT_PER_WINDOW)
+    model.setParam('TimeLimit', 300)
     model.update()
     
     model.optimize(callback)
@@ -137,6 +141,7 @@ def solve_window(model, ps_data, TIME_LIMIT_PER_WINDOW):
     
     elif model.status == gp.GRB.OPTIMAL or model.status == gp.GRB.TIME_LIMIT or model.status == gp.GRB.INTERRUPTED:
         print("Feasible solution found in Phase 1")
+        ch_obj = model.objVal
 
         # Phase 2: Turn on heuristics and re-optimize with time limit
         model.setParam('Heuristics', 1)
@@ -163,7 +168,7 @@ def solve_window(model, ps_data, TIME_LIMIT_PER_WINDOW):
     current_solution_vals_alpha = get_current_alpha_solution_vals(model)
     active_arcs = find_corresponding_arcs(current_solution_vals_x, vessel_class_arcs)
     
-    return model.objVal, current_solution_vars_x, current_solution_vals_x, current_solution_vals_s, current_solution_vals_alpha, active_arcs
+    return model.objVal, current_solution_vars_x, current_solution_vals_x, current_solution_vals_s, current_solution_vals_alpha, active_arcs, ch_obj
     
     # elif model.status == gp.GRB.TIME_LIMIT:
     #     print("Time limit reached")
@@ -219,6 +224,7 @@ def rolling_horizon_optimization(model, horizon_length, window_size, step_size, 
     experience_path = None
     port_inventory_dict = None
     vessel_inventory_dict = None
+    solver_and_chObj = []
     for window_start in range(0, horizon_length + 1, step_size):
         
         # print('Stats after removing time-dependent constraints')
@@ -231,22 +237,26 @@ def rolling_horizon_optimization(model, horizon_length, window_size, step_size, 
         if not combined_solution:
             current_solution_vars_x, current_solution_vals_x, active_arcs, current_solution_vals_s = None, None, None, None
             
-        experience_path, port_inventory_dict, vessel_inventory_dict = construction_heuristic_for_window(env, agent, window_start, window_end, combined_solution, INSTANCE, experience_path, port_inventory_dict, vessel_inventory_dict, current_solution_vars_x, current_solution_vals_x, active_arcs, VESSEL_CLASSES, vessel_class_arcs, model,current_solution_vals_s)
+        solutions = construction_heuristic_for_window(env, agent, window_start, window_end, combined_solution, INSTANCE, experience_path, port_inventory_dict, vessel_inventory_dict, current_solution_vars_x, current_solution_vals_x, active_arcs, VESSEL_CLASSES, vessel_class_arcs, model,current_solution_vals_s)
         # Need to manually set sink arcs for every vessel
         
-        active_X_keys, S_values, alpha_values = convert_path_to_MIRPSO_solution(env, experience_path, port_inventory_dict)
+        best_solution, active_arcs_from_exp_path = convert_path_to_MIRPSO_solution(env, solutions, window_end, window_start)
+        active_X_keys, S_values, alpha_values, infeasibility_counter, feasible_solution, port_inventory_dict = best_solution
+        
+        if combined_solution:
+            # Fix the variabels prior to the current window.
+            fix_prior_vars(model, combined_solution, window_start)
+        
         print(f'S_values from construction heuristic: ')
         # for key, value in S_values.items():
             # print(f'{key}: {value}')
         current_solution_vals_x, model, warm_start_sol = warm_start_model(model, active_X_keys, S_values, alpha_values, env.SOURCE_NODE)
         current_solution_vars_x = {v.VarName: v for v in model.getVars() if v.VarName.startswith('x')}
         # Find the interregional arcs
-        interregional_vars_keys = {k for k, v in current_solution_vars_x.items() if k.startswith('x_interregional')}
+        # interregional_vars_keys = {k for k, v in current_solution_vars_x.items() if k.startswith('x_interregional')}
+        
         
         if combined_solution:
-            # Fix the variabels prior to the current window.
-            fix_prior_vars(model, combined_solution, window_start)
-            
             x_solution, s_solution, alpha_solution, x_bounds, s_bounds, alpha_bounds = get_var_data(model)
             # Prepare the model for the current window
             model = prepare_window(model, window_start, window_end, x_solution, x_bounds, s_solution, s_bounds, alpha_solution, alpha_bounds)
@@ -268,15 +278,16 @@ def rolling_horizon_optimization(model, horizon_length, window_size, step_size, 
             
         else:
             # Solve the model for the current window
-            current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_vals_s, current_solution_vals_alpha, active_arcs = solve_window(model, ps_data, TIME_LIMIT_PER_WINDOW)
+            current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_vals_s, current_solution_vals_alpha, active_arcs, ch_obj,  = solve_window(model, ps_data, TIME_LIMIT_PER_WINDOW)
             combined_solution = {**current_solution_vals_x, **current_solution_vals_s, **current_solution_vals_alpha}
+            solver_and_chObj.append((current_best_obj, ch_obj))
         
         if window_end >= horizon_length:
             break
         else:
             print('New iteration')
             
-    return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_vals_s, current_solution_vals_alpha, active_arcs
+    return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_vals_s, current_solution_vals_alpha, active_arcs, solver_and_chObj
     
         
 def extract_current_solution(model):
@@ -294,6 +305,7 @@ def adjust_constraints_for_window(model, window_end, time_constraints):
             # Add the constraint
             lhs, sense, rhs, name = info
             c = model.addConstr(lhs, sense, rhs, name)
+            print(f'Added constraint: {name}')
             # remove the constraint from the time_constraints dictionary
             constraints_to_remove_from_time_constraints.append(name)
             
@@ -303,6 +315,10 @@ def adjust_constraints_for_window(model, window_end, time_constraints):
     print(len(constraints_to_remove_from_time_constraints))
         
     model.update()
+    
+    # print all the constraints not added
+    for name, info in time_constraints.items():
+        print(name)
 
 def store_and_remove_time_constraints(model):
     # Dictionary to store time-dependent constraints
@@ -316,6 +332,10 @@ def store_and_remove_time_constraints(model):
     
     model.update()  # Always update the model after making changes
     print(f"Removed {len(time_constraints)} time-dependent constraints")
+    # # print the remaining constraints
+    # for constr in model.getConstrs():
+    #     print(constr.ConstrName)
+    
     return time_constraints
     
 def restore_constraints(model, original_rhs):
