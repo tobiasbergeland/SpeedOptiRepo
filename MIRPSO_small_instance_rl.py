@@ -192,13 +192,13 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
     # INSTANCE = 'LR1_DR03_VC03_V10b'
     
     'Trene agent på desse. mange iterasjoner.'
-    INSTANCE = 'LR1_DR02_VC03_V8a'
+    # INSTANCE = 'LR1_DR02_VC03_V8a'
     # INSTANCE = 'LR1_DR05_VC05_V25a'
-    # INSTANCE = 'LR1_DR08_VC10_V40a'
+    INSTANCE = 'LR1_DR08_VC10_V40a'
     
     
     TRAINING_FREQUENCY = 1
-    TARGET_UPDATE_FREQUENCY = 200
+    TARGET_UPDATE_FREQUENCY = 50
     NON_RANDOM_ACTION_EPISODE_FREQUENCY = 5
     BATCH_SIZE = 500
     BUFFER_SAVING_FREQUENCY = 200
@@ -284,7 +284,7 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
                 # if env.is_infeasible(state):
                     # print(state['time'])
                 
-                state, total_reward_for_path, feasible_path = env.check_state(state=state, experience_path=experience_path, replay=replay, agent=agent, INSTANCE=INSTANCE, exploit=exploit, port_inventory_dict=port_inventory_dict)
+                state, total_reward_for_path, feasible_path, alpha_register = env.check_state(state=state, experience_path=experience_path, replay=replay, agent=agent, INSTANCE=INSTANCE, exploit=exploit, port_inventory_dict=port_inventory_dict)
                 
                 port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
                 
@@ -292,7 +292,7 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
                     if feasible_path:
                         num_feasible_paths_with_random_actions += 1
                     if episode % NON_RANDOM_ACTION_EPISODE_FREQUENCY == 0 or LOG:
-                        env.log_episode(episode, total_reward_for_path, experience_path, state, port_inventory_dict)
+                        env.log_episode(episode, total_reward_for_path, experience_path, state, port_inventory_dict, alpha_register)
                     break
                 
                 # With the increased time, the vessels have moved and some of them have maybe reached their destination. Updating the vessel status based on this.

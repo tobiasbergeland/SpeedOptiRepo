@@ -17,10 +17,9 @@ gstat -a
 ssh compute-x-y
 
 ### Load modules
-module load Python
-module load gurobi
-
-cd SpeedOptiRepo
+module load Python gurobi
+cd Masteroppgave/SpeedOptiRepo
+python MIRP_GROUP_2.py
 
 
 jupyter nbconvert --to python MIRP_operating_speed.ipynb
@@ -33,6 +32,8 @@ python mirpso.py
 
 jupyter nbconvert --to python MIRP_Route_Fixed_Speed_Optimization.ipynb
 python MIRP_Route_Fixed_Speed_Optimization.py
+
+python MIRPSO_small_instance_rl.py
 
 
 
