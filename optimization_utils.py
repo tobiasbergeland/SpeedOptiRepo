@@ -253,7 +253,7 @@ def construction_heuristic_for_window(env, agent, window_start, window_end, comb
             
         while not done:
             # Check if state is infeasible or terminal
-            state, total_reward_for_path, feasible_path = env.check_state(state=state, experience_path=experience_path, replay=agent.memory, agent=agent, INSTANCE=INSTANCE, exploit = False, port_inventory_dict=port_inventory_dict)
+            state, total_reward_for_path, feasible_path, alpha_register = env.check_state(state=state, experience_path=experience_path, replay=agent.memory, agent=agent, INSTANCE=INSTANCE, exploit = False, port_inventory_dict=port_inventory_dict)
             
             port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
             # vessel_inventory_dict[state['time']] = {vessel.number: vessel.inventory for vessel in state['vessels']}
@@ -573,7 +573,7 @@ def warm_start_model(m, active_X_keys, S_values, alpha_values, source_node):
         # Set the start value to 0 if the variable is found
         if x_var is not None and (x_var.lb != x_var.ub):
             x_var.Start = counter
-            print(f'Variable {x_var_name} has been set to {counter}')
+            # print(f'Variable {x_var_name} has been set to {counter}')
             # if "x_non_" in x_var_name:
             #     if x_var_name in waiting_arcs_taken_counter.keys():
             #         times_taken_before = waiting_arcs_taken_counter[x_var_name]
@@ -623,7 +623,7 @@ def warm_start_model(m, active_X_keys, S_values, alpha_values, source_node):
     x_solution = {v.VarName: v.Start for v in m.getVars() if v.VarName.startswith('x')}
     warm_start_sol = {v.VarName: v.Start for v in m.getVars()}
     
-    print(f'Warm start solution has {warm_start_vars} variables set. The total number of variables in the model is {len(m.getVars())}')
+    # print(f'Warm start solution has {warm_start_vars} variables set. The total number of variables in the model is {len(m.getVars())}')
     
     # # Print all the vars that has not been set
     # for var in m.getVars():

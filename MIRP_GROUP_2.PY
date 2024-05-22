@@ -1012,7 +1012,7 @@ def build_problem(INSTANCE, RUNNING_MIRPSO):
     all_ports, loading_regions, discharging_regions, port_dict = create_ports_from_info_with_loading(ports_info, spotMarketPricePerUnit, spotMarketDiscountFactor)
     ports = get_ports(all_ports)
     NUM_TIME_PERIODS = metadata['numPeriods']
-    NUM_TIME_PERIODS = 120
+    NUM_TIME_PERIODS = 100
     TIME_PERIOD_RANGE = list(range(0, NUM_TIME_PERIODS))
     FUEL_PRICE = 500
     ORIGINAL_NUM_PORTS = len(ports)
@@ -1791,7 +1791,7 @@ def main():
     # RUNNING_WPS_AND_RH = True
     
     # GROUP 2
-    INSTANCE = 'LR1_DR02_VC01_V6a'
+    # INSTANCE = 'LR1_DR02_VC01_V6a'
     # INSTANCE = 'LR1_DR02_VC02_V6a'
     # INSTANCE = 'LR1_DR02_VC03_V7a'
     
@@ -1803,11 +1803,11 @@ def main():
     # INSTANCE = 'LR1_DR03_VC03_V10b'
     
     'RUN 2'
-    # INSTANCE = 'LR1_DR05_VC05_V25a'
+    INSTANCE = 'LR1_DR05_VC05_V25a'
     'RUN 3'
     # INSTANCE = 'LR1_DR08_VC10_V40a' 
     
-    TIME_LIMIT = 20
+    TIME_LIMIT = 7200
     
     problem_data = build_problem(INSTANCE, RUNNING_MIRPSO)
     
@@ -1864,16 +1864,13 @@ def main():
         agent = DQNAgent(ports = ports, vessels=vessels, TRAINING_FREQUENCY = None, TARGET_UPDATE_FREQUENCY = None, NON_RANDOM_ACTION_EPISODE_FREQUENCY = None, BATCH_SIZE = None, replay = replay)
         # replay = agent.load_replay_buffer(file_name= 'replay_buffer_LR1_DR02_VC03_V8a_INF_COUNTER_5_5.pkl')
         agent.memory = replay
-        agent.main_model.load_state_dict(torch.load('main_model_LR1_DR02_VC01_V6a_INF_COUNTER_1_6.pth'))
-        agent.target_model.load_state_dict(torch.load('target_model_LR1_DR02_VC01_V6a_INF_COUNTER1_6.pth'))
+        agent.main_model.load_state_dict(torch.load('active_agents/main_model_LR1_DR05_VC05_V25a_alpha_COUNTER_25_1.pth'))
+        agent.target_model.load_state_dict(torch.load('active_agents/target_model_LR1_DR05_VC05_V25a_alpha_COUNTER25_1.pth'))
         
         # Define your window size and execute rolling horizon optimization
-        window_size = 90  # example window size
-        step_size = 45
+        window_size = 98  # example window size
+        step_size = 49
         TIME_LIMIT_PER_WINDOW = calc_time_limit_per_window(TIME_LIMIT, HORIZON, window_size, step_size)
-        if window_size == 120 and step_size == 60:
-            if TIME_LIMIT_PER_WINDOW != TIME_LIMIT:
-                raise ValueError('Time limit per window is not equal to the total time limit')
         start_time = time.time()
         
         current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs, solver_and_chObj = rolling_horizon_optimization(model=model, horizon_length=HORIZON, window_size=window_size, step_size=step_size, TIME_LIMIT_PER_WINDOW=TIME_LIMIT_PER_WINDOW, ps_data=ps_data, agent=agent, env=env, RUNNING_WPS_AND_RH=RUNNING_WPS_AND_RH, RUNNING_NPS_AND_RH=RUNNING_NPS_AND_RH, proximity_search_using_agent=proximity_search_using_agent, RUNNING_MIRPSO=RUNNING_MIRPSO, VESSEL_CLASSES = VESSEL_CLASSES, INSTANCE=INSTANCE, vessel_class_arcs=vessel_class_arcs)

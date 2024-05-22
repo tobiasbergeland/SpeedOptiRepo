@@ -686,7 +686,7 @@ class MIRPSOEnv():
         '''Evaluates the state and returns status and reward.'''
         total_reward_for_path  = 0
         if self.is_terminal(state):
-            experience_path, feasible_path = self.update_rewards_in_experience_path(experience_path, agent, INSTANCE, exploit, port_inventory_dict)
+            experience_path, feasible_path, alpha_register = self.update_rewards_in_experience_path(experience_path, agent, INSTANCE, exploit, port_inventory_dict)
             for exp in experience_path:
                 action = exp[1]
                 time = exp[0]['time']
@@ -702,20 +702,27 @@ class MIRPSOEnv():
                 total_reward_for_path += rew
             state['done'] = True
             state['infeasible'] = self.is_infeasible(state=state)
-            return state, total_reward_for_path, feasible_path
+            return state, total_reward_for_path, feasible_path, alpha_register
         # state['infeasible'] = self.is_infeasible(state=state)
-        return state, None, None
+        return state, None, None, None
     
-    def log_episode(self, episode, total_reward_for_path, experience_path, state, port_inventory_dict):
+    def log_episode(self, episode, total_reward_for_path, experience_path, state, port_inventory_dict, alpha_register):
         infeasibility_counter = 0
         infeasibility_dict = {}
-        for exp in experience_path:
-            next_state = exp[4]
-            time = next_state['time']
-            alpha_state = exp[8]
-            if alpha_state:
-                if time not in infeasibility_dict.keys():
-                    infeasibility_dict[time] = True    
+        # for exp in experience_path:
+        #     next_state = exp[4]
+        #     time = next_state['time']
+        #     alpha_state = exp[8]
+        #     if alpha_state:
+        #         if time not in infeasibility_dict.keys():
+        #             infeasibility_dict[time] = True
+        
+        for time, port_dict in alpha_register.items():
+            for port_number, alpha in port_dict.items():
+                if alpha > 0:
+                    if time not in infeasibility_dict.keys():
+                        infeasibility_dict[time] = True
+                        infeasibility_counter += 1
             
         infeasibility_counter = len(infeasibility_dict.keys())
         print(f"Episode {episode}: Total Reward = {total_reward_for_path}\nInfeasibility Counter = {infeasibility_counter}")
@@ -814,22 +821,88 @@ class MIRPSOEnv():
                                 acc_alpha[port.number] += alpha
                                 alpha_register[time-1][port.number] = alpha
                                 infeasibility_counter += 1
-                                alpha_states.add(time-1)
+                                alpha_states.add(time - 1)
                                 if first_infeasible_time is None:
                                     first_infeasible_time = time
                     else:
                         if inv + acc_alpha[port.number] < 0:
                             alpha = - (inv + acc_alpha[port.number])
                             acc_alpha[port.number] += alpha
-                            alpha_register[time-1][port.number] = alpha
+                            alpha_register[time - 1][port.number] = alpha
                             infeasibility_counter += 1
-                            alpha_states.add(time-1)
+                            alpha_states.add(time - 1)
                             if first_infeasible_time is None:
                                 first_infeasible_time = time
                         
-                        
-                        
+        reward = 0
+        feasible_path = False
+        if infeasibility_counter == 0:
+            print('Feasible path with no alpha')
+            first_infeasible_time = None
+            feasible_path = True
+            
+         # First remove all none action exp in the experience path
+        experience_path = [exp for exp in experience_path if exp[1] is not None]
+        
+        for i in range(len(experience_path) - 1):
+            current_exp = experience_path[i]
+            next_exp = experience_path[i + 1]
+            # Unpack the current experience tuple
+            current_state, action, vessel, reward_ph, next_state, earliest_vessel, feasible_path_ph, fi_time, terminal_flag, alpha_state = current_exp
+            # Unpack the next experience tuple
+            next_current_state, next_action, next_vessel, next_reward_ph, next_next_state, next_earliest_vessel, next_feasible_path_ph, next_fi_time, next_terminal_flag, next_alpha_state = next_exp
+            # Set the current state's next state equal to the next current state
+            current_exp[4] = next_current_state
+            
+        for exp in experience_path:
+            current_state, action, vessel, reward_ph, next_state, earliest_vessel, feasible_path_ph, fi_time, terminal_flag, alpha_state= exp
+            current_state_time = current_state['time']
+            next_state_time = next_state['time']
+            
+            '''Immediate Reward'''
+            if next_state_time in alpha_states or current_state_time in alpha_states:
+                reward = -1
+                alpha_state = True
+            else:
+                if not action[3].is_waiting_arc:
+                    reward = 1
+
+            '''Terminal Reward'''
+            alpha_penalty = 10
+            # If the whole path is feasible, add a huge reward discounted reward
+            time_until_terminal = horizon - current_state_time
+            if feasible_path or len(alpha_states) < 20:
+                extra_reward_for_feasible_path = 30 - infeasibility_counter
+                feasibility_reward = extra_reward_for_feasible_path * agent.gamma ** time_until_terminal
+                # feasibility_reward = extra_reward_for_feasible_path
+                if action is not None:
+                    reward += feasibility_reward
+                feasible_path = True
+                    
+            # else:
+            #     # Create an interval from (current_state_time - 15) to (next_state_time + 15)
+            #     interval = set(range(current_state_time, min(next_state_time + 15, horizon)))
+            #     # Count the number of alpha states in the interval
+            #     alpha_states_in_interval = interval.intersection(alpha_states)
                 
+            #     terminal_penalty = len(alpha_states_in_interval)/horizon
+            #     # terminal_penalty = alpha_penalty*(len(alpha_states)/horizon) * agent.gamma ** current_state_time
+            #     if action is not None:
+            #         reward -= terminal_penalty
+        
+            self.apply_reward(exp, feasible_path, first_infeasible_time, reward, alpha_state)
+                        
+                        
+        if (len(alpha_states)<self.current_best_IC and len(alpha_states)<=70 and exploit) or (len(alpha_states)<=20 and exploit):
+                # save the main and target networks
+                torch.save(agent.main_model.state_dict(), f'main_model_{INSTANCE}_alpha_COUNTER_{len(alpha_states)}_{self.inf_counter_updates}.pth')
+                torch.save(agent.target_model.state_dict(), f'target_model_{INSTANCE}_alpha_COUNTER{len(alpha_states)}_{self.inf_counter_updates}.pth')
+                with open(f'replay_buffer_{INSTANCE}_INF_COUNTER_{len(alpha_states)}_{self.inf_counter_updates}.pkl', 'wb') as f:
+                    pickle.dump(agent.memory, f)
+                self.current_best_IC = len(alpha_states)
+                self.inf_counter_updates += 1
+                print(f'New IC: {len(alpha_states)}')
+        return experience_path, feasible_path, alpha_register            
                 
         
         # for exp in experience_path:
@@ -868,12 +941,6 @@ class MIRPSOEnv():
         # if first_infeasible_time is None:
         #     print('yo')
         
-        reward = 0
-        feasible_path = False
-        if infeasibility_counter == 0:
-            print('Feasible path with no alpha')
-            first_infeasible_time = None
-            feasible_path = True
         
         
         # checkpoint_rew = True
@@ -902,43 +969,46 @@ class MIRPSOEnv():
         # else:
         #     extra_cp_reward = 0
 
-        for exp in experience_path:
-            current_state, action, vessel, reward_ph, next_state, earliest_vessel, feasible_path_ph, fi_time, terminal_flag, alpha_state= exp
-            if action is None:
-                continue
-            arc = action[3]
-            if arc.is_waiting_arc:
-                continue
-            destination_node = arc.destination_node
-            start_time = current_state['time']
-            # Find the next state where the vessel is at the destination port
-            for e in experience_path:
-                result_state = e[0]
-                result_time = result_state['time']
-                if result_time <= start_time:
-                    continue
-                if result_state['time'] == destination_node.time:
-                    if result_state['vessel_dict'][vessel.number]['position'] is not None:
-                        if result_state['vessel_dict'][vessel.number]['position'] == destination_node.port.number:
-                            exp[4] = result_state
-                            break
+        # for exp in experience_path:
+        #     current_state, action, vessel, reward_ph, next_state, earliest_vessel, feasible_path_ph, fi_time, terminal_flag, alpha_state= exp
+        #     if action is None:
+        #         continue
+        #     arc = action[3]
+        #     if arc.is_waiting_arc:
+        #         continue
+        #     destination_node = arc.destination_node
+        #     start_time = current_state['time']
+        #     # Find the next state where the vessel is at the destination port
+        #     for e in experience_path:
+        #         result_state = e[0]
+        #         result_time = result_state['time']
+        #         if result_time <= start_time:
+        #             continue
+        #         if result_state['time'] == destination_node.time:
+        #             if result_state['vessel_dict'][vessel.number]['position'] is not None:
+        #                 if result_state['vessel_dict'][vessel.number]['position'] == destination_node.port.number:
+        #                     exp[4] = result_state
+        #                     break
+                        
+                        
+        # for exp in experience_path:
+        #     current_state, action, vessel, reward_ph, next_state, earliest_vessel, feasible_path_ph, fi_time, terminal_flag, alpha_state= exp
+        #     # Find the next state where the vessel is at the destination port
+        
+       
+            
 
 
                 
         
-        for exp in experience_path:
+        #     # list of time periods between current and next time
+        #     interval = [t for t in range(current_state_time +1, next_state_time + 1)]
 
-            current_state, action, vessel, reward_ph, next_state, earliest_vessel, feasible_path_ph, fi_time, terminal_flag, alpha_state= exp
-            current_state_time = current_state['time']
-            next_state_time = next_state['time']
-            # list of time periods between current and next time
-            interval = [t for t in range(current_state_time +1, next_state_time + 1)]
+        #     # Assuming alpha_state is a list of time periods
+        #     common_periods = [t for t in interval if t in alpha_states]
 
-            # Assuming alpha_state is a list of time periods
-            common_periods = [t for t in interval if t in alpha_states]
-
-            if len(common_periods)==0:
-                reward = len(interval)
+        #     if len(common_periods)==0:
+        #         reward = len(interval)
             # else:
                 # reward = - len(common_periods)
 
@@ -951,13 +1021,7 @@ class MIRPSOEnv():
 
 
                 
-            '''Immediate Reward'''
-            if not next_state['time'] in alpha_states:
-                reward = 1
-                alpha_state = False
-            else:
-                reward = -5
-                alpha_state = True
+          
             # '''Immediate Reward'''
             # if not next_state['infeasible']:
             #     reward = 10
@@ -991,23 +1055,7 @@ class MIRPSOEnv():
                 # Update the reward using the clipped future reward
                 # reward += max_future_reward
             
-            '''Terminal Reward'''
-            alpha_penalty = 1
-            # If the whole path is feasible, add a huge reward discounted reward
-            if feasible_path or infeasibility_counter < 10:
-                current_time = current_state['time']
-                time_until_terminal = horizon - current_time
-                extra_reward_for_feasible_path = 20 - infeasibility_counter
-                feasibility_reward = extra_reward_for_feasible_path * agent.gamma ** time_until_terminal
-                # feasibility_reward = extra_reward_for_feasible_path
-                if action is not None:
-                    reward += feasibility_reward
-                feasible_path = True
-                    
-            # else:
-            #     terminal_penalty = alpha_penalty*infeasibility_counter * agent.gamma ** time_until_terminal
-            #     if action is not None:
-            #         reward -= terminal_penalty
+    
                 
                     
             # '''Terminal Reward'''
@@ -1020,22 +1068,9 @@ class MIRPSOEnv():
             #     if action is not None:
             #         reward += feasibility_reward
             
-            self.apply_reward(exp, feasible_path, first_infeasible_time, reward, alpha_state)
+        
             
-        if feasible_path:
-            print('Feasible path')
-            
-        if (infeasibility_counter<self.current_best_IC and infeasibility_counter<=50 and exploit) or (infeasibility_counter<=8 and exploit):
-            # save the main and target networks
-            torch.save(agent.main_model.state_dict(), f'main_model_{INSTANCE}_alpha_COUNTER_{infeasibility_counter}_{self.inf_counter_updates}.pth')
-            torch.save(agent.target_model.state_dict(), f'target_model_{INSTANCE}_alpha_COUNTER{infeasibility_counter}_{self.inf_counter_updates}.pth')
-            with open(f'replay_buffer_{INSTANCE}_INF_COUNTER_{infeasibility_counter}_{self.inf_counter_updates}.pkl', 'wb') as f:
-                pickle.dump(agent.memory, f)
-            self.current_best_IC = infeasibility_counter
-            self.inf_counter_updates += 1
-            print(f'New IC: {infeasibility_counter}')
-            # agent.optimizer = optim.Adam(agent.main_model.parameters(), lr=0.0001)
-        return experience_path, feasible_path
+        
     
     def sim_all_vessels_finished(self, state):
         for vessel in state['vessel_dict'].values():
@@ -1190,31 +1225,31 @@ class MIRPSOEnv():
     
 class DQN(nn.Module):
     
-    # def __init__(self, state_size, action_size):
-    #     super(DQN, self).__init__()
-    #     self.fc1 = nn.Linear(state_size, 64)    # First fully connected layer
-    #     self.fc2 = nn.Linear(64, 128)           # Second fully connected layer
-    #     self.fc3 = nn.Linear(128, 128)          # Third fully connected layer (newly added)
-    #     self.fc4 = nn.Linear(128, action_size)  # Output layer
-    #     self.relu = nn.ReLU() # ReLU activation
-        
-    # def forward(self, state):
-    #     x = self.relu(self.fc1(state))
-    #     x = self.relu(self.fc2(x))
-    #     x = self.relu(self.fc3(x))              # Apply ReLU activation to the new layer
-    #     return self.fc4(x)
-    
     def __init__(self, state_size, action_size):
         super(DQN, self).__init__()
-        self.fc1 = nn.Linear(state_size, 64)     # First fully connected layer
-        self.fc2 = nn.Linear(64, 128)             # Second fully connected layer
-        self.fc3 = nn.Linear(128, action_size)    # Output layer
-        self.relu = nn.ReLU()                    # ReLU activation
-
+        self.fc1 = nn.Linear(state_size, 64)    # First fully connected layer
+        self.fc2 = nn.Linear(64, 128)           # Second fully connected layer
+        self.fc3 = nn.Linear(128, 128)          # Third fully connected layer (newly added)
+        self.fc4 = nn.Linear(128, action_size)  # Output layer
+        self.relu = nn.ReLU() # ReLU activation
+        
     def forward(self, state):
         x = self.relu(self.fc1(state))
         x = self.relu(self.fc2(x))
-        return self.fc3(x)
+        x = self.relu(self.fc3(x))              # Apply ReLU activation to the new layer
+        return self.fc4(x)
+    
+    # def __init__(self, state_size, action_size):
+    #     super(DQN, self).__init__()
+    #     self.fc1 = nn.Linear(state_size, 64)     # First fully connected layer
+    #     self.fc2 = nn.Linear(64, 128)             # Second fully connected layer
+    #     self.fc3 = nn.Linear(128, action_size)    # Output layer
+    #     self.relu = nn.ReLU()                    # ReLU activation
+
+    # def forward(self, state):
+    #     x = self.relu(self.fc1(state))
+    #     x = self.relu(self.fc2(x))
+    #     return self.fc3(x)
     
     
     
@@ -1309,8 +1344,8 @@ class DQNAgent:
         self.epsilon_decay = 0.999
         self.main_model = DQN(state_size, action_size)
         self.target_model = DQN(state_size, action_size)
-        self.optimizer = optim.Adam(self.main_model.parameters(), lr=0.01)
-        # self.optimizer = optim.Adam(self.main_model.parameters(), lr=0.0001)
+        # self.optimizer = optim.Adam(self.main_model.parameters(), lr=0.01)
+        self.optimizer = optim.Adam(self.main_model.parameters(), lr=0.0001)
         # agent.optimizer = optim.Adam(agent.main_model.parameters(), lr=0.0001)
         self.TRAINING_FREQUENCY = TRAINING_FREQUENCY
         self.TARGET_UPDATE_FREQUENCY = TARGET_UPDATE_FREQUENCY
@@ -1341,6 +1376,12 @@ class DQNAgent:
             #         return action, new_state
                 
             if np.random.rand() < self.epsilon:
+                action = random.choice(legal_actions)
+                arc = action[3]
+                new_state = env.update_vessel_in_transition_and_inv_for_state(state = state, vessel = vessel_simp, destination_port = arc.destination_node.port, destination_time = arc.destination_node.time, origin_port = arc.origin_node.port, quantity = action[2], operation_type = action[1])
+                return action, new_state
+        else:
+            if np.random.rand() < 0.1:
                 action = random.choice(legal_actions)
                 arc = action[3]
                 new_state = env.update_vessel_in_transition_and_inv_for_state(state = state, vessel = vessel_simp, destination_port = arc.destination_node.port, destination_time = arc.destination_node.time, origin_port = arc.origin_node.port, quantity = action[2], operation_type = action[1])
@@ -1532,7 +1573,11 @@ class DQNAgent:
         minibatch = self.memory.sample(self.BATCH_SIZE)
         for _, exp in minibatch:
             state, action, vessel, reward, next_state, _, _, _, terminal_flag, alpha_state= exp
+            if vessel is None:
+                print('None vessel')
             vessel_simp = state['vessel_dict'][vessel.number]
+            if vessel_simp is None:
+                print('None vessel_simp')
             encoded_state = env.encode_state(state, vessel_simp)
             # encoded_state = torch.FloatTensor(encoded_state).unsqueeze(0)
             encoded_state = torch.FloatTensor(encoded_state).unsqueeze(0).to(self.device)
@@ -1590,9 +1635,9 @@ class DQNAgent:
             # # Use the adjusted_reward directly as the target
             # target_q = target_q.squeeze()
             # Compute loss
-            loss = F.mse_loss(q_value, target_q)
+            # loss = F.mse_loss(q_value, target_q)
             # Use MAE loss
-            # loss = F.l1_loss(q_value, target_q)
+            loss = F.l1_loss(q_value, target_q)
             
             
             # Print the actual loss value
@@ -1631,7 +1676,7 @@ class DQNAgent:
         avg_gradient_norm = sum(gradient_norms) / len(gradient_norms)
         # Update epsilon
         self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
-        print(f"Total loss: {total_loss}, Average Gradient Norm: {avg_gradient_norm}")
+        print(f"Avg loss: {total_loss/self.BATCH_SIZE}, Average Gradient Norm: {avg_gradient_norm}")
         
     def update_target_network(self):
         self.target_model.load_state_dict(self.main_model.state_dict())   

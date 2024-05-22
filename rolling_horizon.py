@@ -54,7 +54,7 @@ def fix_prior_vars(model, warm_start_solution, window_start):
             var.lb = val
             var.ub = val
             num_vars_fixed += 1
-            print(f'Fixed variable {varname} to {val}')
+            # print(f'Fixed variable {varname} to {val}')
     for varname, var in s_solution.items():
         time = extract_time_period_from_s_or_alpha_var_name(varname)
         val = round(warm_start_solution[varname])
@@ -63,7 +63,7 @@ def fix_prior_vars(model, warm_start_solution, window_start):
             var.lb = val
             var.ub = val
             num_vars_fixed += 1
-            print(f'Fixed variable {varname} to {val}')
+            # print(f'Fixed variable {varname} to {val}')
     for varname, var in alpha_solution.items():
         time = extract_time_period_from_s_or_alpha_var_name(varname)
         val = round(warm_start_solution[varname])
@@ -72,7 +72,7 @@ def fix_prior_vars(model, warm_start_solution, window_start):
             var.lb = val
             var.ub = val
             num_vars_fixed += 1
-            print(f'Fixed variable {varname} to {val}')
+            # print(f'Fixed variable {varname} to {val}')
     model.update()
     return model
    
@@ -305,20 +305,20 @@ def adjust_constraints_for_window(model, window_end, time_constraints):
             # Add the constraint
             lhs, sense, rhs, name = info
             c = model.addConstr(lhs, sense, rhs, name)
-            print(f'Added constraint: {name}')
+            # print(f'Added constraint: {name}')
             # remove the constraint from the time_constraints dictionary
             constraints_to_remove_from_time_constraints.append(name)
             
     for name in constraints_to_remove_from_time_constraints:
         del time_constraints[name]
         
-    print(len(constraints_to_remove_from_time_constraints))
+    # print(len(constraints_to_remove_from_time_constraints))
         
     model.update()
     
     # print all the constraints not added
-    for name, info in time_constraints.items():
-        print(name)
+    # for name, info in time_constraints.items():
+        # print(name)
 
 def store_and_remove_time_constraints(model):
     # Dictionary to store time-dependent constraints
@@ -331,7 +331,7 @@ def store_and_remove_time_constraints(model):
             model.remove(constr)  # Remove the constraint from the model
     
     model.update()  # Always update the model after making changes
-    print(f"Removed {len(time_constraints)} time-dependent constraints")
+    # print(f"Removed {len(time_constraints)} time-dependent constraints")
     # # print the remaining constraints
     # for constr in model.getConstrs():
     #     print(constr.ConstrName)
