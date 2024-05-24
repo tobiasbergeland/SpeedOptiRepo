@@ -8,6 +8,8 @@ import torch.optim as optim
 from collections import deque
 import torch.nn.functional as F
 import copy
+from sklearn.preprocessing import OneHotEncoder
+
 
 
 class MIRPSOEnv():
@@ -308,27 +310,53 @@ class MIRPSOEnv():
         port_dict = {k: port for k, port in state['port_dict'].items() if port['capacity'] is not None}
         vessel_dict = state['vessel_dict']
         
+        # Find the highest capacity/rate ratio in the environment
+        max_rate = 0
+        for port in port_dict.values():
+            if port['rate'] != 0:
+                max_rate = max(max_rate, port['capacity'] / port['rate'])
+        
+        
         port_critical_times = np.array([
-        math.floor(current_inventory / rate) if port['isLoadingPort'] != 1 else math.floor((port['capacity'] - current_inventory) / rate)
+        (current_inventory / port['capacity']) if port['isLoadingPort'] != 1 else ((port['capacity'] - current_inventory) / port['capacity'])
         for port in port_dict.values()
         for rate, current_inventory in [(port['rate'], port['inventory'])]])
+        
+        # # Find the maximum rate
+        # max_rate = 0
+        # for port in port_dict.values():
+        #     max_rate = float(max(max_rate, float(port['rate'])))
+        
+        # port_rates = np.array([float(port['rate'])/port['capacity'] for port in port_dict.values()])
+        
+        
         # vessel_inventories = np.array([vessel['inventory'] / vessel['capacity'] for vessel in vessel_dict.values()])
         # current_vessel_number = np.array([vessel_simp['number']])
         current_vessel_position = np.array([vessel_simp['position']])
         current_vessel_class = np.array([vessel_simp['vessel_class']])
         # inventory_effect_on_ports = np.array([(vessel_simp['capacity'] / port['rate']) for port in port_dict.values()])
         
+        max_effect = 0
+        for port in port_dict.values():
+            for vessel in vessel_dict.values():
+                if port['rate'] != 0:
+                    max_effect = max(max_effect, vessel['capacity'] / port['capacity'])
+                
         inventory_effect_on_ports = []
         current_port_is_loading = port_dict[vessel_simp['position']]['isLoadingPort'] == 1
         for port in port_dict.values():
             # If both current and iterated ports are loading ports, or both are not, the effect is 0.
             # Otherwise, calculate the effect based on the vessel's capacity and the port's rate.
-            effect = 0 if (current_port_is_loading == (port['isLoadingPort'] == 1)) else (vessel_simp['capacity'] // port['rate'])
+            effect = 0 if (current_port_is_loading == (port['isLoadingPort'] == 1)) else (vessel_simp['capacity'] / port['capacity'])/max_effect
             inventory_effect_on_ports.append(effect)
         inventory_effect_on_ports = np.array(inventory_effect_on_ports)
                 
         
-        travel_times = np.array(self.TRAVEL_TIME_DICT[vessel_simp['position']])
+        max_travel_time = 0
+        for travel_time in self.TRAVEL_TIME_DICT.values():
+            max_travel_time = max(max_travel_time, max(travel_time))
+            
+        travel_times = np.array(self.TRAVEL_TIME_DICT[vessel_simp['position']])/max_travel_time
         # Change to -1 for ports the vessel cannot travel to, but keep 0 for the current position for the vessel.
         current_vessel_position = vessel_simp['position']
         # Change all entries that are 0 to -1, except for the current position in travel times
@@ -338,31 +366,122 @@ class MIRPSOEnv():
         
          
         
-        vessel_positions = np.array([v['position'] if v['position'] else v['in_transit_towards']['destination_port_number'] for v in vessel_dict.values()])
-        vessel_in_transit = np.array([v['in_transit_towards']['destination_time'] - state['time'] if v['in_transit_towards'] else 0 for v in vessel_dict.values()])
+        vessel_positions_NN = np.array([v['position'] if v['position'] else v['in_transit_towards']['destination_port_number'] for v in vessel_dict.values()])
+        vessel_positions_reshaped = vessel_positions_NN.reshape(-1, 1)
+        onehot_encoder = OneHotEncoder(sparse=False, categories=[np.arange(1, len(port_dict)+1)])
+        onehot_encoded = onehot_encoder.fit_transform(vessel_positions_reshaped)
+        onehot_encoded_flat = onehot_encoded.ravel()
+
+        
+        
+        
+        
+        vessel_positions = np.array([v['position'] if v['position'] else v['in_transit_towards']['destination_port_number'] for v in vessel_dict.values()])/len(port_dict)
+        vessel_in_transit_NN = np.array([v['in_transit_towards']['destination_time'] - state['time'] if v['in_transit_towards'] else 0 for v in vessel_dict.values()])
+        vessel_in_transit = np.array([v['in_transit_towards']['destination_time'] - state['time'] if v['in_transit_towards'] else 0 for v in vessel_dict.values()])/max_travel_time
         
         # Find the indices of the ports that have > 0 in travel times
-        legal_ports = np.where(travel_times > 0)[0]
-        inv_at_arrival = [entry for entry in port_critical_times]
-        for lp_idx in legal_ports:
-            tt = travel_times[lp_idx]
-            # Subtract the travel time from inv_at_arrival for the port
-            inv_at_arrival[lp_idx] -= tt
+        # legal_ports = np.where(travel_times > 0)[0]
+        inv_at_arrival = np.array([float(port['inventory']) for port in port_dict.values()])
+        tt_arr = np.array(self.TRAVEL_TIME_DICT[vessel_simp['position']])
+        for port_num, port in port_dict.items():
+            tt = tt_arr[port_num - 1]
+            if tt == 0:
+                inv_at_arrival[port_num-1] = float(inv_at_arrival[port_num-1])/float(port['capacity'])
+                # Inventory in all ports will stay the same
+                continue
+            if port['isLoadingPort'] == 1:
+                inv_at_arrival[port_num-1] += tt*port['rate']
+            else:
+                # Subtract the travel time from inv_at_arrival for the port
+                inv_at_arrival[port_num-1] -= tt*port['rate']
             # Iterate through the indices and ports in vessel_positions and vessel_in_transit
-            for v_idx, port_num in enumerate(vessel_positions):
-                if port_num == lp_idx + 1:
+            for v_idx, dest_port_num in enumerate(vessel_positions_NN):
+                if dest_port_num == port_num:
                     # I know that the vessel is in transit towards the port
-                    if vessel_in_transit[v_idx] <= tt:
+                    v = vessel_dict[v_idx+1]
+                    if vessel_in_transit_NN[v_idx] <= tt:
                         # I know that the vessel will arrive at the port before the target vessel
-                        effect_on_port = state['vessel_dict'][v_idx+1]['capacity'] // port_dict[lp_idx+1]['rate']
-                        inv_at_arrival[lp_idx] += effect_on_port
+                        effect_on_port = v['capacity']
+                        if port['isLoadingPort'] == 1:
+                            inv_at_arrival[port_num-1] -= effect_on_port
+                            
+                        else:
+                            inv_at_arrival[port_num-1] += effect_on_port
+            #Divide by the capacity of the port to normalize
+            inv_at_arrival[port_num-1] = float(inv_at_arrival[port_num-1]/float(port['capacity']))
                         
         inv_at_arrival = np.array(inv_at_arrival)
                     
             
-        encoded_state = np.concatenate([port_critical_times, vessel_positions, vessel_in_transit, travel_times, inv_at_arrival, inventory_effect_on_ports])
+        encoded_state = np.concatenate([port_critical_times, onehot_encoded_flat, vessel_in_transit, travel_times, inv_at_arrival, inventory_effect_on_ports])
+        # encoded_state = np.concatenate([port_critical_times, vessel_positions, vessel_in_transit, travel_times, inv_at_arrival, inventory_effect_on_ports])
         # current_vessel_class = np.array([vessel_simp['vessel_class']])        
         return encoded_state
+    
+    # def encode_state(self, state, vessel_simp):
+    #     # Skip the sink port
+    #     # time = state['time']
+    #     # time = np.array([time])
+    #     port_dict = {k: port for k, port in state['port_dict'].items() if port['capacity'] is not None}
+    #     vessel_dict = state['vessel_dict']
+        
+    #     port_critical_times = np.array([
+    #     math.floor(current_inventory / rate) if port['isLoadingPort'] != 1 else math.floor((port['capacity'] - current_inventory) / rate)
+    #     for port in port_dict.values()
+    #     for rate, current_inventory in [(port['rate'], port['inventory'])]])
+        
+    #     # vessel_inventories = np.array([vessel['inventory'] / vessel['capacity'] for vessel in vessel_dict.values()])
+    #     # current_vessel_number = np.array([vessel_simp['number']])
+    #     current_vessel_position = np.array([vessel_simp['position']])
+    #     current_vessel_class = np.array([vessel_simp['vessel_class']])
+    #     # inventory_effect_on_ports = np.array([(vessel_simp['capacity'] / port['rate']) for port in port_dict.values()])
+        
+    #     inventory_effect_on_ports = []
+    #     current_port_is_loading = port_dict[vessel_simp['position']]['isLoadingPort'] == 1
+    #     for port in port_dict.values():
+    #         # If both current and iterated ports are loading ports, or both are not, the effect is 0.
+    #         # Otherwise, calculate the effect based on the vessel's capacity and the port's rate.
+    #         effect = 0 if (current_port_is_loading == (port['isLoadingPort'] == 1)) else (vessel_simp['capacity'] // port['rate'])
+    #         inventory_effect_on_ports.append(effect)
+    #     inventory_effect_on_ports = np.array(inventory_effect_on_ports)
+                
+        
+    #     travel_times = np.array(self.TRAVEL_TIME_DICT[vessel_simp['position']])
+    #     # Change to -1 for ports the vessel cannot travel to, but keep 0 for the current position for the vessel.
+    #     current_vessel_position = vessel_simp['position']
+    #     # Change all entries that are 0 to -1, except for the current position in travel times
+    #     travel_times = np.where(travel_times == 0, -1, travel_times)
+    #     travel_times[current_vessel_position - 1] = 0
+        
+        
+         
+        
+    #     vessel_positions = np.array([v['position'] if v['position'] else v['in_transit_towards']['destination_port_number'] for v in vessel_dict.values()])
+    #     vessel_in_transit = np.array([v['in_transit_towards']['destination_time'] - state['time'] if v['in_transit_towards'] else 0 for v in vessel_dict.values()])
+        
+    #     # Find the indices of the ports that have > 0 in travel times
+    #     legal_ports = np.where(travel_times > 0)[0]
+    #     inv_at_arrival = [entry for entry in port_critical_times]
+    #     for lp_idx in legal_ports:
+    #         tt = travel_times[lp_idx]
+    #         # Subtract the travel time from inv_at_arrival for the port
+    #         inv_at_arrival[lp_idx] -= tt
+    #         # Iterate through the indices and ports in vessel_positions and vessel_in_transit
+    #         for v_idx, port_num in enumerate(vessel_positions):
+    #             if port_num == lp_idx + 1:
+    #                 # I know that the vessel is in transit towards the port
+    #                 if vessel_in_transit[v_idx] <= tt:
+    #                     # I know that the vessel will arrive at the port before the target vessel
+    #                     effect_on_port = state['vessel_dict'][v_idx+1]['capacity'] // port_dict[lp_idx+1]['rate']
+    #                     inv_at_arrival[lp_idx] += effect_on_port
+                        
+    #     inv_at_arrival = np.array(inv_at_arrival)
+                    
+            
+    #     encoded_state = np.concatenate([port_critical_times, vessel_positions, vessel_in_transit, travel_times, inv_at_arrival, inventory_effect_on_ports])
+    #     # current_vessel_class = np.array([vessel_simp['vessel_class']])        
+    #     return encoded_state
     
     def find_legal_actions_for_vessel(self, state, vessel):
         # Determine the operation type based on the vessel's position and the state's time
@@ -854,30 +973,56 @@ class MIRPSOEnv():
             # Set the current state's next state equal to the next current state
             current_exp[4] = next_current_state
             
+            
         for exp in experience_path:
+            reward = 0
             current_state, action, vessel, reward_ph, next_state, earliest_vessel, feasible_path_ph, fi_time, terminal_flag, alpha_state= exp
             current_state_time = current_state['time']
             next_state_time = next_state['time']
             
-            '''Immediate Reward'''
-            if next_state_time in alpha_states or current_state_time in alpha_states:
-                reward = -1
-                alpha_state = True
-            else:
-                if not action[3].is_waiting_arc:
-                    reward = 1
-
+            # '''Immediate Reward'''
+            # if next_state_time in alpha_states or current_state_time in alpha_states:
+            #     reward = -1
+            #     alpha_state = True
+            # else:
+            #     if action is not None:
+            #         if current_state_time < next_state_time and not action[3].is_waiting_arc:
+            #             reward = 2
+                # if not action[3].is_waiting_arc:
+                #     reward = 1
+            
+            
             '''Terminal Reward'''
+            # Split the horizon in to 3 part of 40 time periods each
+            # fist part is 0-40, second part is 41-80, third part is 81-120
+            first_part = set(range(0, 60))
+            second_part = set(range(61, 120))
+            
+            if current_state_time in first_part:
+                correct_list = first_part
+            else:
+                correct_list = second_part
+                
+            # terminal_rew = (horizon - len(alpha_states))/horizon
+            # terminal_rew is  (len(correct_part) - len(alpha_states in correct part))/horizon
+            # Find the number of alpha states in the correct part
+            alpha_states_in_correct_part = correct_list.intersection(alpha_states)
+            terminal_rew = (len(correct_list) - len(alpha_states_in_correct_part))/horizon
+                
+            
             alpha_penalty = 10
             # If the whole path is feasible, add a huge reward discounted reward
-            time_until_terminal = horizon - current_state_time
-            if feasible_path or len(alpha_states) < 20:
-                extra_reward_for_feasible_path = 30 - infeasibility_counter
-                feasibility_reward = extra_reward_for_feasible_path * agent.gamma ** time_until_terminal
-                # feasibility_reward = extra_reward_for_feasible_path
-                if action is not None:
-                    reward += feasibility_reward
-                feasible_path = True
+            # time_until_terminal = horizon - current_state_time
+            # if feasible_path or len(alpha_states) < 20:
+            #     extra_reward_for_feasible_path = 30 - infeasibility_counter
+            #     feasibility_reward = extra_reward_for_feasible_path * agent.gamma ** time_until_terminal
+            #     # feasibility_reward = extra_reward_for_feasible_path
+            #     if action is not None:
+            #         reward += feasibility_reward
+            #     feasible_path = True
+            # terminal_rew = (horizon - len(alpha_states))/horizon
+            reward += terminal_rew
+            
                     
             # else:
             #     # Create an interval from (current_state_time - 15) to (next_state_time + 15)
@@ -893,7 +1038,7 @@ class MIRPSOEnv():
             self.apply_reward(exp, feasible_path, first_infeasible_time, reward, alpha_state)
                         
                         
-        if (len(alpha_states)<self.current_best_IC and len(alpha_states)<=70 and exploit) or (len(alpha_states)<=20 and exploit):
+        if (len(alpha_states)<self.current_best_IC and len(alpha_states)<=105 and exploit) or (len(alpha_states)<=20 and exploit):
                 # save the main and target networks
                 torch.save(agent.main_model.state_dict(), f'main_model_{INSTANCE}_alpha_COUNTER_{len(alpha_states)}_{self.inf_counter_updates}.pth')
                 torch.save(agent.target_model.state_dict(), f'target_model_{INSTANCE}_alpha_COUNTER{len(alpha_states)}_{self.inf_counter_updates}.pth')
@@ -1227,16 +1372,16 @@ class DQN(nn.Module):
     
     def __init__(self, state_size, action_size):
         super(DQN, self).__init__()
-        self.fc1 = nn.Linear(state_size, 64)    # First fully connected layer
-        self.fc2 = nn.Linear(64, 128)           # Second fully connected layer
-        self.fc3 = nn.Linear(128, 128)          # Third fully connected layer (newly added)
-        self.fc4 = nn.Linear(128, action_size)  # Output layer
+        self.fc1 = nn.Linear(state_size, state_size*2)    # First fully connected layer
+        self.fc2 = nn.Linear(state_size*2, state_size)           # Second fully connected layer
+        # self.fc3 = nn.Linear(state_size*2, state_size*2)          # Third fully connected layer (newly added)
+        self.fc4 = nn.Linear(state_size, action_size)  # Output layer
         self.relu = nn.ReLU() # ReLU activation
         
     def forward(self, state):
         x = self.relu(self.fc1(state))
         x = self.relu(self.fc2(x))
-        x = self.relu(self.fc3(x))              # Apply ReLU activation to the new layer
+        # x = self.relu(self.fc3(x))              # Apply ReLU activation to the new layer
         return self.fc4(x)
     
     # def __init__(self, state_size, action_size):
@@ -1278,6 +1423,11 @@ class ReplayMemory:
         encoded_state_tuple = tuple(encoded_state.flatten())
         # Create a unique identifier for the experience
         exp_id = hash((encoded_state_tuple, operation_type, origin_port_number, destination_port))
+        
+        destination_port = arc.destination_node.port
+        if destination_port.isLoadingPort == 1:
+            # Do not push.
+            return
         
         if is_feasible or first_infeasible_time>= env.current_checkpoint and env.current_checkpoint > 0:
             # Delete existing similar experience in both feasible and infeasible memory if it exists
@@ -1332,7 +1482,8 @@ class DQNAgent:
     def __init__(self, ports, vessels, TRAINING_FREQUENCY, TARGET_UPDATE_FREQUENCY, NON_RANDOM_ACTION_EPISODE_FREQUENCY, BATCH_SIZE, replay):
         # ports plus source and sink, vessel inventory, (vessel position, vessel in transit), time period, vessel_number
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        state_size = len(ports) + 2 * len(vessels) + len(ports)*3
+        # state_size = len(ports) + 2 * len(vessels) + len(ports)*3
+        state_size = len(ports) + 1 * len(vessels) + len(ports)*3 + len(vessels)*len(ports)
         action_size = len(ports)
         self.state_size = state_size
         self.action_size = action_size
@@ -1364,6 +1515,14 @@ class DQNAgent:
             # new_state = copy.deepcopy(state)
             new_state = env.update_vessel_in_transition_and_inv_for_state(state = state, vessel = vessel_simp, destination_port = arc.destination_node.port, destination_time = arc.destination_node.time, origin_port = arc.origin_node.port, quantity = action[2], operation_type = action[1])
             return action, new_state
+    
+        # If there are only two legal actions, one of them is to the loading port and the other is a waiting arc, choose the loading arc
+        if len(legal_actions) == 2:
+            for action in legal_actions:
+                arc = action[3]
+                if arc.destination_node.port.number == 1:
+                    new_state = env.update_vessel_in_transition_and_inv_for_state(state = state, vessel = vessel_simp, destination_port = arc.destination_node.port, destination_time = arc.destination_node.time, origin_port = arc.origin_node.port, quantity = action[2], operation_type = action[1])
+                    return action, new_state
         
         if not exploit:
             # If the time is close to the checkpoint increase the exploration rate
@@ -1380,12 +1539,12 @@ class DQNAgent:
                 arc = action[3]
                 new_state = env.update_vessel_in_transition_and_inv_for_state(state = state, vessel = vessel_simp, destination_port = arc.destination_node.port, destination_time = arc.destination_node.time, origin_port = arc.origin_node.port, quantity = action[2], operation_type = action[1])
                 return action, new_state
-        else:
-            if np.random.rand() < 0.1:
-                action = random.choice(legal_actions)
-                arc = action[3]
-                new_state = env.update_vessel_in_transition_and_inv_for_state(state = state, vessel = vessel_simp, destination_port = arc.destination_node.port, destination_time = arc.destination_node.time, origin_port = arc.origin_node.port, quantity = action[2], operation_type = action[1])
-                return action, new_state
+        # else:
+        #     if np.random.rand() < 0.1:
+        #         action = random.choice(legal_actions)
+        #         arc = action[3]
+        #         new_state = env.update_vessel_in_transition_and_inv_for_state(state = state, vessel = vessel_simp, destination_port = arc.destination_node.port, destination_time = arc.destination_node.time, origin_port = arc.origin_node.port, quantity = action[2], operation_type = action[1])
+        #         return action, new_state
             
        
         
@@ -1654,7 +1813,7 @@ class DQNAgent:
             #         print(p.grad.data.norm(2))
             
              # Apply gradient clipping
-            torch.nn.utils.clip_grad_norm_(self.main_model.parameters(), max_norm=100.0)
+            torch.nn.utils.clip_grad_norm_(self.main_model.parameters(), max_norm=10.0)
             
                 # Calculate and print gradient norms
             total_norm = 0
@@ -1676,7 +1835,7 @@ class DQNAgent:
         avg_gradient_norm = sum(gradient_norms) / len(gradient_norms)
         # Update epsilon
         self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
-        print(f"Avg loss: {total_loss/self.BATCH_SIZE}, Average Gradient Norm: {avg_gradient_norm}")
+        print(f"Total loss: {total_loss}, Average Gradient Norm: {avg_gradient_norm}")
         
     def update_target_network(self):
         self.target_model.load_state_dict(self.main_model.state_dict())   

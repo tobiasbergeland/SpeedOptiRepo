@@ -1012,7 +1012,7 @@ def build_problem(INSTANCE, RUNNING_MIRPSO):
     all_ports, loading_regions, discharging_regions, port_dict = create_ports_from_info_with_loading(ports_info, spotMarketPricePerUnit, spotMarketDiscountFactor)
     ports = get_ports(all_ports)
     NUM_TIME_PERIODS = metadata['numPeriods']
-    NUM_TIME_PERIODS = 100
+    NUM_TIME_PERIODS = 120
     TIME_PERIOD_RANGE = list(range(0, NUM_TIME_PERIODS))
     FUEL_PRICE = 500
     ORIGINAL_NUM_PORTS = len(ports)
@@ -1803,9 +1803,9 @@ def main():
     # INSTANCE = 'LR1_DR03_VC03_V10b'
     
     'RUN 2'
-    INSTANCE = 'LR1_DR05_VC05_V25a'
+    # INSTANCE = 'LR1_DR05_VC05_V25a'
     'RUN 3'
-    # INSTANCE = 'LR1_DR08_VC10_V40a' 
+    INSTANCE = 'LR1_DR08_VC10_V40a' 
     
     TIME_LIMIT = 7200
     
@@ -1864,8 +1864,8 @@ def main():
         agent = DQNAgent(ports = ports, vessels=vessels, TRAINING_FREQUENCY = None, TARGET_UPDATE_FREQUENCY = None, NON_RANDOM_ACTION_EPISODE_FREQUENCY = None, BATCH_SIZE = None, replay = replay)
         # replay = agent.load_replay_buffer(file_name= 'replay_buffer_LR1_DR02_VC03_V8a_INF_COUNTER_5_5.pkl')
         agent.memory = replay
-        agent.main_model.load_state_dict(torch.load('active_agents/main_model_LR1_DR05_VC05_V25a_alpha_COUNTER_25_1.pth'))
-        agent.target_model.load_state_dict(torch.load('active_agents/target_model_LR1_DR05_VC05_V25a_alpha_COUNTER25_1.pth'))
+        agent.main_model.load_state_dict(torch.load('active_agents/main_model_LR1_DR08_VC10_V40a_8400_NEW2.pth'))
+        agent.target_model.load_state_dict(torch.load('active_agents/target_model_LR1_DR08_VC10_V40a_8400_NEW2.pth'))
         
         # Define your window size and execute rolling horizon optimization
         window_size = 98  # example window size

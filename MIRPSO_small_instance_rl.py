@@ -191,10 +191,10 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
     # INSTANCE = 'LR1_DR02_VC05_V8a'
     # INSTANCE = 'LR1_DR03_VC03_V10b'
     
-    'Trene agent på desse. mange iterasjoner.'
+    # 'Trene agent på desse. mange iterasjoner.'
     # INSTANCE = 'LR1_DR02_VC03_V8a'
-    # INSTANCE = 'LR1_DR05_VC05_V25a'
-    INSTANCE = 'LR1_DR08_VC10_V40a'
+    INSTANCE = 'LR1_DR05_VC05_V25a'
+    # INSTANCE = 'LR1_DR08_VC10_V40a'
     
     
     TRAINING_FREQUENCY = 1
@@ -329,7 +329,7 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
                 state['time'] += 1
             
             if episode % BUFFER_SAVING_FREQUENCY == 0:
-                agent.save_replay_buffer(file_name=f"replay_buffer_{INSTANCE}_{episode}_NEW2.pkl")
+                # agent.save_replay_buffer(file_name=f"replay_buffer_{INSTANCE}_{episode}_NEW2.pkl")
                 torch.save(agent.main_model.state_dict(), f'main_model_{INSTANCE}_{episode}_NEW2.pth')
                 torch.save(agent.target_model.state_dict(), f'target_model_{INSTANCE}_{episode}_NEW2.pth')
                 
