@@ -237,6 +237,12 @@ def rolling_horizon_optimization(model, horizon_length, window_size, step_size, 
         if not combined_solution:
             current_solution_vars_x, current_solution_vals_x, active_arcs, current_solution_vals_s = None, None, None, None
             
+        # Remove all y vars from the model
+        y_vars = {v.VarName: v for v in model.getVars() if v.VarName.startswith('y')}
+        for varname, var in y_vars.items():
+            model.remove(var)
+        model.update()
+            
         solutions = construction_heuristic_for_window(env, agent, window_start, window_end, combined_solution, INSTANCE, experience_path, port_inventory_dict, vessel_inventory_dict, current_solution_vars_x, current_solution_vals_x, active_arcs, VESSEL_CLASSES, vessel_class_arcs, model,current_solution_vals_s)
         # Need to manually set sink arcs for every vessel
         
@@ -247,10 +253,10 @@ def rolling_horizon_optimization(model, horizon_length, window_size, step_size, 
             # Fix the variabels prior to the current window.
             fix_prior_vars(model, combined_solution, window_start)
         
-        print(f'S_values from construction heuristic: ')
+        # print(f'S_values from construction heuristic: ')
         # for key, value in S_values.items():
             # print(f'{key}: {value}')
-        current_solution_vals_x, model, warm_start_sol = warm_start_model(model, active_X_keys, S_values, alpha_values, env.SOURCE_NODE)
+        current_solution_vals_x, model, warm_start_sol = warm_start_model(model, active_X_keys, S_values, alpha_values, env.SOURCE_NODE, window_end)
         current_solution_vars_x = {v.VarName: v for v in model.getVars() if v.VarName.startswith('x')}
         # Find the interregional arcs
         # interregional_vars_keys = {k for k, v in current_solution_vars_x.items() if k.startswith('x_interregional')}
@@ -265,20 +271,26 @@ def rolling_horizon_optimization(model, horizon_length, window_size, step_size, 
         adjust_constraints_for_window(model, window_end, time_constraints)
         set_objective_for_window(model, window_start, window_end, ps_data)
         
+        # manually_check_constraints(model)
+        check_integrality(model)
+        check_variable_bounds(model)
+        
         if RUNNING_WPS_AND_RH:
             ps_data['model'] = model
             # Solve the model for the current window with WPS
-            current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_vals_s, current_solution_vals_alpha, active_arcs = proximity_search_using_agent(ps_data=ps_data, agent=agent, env=env, RUNNING_WPS_AND_RH=RUNNING_WPS_AND_RH, window_end=window_end, RUNNING_MIRPSO = RUNNING_MIRPSO, time_limit = TIME_LIMIT_PER_WINDOW, INSTANCE = INSTANCE)
+            current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_vals_s, current_solution_vals_alpha, active_arcs, ch_obj = proximity_search_using_agent(ps_data=ps_data, agent=agent, env=env, RUNNING_WPS_AND_RH=RUNNING_WPS_AND_RH, window_end=window_end, RUNNING_MIRPSO = RUNNING_MIRPSO, time_limit = TIME_LIMIT_PER_WINDOW, INSTANCE = INSTANCE)
             combined_solution = {**current_solution_vals_x, **current_solution_vals_s, **current_solution_vals_alpha}
+            solver_and_chObj.append((current_best_obj, ch_obj))
         elif RUNNING_NPS_AND_RH:
             ps_data['model'] = model
             # Solve the model for the current window with NPS
-            current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_vals_s, current_solution_vals_alpha, active_arcs = perform_proximity_search(ps_data=ps_data, RUNNING_NPS_AND_RH=RUNNING_NPS_AND_RH, window_end=window_end, time_limit=TIME_LIMIT_PER_WINDOW)
+            current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_vals_s, current_solution_vals_alpha, active_arcs, ch_obj = perform_proximity_search(ps_data=ps_data, RUNNING_NPS_AND_RH=RUNNING_NPS_AND_RH, window_end=window_end, TIME_LIMIT_PER_WINDOW=TIME_LIMIT_PER_WINDOW)
             combined_solution = {**current_solution_vals_x, **current_solution_vals_s, **current_solution_vals_alpha}
+            solver_and_chObj.append((current_best_obj, ch_obj))
             
         else:
             # Solve the model for the current window
-            current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_vals_s, current_solution_vals_alpha, active_arcs, ch_obj,  = solve_window(model, ps_data, TIME_LIMIT_PER_WINDOW)
+            current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_vals_s, current_solution_vals_alpha, active_arcs, ch_obj = solve_window(model, ps_data, TIME_LIMIT_PER_WINDOW)
             combined_solution = {**current_solution_vals_x, **current_solution_vals_s, **current_solution_vals_alpha}
             solver_and_chObj.append((current_best_obj, ch_obj))
         
@@ -292,6 +304,48 @@ def rolling_horizon_optimization(model, horizon_length, window_size, step_size, 
         
 def extract_current_solution(model):
     return {var.VarName: var.X for var in model.getVars()}
+
+def check_integrality(m):
+    for var in m.getVars():
+        if var.VType in [gp.GRB.INTEGER, gp.GRB.BINARY] and var.Start is not None:
+            if not float(var.Start).is_integer():
+                print(f'Variable {var.VarName} is not integral: {var.Start}')
+                return False
+    return True
+
+def check_variable_bounds(m):
+    out_of_bound = True
+    vars_out_of_bounds = []
+    for var in m.getVars():
+        if var.Start is not None and (var.Start < var.LB or var.Start > var.UB):
+            print(f'Variable {var.VarName} is out of bounds. Start value is {var.Start}, while bounds are {var.LB} and {var.UB}')
+            vars_out_of_bounds.append(var.VarName)
+            out_of_bound = False
+    return out_of_bound
+
+
+def manually_check_constraints(m):
+    constraints_satisfied = True
+    
+    for constr in m.getConstrs():
+        lhs = sum(var.Start * m.getCoeff(constr, var) for var in m.getVars() if m.getCoeff(constr, var) != 0)
+        rhs = constr.RHS
+        sense = constr.Sense
+        
+        if sense == gp.GRB.LESS_EQUAL and lhs > rhs:
+            print(f'Constraint {constr.ConstrName} is violated: {lhs} > {rhs}')
+            constraints_satisfied = False
+        elif sense == gp.GRB.GREATER_EQUAL and lhs < rhs:
+            print(f'Constraint {constr.ConstrName} is violated: {lhs} < {rhs}')
+            constraints_satisfied = False
+        elif sense == gp.GRB.EQUAL and lhs != rhs:
+            print(f'Constraint {constr.ConstrName} is violated: {lhs} != {rhs}')
+            constraints_satisfied = False
+    
+    if constraints_satisfied:
+        print("All checked constraints are satisfied with the warm start values.")
+    else:
+        print("Some constraints are violated with the warm start values.")
 
 
 def adjust_constraints_for_window(model, window_end, time_constraints):

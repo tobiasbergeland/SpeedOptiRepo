@@ -8,6 +8,9 @@ from gurobipy import GRB
 from common_definitions import MIRPSOEnv, DQNAgent, ReplayMemory, DQNAgent
 from optimization_utils import *
 from rolling_horizon import rolling_horizon_optimization
+import warnings
+
+
 
 class Port:
     def __init__(self, capacity, inventory, rate, price, berth_limit, port_fee, max_amount, min_amount, number, isLoadingPort, name, spotMarketPricePerUnit, spotMarketDiscountFactor):
@@ -1595,8 +1598,8 @@ def save_solution(INSTANCE, HORIZON, model, time_limit, elapsed_time, costs, P,
     flattened_routes["vessel_routes_flattened"] = reformatted_routes
     
     # Save to a JSON file for easy parsing and readability
-    filename = f"RH_param/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_WS={window_size}_SS={step_size}.json"
-    filename_readable_routes = f"RH_param/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_WS={window_size}_SS={step_size}.txt"
+    filename = f"RH_param2/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_WS={window_size}_SS={step_size}.json"
+    filename_readable_routes = f"RH_param2/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_WS={window_size}_SS={step_size}.txt"
     with open(filename, 'w') as file:
         json.dump(solution_data, file, indent=4)
     with open(filename_readable_routes, 'w') as file:
@@ -1775,6 +1778,8 @@ def calc_time_limit_per_window(TIME_LIMIT, HORIZON, window_size, step_size):
             
 
 def main():
+    warnings.filterwarnings("ignore")
+    
     RUNNING_MIRPSO = False
     RUNNING_WEIGHTED_PS = False
     RUNNING_NORMAL_PS = False
@@ -1796,7 +1801,7 @@ def main():
     # INSTANCE = 'LR1_DR02_VC03_V7a'
     
     'RUN 1'
-    # INSTANCE = 'LR1_DR02_VC03_V8a'
+    INSTANCE = 'LR1_DR02_VC03_V8a'
     # INSTANCE = 'LR1_DR02_VC04_V8a'
     
     # INSTANCE = 'LR1_DR02_VC05_V8a'
@@ -1805,7 +1810,7 @@ def main():
     'RUN 2'
     # INSTANCE = 'LR1_DR05_VC05_V25a'
     'RUN 3'
-    INSTANCE = 'LR1_DR08_VC10_V40a' 
+    # INSTANCE = 'LR1_DR08_VC10_V40a' 
     
     TIME_LIMIT = 7200
     
@@ -1851,7 +1856,6 @@ def main():
         agent.target_model.load_state_dict(torch.load('target_model_LR1_DR02_VC03_V8a_INF_COUNTER6.pth'))
         
         current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs = proximity_search_using_agent(ps_data=ps_data, agent=agent, env=env, RUNNING_WPS_AND_RH=RUNNING_WPS_AND_RH, window_end=None, RUNNING_MIRPSO=RUNNING_MIRPSO, time_limit=TIME_LIMIT, INSTANCE=INSTANCE)
-
         
         
     elif RUNNING_NORMAL_PS:
@@ -1864,12 +1868,16 @@ def main():
         agent = DQNAgent(ports = ports, vessels=vessels, TRAINING_FREQUENCY = None, TARGET_UPDATE_FREQUENCY = None, NON_RANDOM_ACTION_EPISODE_FREQUENCY = None, BATCH_SIZE = None, replay = replay)
         # replay = agent.load_replay_buffer(file_name= 'replay_buffer_LR1_DR02_VC03_V8a_INF_COUNTER_5_5.pkl')
         agent.memory = replay
-        agent.main_model.load_state_dict(torch.load('active_agents/main_model_LR1_DR08_VC10_V40a_8400_NEW2.pth'))
-        agent.target_model.load_state_dict(torch.load('active_agents/target_model_LR1_DR08_VC10_V40a_8400_NEW2.pth'))
+        
+        agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR02_VC03_V8a_alpha_COUNTER_17_21.pth'))
+        agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR02_VC03_V8a_alpha_COUNTER17_21.pth'))
+        
+        # agent.main_model.load_state_dict(torch.load('active_agents/main_model_LR1_DR05_VC05_V25a_alpha_COUNTER_59_6.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents/target_model_LR1_DR05_VC05_V25a_alpha_COUNTER59_6.pth'))
         
         # Define your window size and execute rolling horizon optimization
-        window_size = 98  # example window size
-        step_size = 49
+        window_size = 112  # example window size
+        step_size = 56
         TIME_LIMIT_PER_WINDOW = calc_time_limit_per_window(TIME_LIMIT, HORIZON, window_size, step_size)
         start_time = time.time()
         

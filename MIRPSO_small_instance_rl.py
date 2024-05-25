@@ -192,8 +192,8 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
     # INSTANCE = 'LR1_DR03_VC03_V10b'
     
     # 'Trene agent på desse. mange iterasjoner.'
-    # INSTANCE = 'LR1_DR02_VC03_V8a'
-    INSTANCE = 'LR1_DR05_VC05_V25a'
+    INSTANCE = 'LR1_DR02_VC03_V8a'
+    # INSTANCE = 'LR1_DR05_VC05_V25a'
     # INSTANCE = 'LR1_DR08_VC10_V40a'
     
     
@@ -236,7 +236,7 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
         
     else:
         num_feasible_paths_with_random_actions = 0
-        NUM_EPISODES = 50002
+        NUM_EPISODES = 2000
         # replay = agent.load_replay_buffer(file_name='replay_buffer_LR1_DR02_VC03_V8a_5000_NEW2.pkl')
         # replay.capacity = 5000
         # replay = replay.clean_up()
@@ -266,6 +266,7 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
                         
             experience_path = []
             state = env.reset()
+            acc_alpha = {port.number : 0 for port in state['ports'] if port.rate}
             done = False
             
             # Directly create and fill decision_basis_states with custom deep-copied states for each vessel
@@ -287,6 +288,8 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
                 state, total_reward_for_path, feasible_path, alpha_register = env.check_state(state=state, experience_path=experience_path, replay=replay, agent=agent, INSTANCE=INSTANCE, exploit=exploit, port_inventory_dict=port_inventory_dict)
                 
                 port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
+                
+                acc_alpha = adjust_for_alpha(acc_alpha, port_inventory_dict, state)
                 
                 if state['done']:
                     if feasible_path:
@@ -310,7 +313,7 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
                     for vessel in available_vessels:
                         corresponding_vessel = decision_basis_state['vessel_dict'][vessel.number]
                         decision_basis_states[corresponding_vessel['number']] = decision_basis_state
-                        legal_actions = env.sim_find_legal_actions_for_vessel(state=decision_basis_state, vessel=corresponding_vessel, queued_actions=actions, RUNNING_WPS=False)
+                        legal_actions = env.sim_find_legal_actions_for_vessel(state=decision_basis_state, vessel=corresponding_vessel, queued_actions=actions, RUNNING_WPS=False, acc_alpha=acc_alpha)
                         action, decision_basis_state = agent.select_action(state=copy.deepcopy(decision_basis_state), legal_actions=legal_actions, env=env, vessel_simp=corresponding_vessel, exploit=exploit)
                         _, _, _, _arc = action
                         actions[vessel] = action

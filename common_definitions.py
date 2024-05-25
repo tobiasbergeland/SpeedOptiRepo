@@ -518,12 +518,14 @@ class MIRPSOEnv():
         return legal_actions
     
     
-    def sim_find_legal_actions_for_vessel(self, state, vessel, queued_actions, RUNNING_WPS):
+    def sim_find_legal_actions_for_vessel(self, state, vessel, queued_actions, RUNNING_WPS, acc_alpha):
         if RUNNING_WPS:
             legal_arcs = self.sim_get_legal_arcs_for_ps(state=state, vessel=vessel, special_sink_arcs=self.SPECIAL_SINK_ARCS, special_node_dict=self.SPECIAL_NODES_DICT, queued_actions=queued_actions)
         else:
-            legal_arcs = self.sim_get_legal_arcs(state=state, vessel=vessel, special_sink_arcs=self.SPECIAL_SINK_ARCS, special_node_dict=self.SPECIAL_NODES_DICT, queued_actions=queued_actions)
+            legal_arcs = self.sim_get_legal_arcs(state=state, vessel=vessel, special_sink_arcs=self.SPECIAL_SINK_ARCS, special_node_dict=self.SPECIAL_NODES_DICT, queued_actions=queued_actions, acc_alpha=acc_alpha)
             
+        if not legal_arcs:
+            print('Here')
         legal_actions = []
         for arc in legal_arcs:
             if arc.origin_node == self.SOURCE_NODE:
@@ -559,7 +561,14 @@ class MIRPSOEnv():
             return True
         return False
     
-    def can_operate_at_port_now(self, vessel, port, queued_actions):
+    def can_operate_at_port_now(self, vessel, port, queued_actions, db_state, acc_alpha):
+        
+        # Check if there is a queued action that is leaving the same port
+        for action in queued_actions.values():
+            arc = action[3]
+            # Check if arc is interregional arc
+            # if arc.origin_node.port.number == port['number']:
+            #     print('Here')
         # Have to check the berth limit for the port and the queue of actions. 
         berth_limit = port['berthLimit']
         
@@ -577,11 +586,15 @@ class MIRPSOEnv():
         
         if port['isLoadingPort'] == 1:
             # The production has already been added to the inventory. Therefore, we only need to check if the inventory is less than the capacity
-            if port['inventory'] >= vessel['capacity']:
+            # We have to look at the db_state to see the current inventory
+            if db_state['port_dict'][port['number']]['inventory'] - acc_alpha[port['number']] >= vessel['capacity']:
                 return True
+            # if port['inventory'] >= vessel['capacity']:
+                # return True
         else:
+            if db_state['port_dict'][port['number']]['inventory'] + vessel['capacity'] - port['rate'] + acc_alpha[port['number']]<= port['capacity']:
             # Rate is subtracted to account for the consumption. It is the status at the end of the time period that is important.
-            if port['inventory'] + vessel['inventory'] - port['rate'] <= port['capacity']:
+            # if port['inventory'] + vessel['inventory'] - port['rate'] <= port['capacity']:
                 return True
         return False
     
@@ -632,7 +645,7 @@ class MIRPSOEnv():
             #     return legal_arcs
         
         
-    def sim_get_legal_arcs(self, state, vessel, special_sink_arcs, special_node_dict, queued_actions):
+    def sim_get_legal_arcs(self, state, vessel, special_sink_arcs, special_node_dict, queued_actions, acc_alpha):
             current_node_key = (vessel['position'], state['time'])
             current_node = self.NODE_DICT[current_node_key]
             current_port = state['port_dict'][vessel['position']]
@@ -650,28 +663,68 @@ class MIRPSOEnv():
             # Add the special sink arcs to the potential arcs if there are any
             potential_arcs += [arc for arc in special_sink_arcs[non_sim_vessel] if arc.origin_node == current_node and arc.destination_node.port.isLoadingPort != current_node.port.isLoadingPort]
             ports_that_must_be_avoided = self.ports_that_must_be_avoided(state)
+            
+            
+            v_cap = vessel['capacity']
+            for port_number, port in state['port_dict'].items():
+                if port['capacity'] is not None:
+                    if v_cap > port['capacity']:
+                        ports_that_must_be_avoided[port_number] = port
+                        # Also remove the arc from the potential arcs if len(potential_arcs) > 1
+                        if len(potential_arcs) > 1:
+                            potential_arcs = [arc for arc in potential_arcs if arc.destination_node.port.number != port_number]
+                            
+                        
+                        
+                        
+            # ports_that_must_be_avoided = {}
             # Remove current port form the ports that must be avoided
+            if current_port['number'] in ports_that_must_be_avoided.keys():
+                del ports_that_must_be_avoided[current_port['number']]
+            
+            port_dict = state['port_dict']
+            for q_v, action in queued_actions.items():
+                q_vc = q_v.vessel_class
+                arc = action[3]
+                if not arc.is_waiting_arc:
+                    origin_node = arc.origin_node
+                    destination_node = arc.destination_node
+                    if vessel['vessel_class'] == q_vc:
+                        if origin_node.port.number == current_port['number']:
+                            ports_that_must_be_avoided[destination_node.port.number] = port_dict[destination_node.port.number]
+                    
+                    
+            # If the port is in a port that must be avoided, we can remove the port from the ports that must be avoided
             if current_port['number'] in ports_that_must_be_avoided.keys():
                 del ports_that_must_be_avoided[current_port['number']]
                 
             # Remove all arcs going to a port that must be avoided
             legal_arcs = [arc for arc in potential_arcs if arc.destination_node.port.number not in ports_that_must_be_avoided.keys() or arc.destination_node.time == self.TIME_PERIOD_RANGE[-1]+1]
 
-            if self.can_operate_at_port_now(vessel, current_port, queued_actions):
+            if self.can_operate_at_port_now(vessel, current_port, queued_actions, state, acc_alpha):
                 # Check if the vessel can wait at the current port
                 if self.waiting_arc_is_legal(current_port):
                     if not legal_arcs:
-                        legal_arcs = [random.choice(potential_arcs)]
+                        #Choose the waiting arc
+                        legal_arcs = [arc for arc in potential_arcs if arc.is_waiting_arc]
+                        if legal_arcs:
+                            return [arc for arc in potential_arcs if arc.is_waiting_arc]
                     return legal_arcs
                 else:
                     # Remove the waiting arc and return the rest
                     legal_arcs = [arc for arc in legal_arcs if not arc.is_waiting_arc]
                     if not legal_arcs:
-                        legal_arcs = [random.choice(potential_arcs)]
+                        #If no other option, waiting arc
+                        legal_arcs = [arc for arc in potential_arcs if arc.is_waiting_arc]
+                        if legal_arcs:
+                            return legal_arcs
+                        else:
+                            # Take one random action from the potential arcs
+                            legal_arcs = [random.choice(potential_arcs)]
                     return legal_arcs
             else:
                 # Waiting arc is the only legal arc
-                legal_arcs = [arc for arc in legal_arcs if arc.is_waiting_arc]
+                legal_arcs = [arc for arc in potential_arcs if arc.is_waiting_arc]
                 if not legal_arcs:
                     # Take one random action from the potential arcs
                     legal_arcs = [random.choice(potential_arcs)]
@@ -804,6 +857,8 @@ class MIRPSOEnv():
     def check_state(self, state, experience_path, replay, agent, INSTANCE, exploit, port_inventory_dict):
         '''Evaluates the state and returns status and reward.'''
         total_reward_for_path  = 0
+        # Check if new alphas has been added.
+        
         if self.is_terminal(state):
             experience_path, feasible_path, alpha_register = self.update_rewards_in_experience_path(experience_path, agent, INSTANCE, exploit, port_inventory_dict)
             for exp in experience_path:
@@ -980,21 +1035,8 @@ class MIRPSOEnv():
             current_state_time = current_state['time']
             next_state_time = next_state['time']
             
-            # '''Immediate Reward'''
-            # if next_state_time in alpha_states or current_state_time in alpha_states:
-            #     reward = -1
-            #     alpha_state = True
-            # else:
-            #     if action is not None:
-            #         if current_state_time < next_state_time and not action[3].is_waiting_arc:
-            #             reward = 2
-                # if not action[3].is_waiting_arc:
-                #     reward = 1
-            
-            
             '''Terminal Reward'''
-            # Split the horizon in to 3 part of 40 time periods each
-            # fist part is 0-40, second part is 41-80, third part is 81-120
+            # Split the horizon in to 2 parts of 60 time periods each
             first_part = set(range(0, 60))
             second_part = set(range(61, 120))
             
@@ -1003,13 +1045,13 @@ class MIRPSOEnv():
             else:
                 correct_list = second_part
                 
-            # terminal_rew = (horizon - len(alpha_states))/horizon
-            # terminal_rew is  (len(correct_part) - len(alpha_states in correct part))/horizon
             # Find the number of alpha states in the correct part
             alpha_states_in_correct_part = correct_list.intersection(alpha_states)
             terminal_rew = (len(correct_list) - len(alpha_states_in_correct_part))/horizon
                 
+            reward += terminal_rew
             
+            self.apply_reward(exp, feasible_path, first_infeasible_time, reward, alpha_state)
             alpha_penalty = 10
             # If the whole path is feasible, add a huge reward discounted reward
             # time_until_terminal = horizon - current_state_time
@@ -1021,7 +1063,6 @@ class MIRPSOEnv():
             #         reward += feasibility_reward
             #     feasible_path = True
             # terminal_rew = (horizon - len(alpha_states))/horizon
-            reward += terminal_rew
             
                     
             # else:
@@ -1035,15 +1076,14 @@ class MIRPSOEnv():
             #     if action is not None:
             #         reward -= terminal_penalty
         
-            self.apply_reward(exp, feasible_path, first_infeasible_time, reward, alpha_state)
                         
                         
         if (len(alpha_states)<self.current_best_IC and len(alpha_states)<=105 and exploit) or (len(alpha_states)<=20 and exploit):
                 # save the main and target networks
                 torch.save(agent.main_model.state_dict(), f'main_model_{INSTANCE}_alpha_COUNTER_{len(alpha_states)}_{self.inf_counter_updates}.pth')
                 torch.save(agent.target_model.state_dict(), f'target_model_{INSTANCE}_alpha_COUNTER{len(alpha_states)}_{self.inf_counter_updates}.pth')
-                with open(f'replay_buffer_{INSTANCE}_INF_COUNTER_{len(alpha_states)}_{self.inf_counter_updates}.pkl', 'wb') as f:
-                    pickle.dump(agent.memory, f)
+                # with open(f'replay_buffer_{INSTANCE}_INF_COUNTER_{len(alpha_states)}_{self.inf_counter_updates}.pkl', 'wb') as f:
+                    # pickle.dump(agent.memory, f)
                 self.current_best_IC = len(alpha_states)
                 self.inf_counter_updates += 1
                 print(f'New IC: {len(alpha_states)}')
@@ -1226,8 +1266,23 @@ class MIRPSOEnv():
     def all_vessels_finished(self, state):
         vessels = state['vessels']
         return all(v.isFinished for v in vessels)
+    
+    
 
     def execute_action(self, vessel, action):
+        inf_before = False
+        for port in self.PORTS:
+            if port.rate:
+                if port.isLoadingPort == 1:
+                    if port.inventory + port.rate < 0:
+                        print('Infeasible state')
+                        print(f'Port {port.number} has inventory {port.inventory} and capacity {port.capacity}')
+                        inf_before = True
+                else:
+                    if port.inventory - port.rate > port.capacity:
+                        print('Infeasible state')
+                        print(f'Port {port.number} has inventory {port.inventory} and capacity {port.capacity}')
+                        inf_before = True
         # Action is on the form (vessel_id, operation_type, quantity, arc)
         # Execute the action and update the state
         _, operation_type, quantity, arc = action
@@ -1256,6 +1311,24 @@ class MIRPSOEnv():
         vessel.action_path.append(action)
         if arc.destination_node.time == self.SINK_NODE.time:
             vessel.isFinished = True
+            
+        inf_after = False
+        for port in self.PORTS:
+            if port.rate:
+                if port.isLoadingPort == 1:
+                    if port.inventory + port.rate < 0:
+                        print('Infeasible state')
+                        print(f'Port {port.number} has inventory {port.inventory} and capacity {port.capacity}')
+                        inf_after = True
+                else:
+                    if port.inventory - port.rate > port.capacity:
+                        print('Infeasible state')
+                        print(f'Port {port.number} has inventory {port.inventory} and capacity {port.capacity}')
+                        inf_after = True
+        
+        if not inf_before and inf_after:
+            if self.state['time'] < 100:
+                print('Illegal action')
         
     def update_vessel_position(self, vessel, new_position):
         vessel.position = new_position
@@ -1517,12 +1590,12 @@ class DQNAgent:
             return action, new_state
     
         # If there are only two legal actions, one of them is to the loading port and the other is a waiting arc, choose the loading arc
-        if len(legal_actions) == 2:
-            for action in legal_actions:
-                arc = action[3]
-                if arc.destination_node.port.number == 1:
-                    new_state = env.update_vessel_in_transition_and_inv_for_state(state = state, vessel = vessel_simp, destination_port = arc.destination_node.port, destination_time = arc.destination_node.time, origin_port = arc.origin_node.port, quantity = action[2], operation_type = action[1])
-                    return action, new_state
+        # if len(legal_actions) == 2:
+        #     for action in legal_actions:
+        #         arc = action[3]
+        #         if arc.destination_node.port.number == 1:
+        #             new_state = env.update_vessel_in_transition_and_inv_for_state(state = state, vessel = vessel_simp, destination_port = arc.destination_node.port, destination_time = arc.destination_node.time, origin_port = arc.origin_node.port, quantity = action[2], operation_type = action[1])
+        #             return action, new_state
         
         if not exploit:
             # If the time is close to the checkpoint increase the exploration rate
