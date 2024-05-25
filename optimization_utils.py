@@ -124,10 +124,19 @@ def key_to_node_info(key):
     return (origin_port, origin_time, destination_port, destination_time, vc)
 
 
+# def extract_time_period_from_s_or_alpha_var_name(var_name):
+#     simple_match = re.search(r'\\[(\\d+),(\\d+)\\]', var_name)
+#     if simple_match:
+#         return int(simple_match.group(2))  # Returns the second number as an integer, representing the time period
+#     else:
+#         return None
+    
 def extract_time_period_from_s_or_alpha_var_name(var_name):
-    simple_match = re.search(r'\\[(\\d+),(\\d+)\\]', var_name)
-    if simple_match:
-        return int(simple_match.group(2))  # Returns the second number as an integer, representing the time period
+    # Use regular expression to find the pattern '[(digits),(digits)]'
+    match = re.search(r'\[(\d+),(\d+)\]', var_name)
+    if match:
+        # Return the second number as an integer
+        return int(match.group(2))
     else:
         return None
 
@@ -162,6 +171,8 @@ def find_vessel_destinations(vessels_in_vc, vc_active_arcs, end_time):
                 destination_nodes[v] = arc.destination_node
                 vessels_assigned.append(v)
                 break
+            
+        
     if len(vessels_assigned) != len(vessels_in_vc):
         raise ValueError("Not all vessels have been assigned a destination node")
     if len(destination_nodes) != len(vessels_in_vc):
@@ -178,9 +189,9 @@ def construction_heuristic_for_window(env, agent, window_start, window_end, comb
     best_inf_counter = env.TIME_PERIOD_RANGE[-1]
     solutions = []
     # Need some randomization in order for the agent to produce different results
-    agent.epsilon = 0.1
+    agent.epsilon = 0.2
     
-    for i in range(40):
+    for i in range(50):
         if not combined_solution:
             # Window start is 0, so we need to start from scratch
             experience_path = []
@@ -188,6 +199,7 @@ def construction_heuristic_for_window(env, agent, window_start, window_end, comb
             done = False
             port_inventory_dict = {}
             vessel_inventory_dict = {}
+            acc_alpha = {port.number : 0 for port in state['ports'] if port.rate}
             decision_basis_states = {vessel.number: env.custom_deep_copy_of_state(state) for vessel in state['vessels']}
             actions = {vessel: env.find_legal_actions_for_vessel(state=state, vessel=vessel)[0] for vessel in state['vessels']}
             state = env.step(state=state, actions=actions, experience_path=experience_path, decision_basis_states=decision_basis_states)
@@ -207,6 +219,7 @@ def construction_heuristic_for_window(env, agent, window_start, window_end, comb
             experience_path = []
             # Reset the values in the port_inventory_dict but keep all keys
             port_inventory_dict = {time: {port.number: 0 for port in state['ports']} for time in range(env.TIME_PERIOD_RANGE[-1])}
+            acc_alpha = {port.number : 0 for port in state['ports'] if port.rate}
             
             # port_inventory_dict = {}
             
@@ -256,6 +269,9 @@ def construction_heuristic_for_window(env, agent, window_start, window_end, comb
             state, total_reward_for_path, feasible_path, alpha_register = env.check_state(state=state, experience_path=experience_path, replay=agent.memory, agent=agent, INSTANCE=INSTANCE, exploit = False, port_inventory_dict=port_inventory_dict)
             
             port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
+            
+            acc_alpha = adjust_for_alpha(acc_alpha, port_inventory_dict, state)
+            
             # vessel_inventory_dict[state['time']] = {vessel.number: vessel.inventory for vessel in state['vessels']}
             
             if state['done']:
@@ -263,7 +279,6 @@ def construction_heuristic_for_window(env, agent, window_start, window_end, comb
                 feasible_path = experience_path[0][6]
                 
                 # Check that the port inventories in port_inventory_dict are within the boundaries
-                
                 
                 # if (infeasibility_counter < best_inf_counter):
                 # best_inf_counter = infeasibility_counter
@@ -284,7 +299,7 @@ def construction_heuristic_for_window(env, agent, window_start, window_end, comb
                     for vessel in available_vessels:
                         corresponding_vessel = decision_basis_state['vessel_dict'][vessel.number]
                         decision_basis_states[corresponding_vessel['number']] = decision_basis_state
-                        legal_actions = env.sim_find_legal_actions_for_vessel(state=decision_basis_state, vessel=corresponding_vessel, queued_actions=actions_to_make, RUNNING_WPS = False)
+                        legal_actions = env.sim_find_legal_actions_for_vessel(state=decision_basis_state, vessel=corresponding_vessel, queued_actions=actions_to_make, RUNNING_WPS = False, acc_alpha = acc_alpha)
                         action, decision_basis_state = agent.select_action_for_RH(state=copy.deepcopy(decision_basis_state), legal_actions=legal_actions, env=env, vessel_simp=corresponding_vessel, window_end=window_end, vessel_class_arcs=vessel_class_arcs)
                         _, _, _, _arc = action
                         actions[vessel] = action
@@ -308,7 +323,19 @@ def construction_heuristic_for_window(env, agent, window_start, window_end, comb
     
     return solutions
     
-    
+# This is called just after logging. All inventories should be within their limits.
+def adjust_for_alpha(acc_alpha, port_inventory_dict, state):
+    for time, port_dict in port_inventory_dict.items():
+        for port_number, inv in port_dict.items():
+            port = state['port_dict'][port_number]
+            if port.isLoadingPort == 1:
+                if inv -acc_alpha[port_number] > port.capacity:
+                    alpha = inv - port.capacity - acc_alpha[port_number]
+                    acc_alpha[port_number] += alpha
+            else:
+                if inv + acc_alpha[port_number] < 0:
+                    acc_alpha[port_number] += -(inv + acc_alpha[port_number])
+    return acc_alpha
     
     
 def evaluate_agent(env, agent, INSTANCE):
@@ -441,12 +468,29 @@ def convert_path_to_MIRPSO_solution(env, solutions, window_end, window_start):
             
             
         active_X_keys = {}
+        checkup_arcs = {}
         for vessel in env.VESSELS:
             for arc in active_arcs_from_exp_path[vessel.number]:
+                
                 if ((arc.tuple), vessel.vessel_class) not in active_X_keys.keys():
                     active_X_keys[((arc.tuple), vessel.vessel_class)] = 1
                 else:
                     active_X_keys[((arc.tuple), vessel.vessel_class)] += 1
+                    
+                if (arc, vessel.vessel_class) not in checkup_arcs.keys():
+                    checkup_arcs[(arc, vessel.vessel_class)] = 1
+                else:
+                    checkup_arcs[(arc, vessel.vessel_class)] += 1
+                    
+        feasible_x = True
+        for key, counter in checkup_arcs.items():
+            arc = key[0]
+            if not arc.is_waiting_arc and counter > 1:
+                feasible_x = False
+                break
+        if not feasible_x:
+            continue
+                
                     
         # Sum up the counters in the active_X_keys
         sumcounter = 0
@@ -490,11 +534,15 @@ def convert_path_to_MIRPSO_solution(env, solutions, window_end, window_start):
                             infeasibility_counter += 1
                         alpha_states.add(time)
                         S_values[(port.number, time)] = int(port.capacity)
+                        
                         if first_infeasible_time is None:
                             first_infeasible_time = time
                         # if alpha > port.rate:
                         #     raise ValueError('Alpha is greater than the rate')
                     else:
+                        the_s_val = int(inv - acc_alpha[port.number])
+                        if the_s_val < 0:
+                            print('The s value is negative')
                         S_values[(port.number, time)] = int(inv - acc_alpha[port.number])
                         alpha_values[(port.number, time-1)] = 0
                             
@@ -514,6 +562,9 @@ def convert_path_to_MIRPSO_solution(env, solutions, window_end, window_start):
                         # if int(alpha) > port.rate:
                         #     raise ValueError('Alpha is greater than the rate')
                     else:
+                        the_s_val_c = int(inv + acc_alpha[port.number])
+                        if the_s_val_c > port.capacity:
+                            print('The s value is negative')
                         S_values[(port.number, time)] = int(inv + acc_alpha[port.number])
                         alpha_values[(port.number, time-1)] = 0
                         
@@ -524,36 +575,52 @@ def convert_path_to_MIRPSO_solution(env, solutions, window_end, window_start):
                     break
                 if S_values[(port.number, time)] > port.capacity or S_values[(port.number, time)] < 0:
                     feasible_solution = False
+            
+                    
+        # if feasible_solution:
+        #     best_solution = (active_X_keys, S_values, alpha_values, infeasibility_counter, feasible_solution, port_inventory_dict)
+        #     return best_solution, active_arcs_from_exp_path
         
         if best_solution is None:
             best_solution = (active_X_keys, S_values, alpha_values, infeasibility_counter, feasible_solution, port_inventory_dict)
-        elif not best_solution[3] and feasible_solution:
+        elif not best_solution[4] and feasible_solution:
             best_solution = (active_X_keys, S_values, alpha_values, infeasibility_counter, feasible_solution, port_inventory_dict)
-        elif not best_solution[3] and not feasible_solution and infeasibility_counter < best_solution[3]:
+        elif not best_solution[4] and not feasible_solution and infeasibility_counter < best_solution[3]:
             best_solution = (active_X_keys, S_values, alpha_values, infeasibility_counter, feasible_solution, port_inventory_dict)
-        elif best_solution[3] and feasible_solution and infeasibility_counter < best_solution[3]:
+        elif best_solution[4] and feasible_solution and infeasibility_counter < best_solution[3]:
             best_solution = (active_X_keys, S_values, alpha_values, infeasibility_counter, feasible_solution, port_inventory_dict)
                     
     return best_solution, active_arcs_from_exp_path
 
 
-def warm_start_model(m, active_X_keys, S_values, alpha_values, source_node):
+def warm_start_model(m, active_X_keys, S_values, alpha_values, source_node, window_end):
     warm_start_vars = 0
     vars_set = set()
     # Initialize all 'x', 'a' variables to 0 to ensure a complete warm start
     for var in m.getVars():
         # if var.VarName.startswith('x') or var.VarName.startswith('o') or var.VarName.startswith('q'):
         if var.VarName.startswith('x'):
+            # if var.VarName.startswith('x_non_interregional_((0, -1)'):
+                # print('Yeah')
             # print(var.VarName)
             # if var is not fixed:
             if var.lb != var.ub:
                 var.Start = 0
+            else:
+                var.Start = var.lb
+                vars_set.add(var.VarName)
         elif var.VarName.startswith('alpha'):
             if var.lb != var.ub:
                 var.Start = 0
+            else:
+                var.Start = var.lb
+                vars_set.add(var.VarName)
         elif var.VarName.startswith('s'):
             if var.lb != var.ub:
                 var.Start = 0
+            else:
+                var.Start = var.lb
+                vars_set.add(var.VarName)
     m.update()
             
     waiting_arcs_taken_counter = {}
@@ -571,69 +638,92 @@ def warm_start_model(m, active_X_keys, S_values, alpha_values, source_node):
         # x_var_name = f"x[{arc_tuple},{vessel}]"
         x_var = m.getVarByName(x_var_name)
         # Set the start value to 0 if the variable is found
-        if x_var is not None and (x_var.lb != x_var.ub):
-            x_var.Start = counter
-            # print(f'Variable {x_var_name} has been set to {counter}')
-            # if "x_non_" in x_var_name:
-            #     if x_var_name in waiting_arcs_taken_counter.keys():
-            #         times_taken_before = waiting_arcs_taken_counter[x_var_name]
-            #         x_var.Start = times_taken_before + 1
-            #         waiting_arcs_taken_counter[x_var_name] += 1
-            #     else:
-            #         x_var.Start = 1
-            #         waiting_arcs_taken_counter[x_var_name] = 1
-            # elif x_var.start == 0 and x_var_name not in traveling_taken.keys():
-            #     x_var.Start = 1
-            #     traveling_taken[x_var_name] = 1
-            #     warm_start_vars += 1
-            #     vars_set.add(x_var.VarName)
-            #     # m.update()
-            # else:
-            #     print('Issue')
-                
-            # elif x_var.start >= 1:
-            #     x_var.Start += 1
-            #     warm_start_vars += 1
-            #     vars_set.add(x_var.VarName)
-            #     m.update()
-
-                
+        if x_var is not None and (x_var.lb != x_var.ub) and x_var_name not in vars_set:
+            x_var.Start = round(counter)
+            vars_set.add(x_var_name)
+        elif x_var is not None and (x_var.lb == x_var.ub):
+            x_var.Start = x_var.lb
+            vars_set.add(x_var_name)
         m.update()
     
     for (port_number, time), s_value in S_values.items():
         s_var_name = f"s[{port_number},{time}]"
         s_var = m.getVarByName(s_var_name)
-        if s_var is not None and (s_var.lb != s_var.ub):
+        if s_var is not None and (s_var.lb != s_var.ub) and s_var_name not in vars_set:
             s_var.Start = round(s_value)
             warm_start_vars += 1
             vars_set.add(s_var_name)
+            # print(f'Variable {s_var_name} has been set to {s_value}')
+        m.update()
             
             
     for (port_number, time), alpha_value in alpha_values.items():
         alpha_var_name = f"alpha[{port_number},{time}]"
         alpha_var = m.getVarByName(alpha_var_name)
-        if alpha_var is not None and (alpha_var.lb != alpha_var.ub):
+        if alpha_var is not None and (alpha_var.lb != alpha_var.ub) and alpha_var_name not in vars_set:
             alpha_var.Start = round(alpha_value)
             warm_start_vars += 1
             vars_set.add(alpha_var_name)
+        m.update()
             
     # Finally, update the model to apply these start values
     m.update()
     
+    m.setParam('LogFile', 'gurobi_warmstart.log')
+    m.setParam('IntFeasTol', 1e-4)
+    m.setParam('FeasibilityTol', 1e-4)
+    m.setParam('OptimalityTol', 1e-4)
+    m.setParam('MIPFocus', 1)  # Focus on finding feasible solutions
+    m.update()
+    
     x_solution = {v.VarName: v.Start for v in m.getVars() if v.VarName.startswith('x')}
+    
+    print(f'Warm start solution has {warm_start_vars} variables set. The total number of variables in the model is {len(m.getVars())}')
+    
+    # Set the rest of the x_vars to 0
+    
+    vars_set_iteration_2 = set()
+    # Print the vars that have not been set
+    for var in m.getVars():
+        if var.VarName not in vars_set and (x_var.lb != x_var.ub):
+            if var.VarName.startswith('x_non') or var.VarName.startswith('x_inter'):
+                # Set var to 0
+                var.Start = 0
+                vars_set_iteration_2.add(var.VarName)
+                m.update()
+                
+    m.update()
+    print(f'Warm start solution has {len(vars_set_iteration_2) + len(vars_set)} variables set. The total number of variables in the model is {len(m.getVars())}')
+    
+    # Write all variables and their start values to a file
+    with open('warm_start_vars.txt', 'w') as f:
+        for var in m.getVars():
+            if var.VarName.startswith('x') and var.Start > 0:
+                f.write(f'{var.VarName}: {var.Start}\n')
+            elif var.VarName.startswith('alpha') or var.VarName.startswith('s'):
+                f.write(f'{var.VarName}: {var.Start}\n')
+                
+                
+    # Loop through the s vars
+    for var in m.getVars():
+        if var.VarName.startswith('s'):
+            if var.lb > var.Start or var.ub < var.Start:
+                print(f'Variable {var.VarName} has a start value of {var.Start} which is not within the bounds')
+                # Extract the time from the variable name
+                varname = var.VarName
+                time = extract_time_period_from_s_or_alpha_var_name(varname)
+                if time > window_end:
+                    print(f'Variable {var.VarName} is outside the window So we can set the start value to a value within the bounds')
+                    if var.Start > var.ub:
+                        var.Start = var.ub
+                    elif var.Start < var.lb:
+                        var.Start = var.lb
+                else:
+                    print(f'Variable {var.VarName} is within the window and out of bounds. Trouble ahead')
+                    
+    
     warm_start_sol = {v.VarName: v.Start for v in m.getVars()}
     
-    # print(f'Warm start solution has {warm_start_vars} variables set. The total number of variables in the model is {len(m.getVars())}')
-    
-    # # Print all the vars that has not been set
-    # for var in m.getVars():
-    #     if var.VarName not in vars_set:
-    #         print(f'Variable {var.VarName} has not been set')
-            
-    # # Print the start values for the variables that have not been set
-    # for var in m.getVars():
-    #     if var.VarName not in vars_set:
-    #         print(f'Variable {var.VarName} has not been set. Start value is {var.Start}')
     
     return x_solution, m, warm_start_sol
 
@@ -645,25 +735,90 @@ import gurobipy as gp
 from gurobipy import GRB
 import time
 
-def perform_proximity_search(ps_data, RUNNING_NPS_AND_RH, window_end, time_limit):
-        
+def perform_proximity_search(ps_data, RUNNING_NPS_AND_RH, window_end, TIME_LIMIT_PER_WINDOW):
+    ch_obj = None
     model = ps_data['model']
+    # print the amount of vars that have a start value
+    start_time = time.time()
+    
+    # print the first 50 variables starting with x_non and their start values
+    for var in model.getVars():
+        if var.VarName.startswith('x_non_interregional_((0, -1)'):
+            print(var.VarName, var.Start)
+        
+    
+    # remove all y-variables
+    for var in model.getVars():
+        if var.VarName.startswith('y'):
+            model.remove(var)
+    
+    # Make sure that no HammingDistance constraint is present
+    for constr in model.getConstrs():
+        if constr.ConstrName.startswith('y'):
+            model.remove(constr)
+    
+    
+    def callback(model, where):
+        if where == gp.GRB.Callback.MIPSOL:
+            print("Feasible solution found")
+            model.terminate()
+
+    # Turn off heuristics.
+    model.setParam('Heuristics', 0)  
+    model.setParam('Presolve', 0)
+    model.setParam('TimeLimit', 300)
+    model.update()
+    
+    model.optimize(callback)
+    
+    # Check if the model is infeasible or unbounded
+    if model.status == gp.GRB.INFEASIBLE:
+        print("Model is infeasible")
+        # Compute iis
+        model.computeIIS()
+        model.write('infeasible_window.ilp')
+        
+        return None
+    elif model.status == gp.GRB.UNBOUNDED:
+        print("Model is unbounded")
+        return None
+    
+    elif model.status == gp.GRB.OPTIMAL or model.status == gp.GRB.TIME_LIMIT or model.status == gp.GRB.INTERRUPTED:
+        print("Feasible solution found in Phase 1")
+        ch_obj = model.objVal
+
+        # Phase 2: Turn on heuristics and re-optimize with time limit
+        model.setParam('Heuristics', 1)
+        model.setParam('TimeLimit', TIME_LIMIT_PER_WINDOW)  # Set the time limit for Phase 2
+        # model.optimize()
+        
+        # if model.status == gp.GRB.INFEASIBLE:
+        #     print("Model is infeasible in Phase 2")
+        #     model.computeIIS()
+        #     model.write('infeasible_window.ilp')
+        #     return None
+        # elif model.status == gp.GRB.UNBOUNDED:
+        #     print("Model is unbounded in Phase 2")
+        #     return None
+        # elif model.status == gp.GRB.TIME_LIMIT:
+        #     print("Time limit reached in Phase 2")
+        # elif model.status == gp.GRB.OPTIMAL:
+        #     print("Optimal solution found in Phase 2")
+    
     vessel_class_arcs = ps_data['vessel_class_arcs']
     model.setParam(gp.GRB.Param.SolutionLimit, 1)
     model.setParam(gp.GRB.Param.OutputFlag, 1)
     
-    start_time = time.time()
-    model.optimize()
     original_objective_function = model.getObjective()
     current_solution_vals_x = get_current_x_solution_vals(model)
     current_solution_vars_x = {v.VarName: v for v in model.getVars() if v.VarName.startswith('x')}
     active_arcs = find_corresponding_arcs(current_solution_vals_x, vessel_class_arcs)
-    current_solution_alpha = get_current_alpha_solution_vals(model)
-    current_solution_s = get_current_s_solution_vals(model)
+    current_solution_vals_alpha = get_current_alpha_solution_vals(model)
+    current_solution_vals_s = get_current_s_solution_vals(model)
     current_best_obj = model.getObjective().getValue()
     
     PERCENTAGE_DECREASE = 0.1
-    PERCENTAGE_CHANGE_FACTOR = 1.7 #MAX 2
+    PERCENTAGE_CHANGE_FACTOR = 1.5 # Fixed
     PERCENTAGE_CHANGE_FACTOR_AFTER_INF = PERCENTAGE_CHANGE_FACTOR / 4
     # PERCENTAGE_DECREASE_AFTER_INFISIBILITY = PERCENTAGE_DECREASE/2
     # INFEASIBILITY_MULTIPLIER = 0.1
@@ -694,19 +849,18 @@ def perform_proximity_search(ps_data, RUNNING_NPS_AND_RH, window_end, time_limit
 
         update_objective_to_minimize_hamming_distance(model, y, current_solution_vars_x, current_solution_vals_x, None)
         model.setParam(gp.GRB.Param.SolutionLimit, 1)
-        time_left = time_limit - time_passed(start_time)
+        time_left = TIME_LIMIT_PER_WINDOW - time_passed(start_time)
         if cutoff_value < 1:
             model.setParam(gp.GRB.Param.TimeLimit, time_left if time_left >= 0 else 10)
         else:
-            model.setParam(gp.GRB.Param.TimeLimit, min(20, time_left) if time_left >= 0 else 10)
+            model.setParam(gp.GRB.Param.TimeLimit, min(60, time_left) if time_left >= 0 else 10)
         model.optimize()
 
         # Check if a new solution is found with the lowest amount of changes to the structure as possible
-        if model.Status ==  GRB.SOLUTION_LIMIT:
+        if model.Status == GRB.SOLUTION_LIMIT:
             last_feasible_solution_time = time_passed(start_time)
             if print_info or has_been_infeasible:
                 print("Hamming Distance from previous solution:", model.objVal)
-            current_solution_vals_x = get_current_x_solution_vals(model)
             if RUNNING_NPS_AND_RH:
                 new_obj_value = evaluate_solution_with_original_objective_for_RH(model, ps_data, window_end)
             else:
@@ -716,8 +870,11 @@ def perform_proximity_search(ps_data, RUNNING_NPS_AND_RH, window_end, time_limit
                 
             current_best_obj = new_obj_value
             current_solution_vars_x = get_current_x_solution_vars(model)
-            current_solution_alpha = get_current_alpha_solution_vals(model)
-            current_solution_s = get_current_s_solution_vals(model)
+            current_solution_vals_x = get_current_x_solution_vals(model)
+            current_solution_vals_alpha = get_current_alpha_solution_vals(model)
+            current_solution_vals_s = get_current_s_solution_vals(model)
+            active_arcs = find_corresponding_arcs(current_solution_vals_x, vessel_class_arcs)
+            
             # if has_been_infeasible:
             #     PERCENTAGE_DECREASE = PERCENTAGE_DECREASE_AFTER_INFISIBILITY
             '''If feasible, increase the percentage change, by multiplying with PERCENTAGE CHANGE FACTOR (>1)'''
@@ -726,9 +883,9 @@ def perform_proximity_search(ps_data, RUNNING_NPS_AND_RH, window_end, time_limit
                 
             current_time = time.time()
             time_diff = current_time - start_time
-            if time_diff > time_limit:
+            if time_diff > TIME_LIMIT_PER_WINDOW:
                 remove_cutoff_constraints(model)
-                return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs
+                return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_vals_s, current_solution_vals_alpha, active_arcs, ch_obj
             
         elif model.Status == GRB.TIME_LIMIT or model.Status == GRB.INFEASIBLE:
             has_been_infeasible = True
@@ -738,13 +895,13 @@ def perform_proximity_search(ps_data, RUNNING_NPS_AND_RH, window_end, time_limit
             print(f'Best objective value is {current_best_obj}.')
             if cutoff_value < 1:
                 remove_cutoff_constraints(model)
-                return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs
+                return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_vals_s, current_solution_vals_alpha, active_arcs, ch_obj
             else:
                 current_time = time.time()
                 if start_time:
-                    if current_time - start_time > time_limit:
+                    if current_time - start_time > TIME_LIMIT_PER_WINDOW:
                         remove_cutoff_constraints(model)
-                        return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs
+                        return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_vals_s, current_solution_vals_alpha, active_arcs, ch_obj
             
         
         
