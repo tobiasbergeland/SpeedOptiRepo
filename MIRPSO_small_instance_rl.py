@@ -6,6 +6,8 @@ import torch
 from common_definitions import MIRPSOEnv, DQNAgent, ReplayMemory, DQNAgent
 from optimization_utils import *
 from MIRP_GROUP_2 import (build_problem, build_model, solve_model, rearrange_arcs)
+import warnings
+
 
 def evaluate_agent_until_solution_is_found(env, agent):
     agent.epsilon = 0.1
@@ -175,6 +177,8 @@ def unpack_env_data(env_data):
 
 import random
 def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
+    warnings.filterwarnings("ignore")
+    
     LOG =True
     RUNNING_MIRPSO =False
     # RUNNING_MIRPSO =True
@@ -190,6 +194,7 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
     # INSTANCE = 'LR1_DR02_VC04_V8a'
     # INSTANCE = 'LR1_DR02_VC05_V8a'
     # INSTANCE = 'LR1_DR03_VC03_V10b'
+    # INSTANCE = 'LR1_DR08_VC10_V40b'
     
     # 'Trene agent på desse. mange iterasjoner.'
     INSTANCE = 'LR1_DR02_VC03_V8a'
@@ -198,7 +203,7 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
     
     
     TRAINING_FREQUENCY = 1
-    TARGET_UPDATE_FREQUENCY = 50
+    TARGET_UPDATE_FREQUENCY = 25
     NON_RANDOM_ACTION_EPISODE_FREQUENCY = 5
     BATCH_SIZE = 500
     BUFFER_SAVING_FREQUENCY = 200
@@ -267,6 +272,7 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
             experience_path = []
             state = env.reset()
             acc_alpha = {port.number : 0 for port in state['ports'] if port.rate}
+            alpha_dict = {time: {port.number: 0 for port in state['ports']} for time in range(env.TIME_PERIOD_RANGE[-1] + 1)}
             done = False
             
             # Directly create and fill decision_basis_states with custom deep-copied states for each vessel
@@ -289,7 +295,7 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
                 
                 port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
                 
-                acc_alpha = adjust_for_alpha(acc_alpha, port_inventory_dict, state)
+                acc_alpha = adjust_for_alpha(acc_alpha, alpha_dict, port_inventory_dict, state)
                 
                 if state['done']:
                     if feasible_path:

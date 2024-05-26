@@ -1787,12 +1787,12 @@ def main():
     RUNNING_NPS_AND_RH = False
     RUNNING_WPS_AND_RH = False
     
-    # RUNNING_MIRPSO = True
+    RUNNING_MIRPSO = True
     
     # RUNNING_WEIGHTED_PS = True
     # RUNNING_NORMAL_PS = True
-    RUNNING_RH = True
-    # RUNNING_NPS_AND_RH = True
+    # RUNNING_RH = True
+    RUNNING_NPS_AND_RH = True
     # RUNNING_WPS_AND_RH = True
     
     # GROUP 2
@@ -1869,15 +1869,36 @@ def main():
         # replay = agent.load_replay_buffer(file_name= 'replay_buffer_LR1_DR02_VC03_V8a_INF_COUNTER_5_5.pkl')
         agent.memory = replay
         
-        agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR02_VC03_V8a_alpha_COUNTER_17_21.pth'))
-        agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR02_VC03_V8a_alpha_COUNTER17_21.pth'))
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR02_VC03_V8a_alpha_COUNTER_17_21.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR02_VC03_V8a_alpha_COUNTER17_21.pth'))
+        agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR02_VC03_V8a_alpha_COUNTER_19_4.pth'))
+        agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR02_VC03_V8a_alpha_COUNTER19_4.pth'))
         
-        # agent.main_model.load_state_dict(torch.load('active_agents/main_model_LR1_DR05_VC05_V25a_alpha_COUNTER_59_6.pth'))
-        # agent.target_model.load_state_dict(torch.load('active_agents/target_model_LR1_DR05_VC05_V25a_alpha_COUNTER59_6.pth'))
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR05_VC05_V25a_alpha_COUNTER_59_6.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR05_VC05_V25a_alpha_COUNTER59_6.pth'))
         
-        # Define your window size and execute rolling horizon optimization
-        window_size = 112  # example window size
-        step_size = 56
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR08_VC10_V40a_400_NEW2.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR08_VC10_V40a_400_NEW2.pth'))
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR08_VC10_V40a_alpha_COUNTER_110_0.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR08_VC10_V40a_alpha_COUNTER110_0.pth'))
+        
+        wc = 'a'
+        # wc = 'b'
+        # wc = 'c'
+        
+        if wc == 'a':
+            step_size = 35
+            window_size = 70
+        elif wc == 'b':
+            step_size = 49
+            window_size = 98
+        elif wc == 'c':
+            step_size = 56
+            window_size = 112
+            
+        # # Define your window size and execute rolling horizon optimization
+        # window_size = 112  # example window size
+        # step_size = 
         TIME_LIMIT_PER_WINDOW = calc_time_limit_per_window(TIME_LIMIT, HORIZON, window_size, step_size)
         start_time = time.time()
         
