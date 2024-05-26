@@ -189,9 +189,9 @@ def construction_heuristic_for_window(env, agent, window_start, window_end, comb
     best_inf_counter = env.TIME_PERIOD_RANGE[-1]
     solutions = []
     # Need some randomization in order for the agent to produce different results
-    agent.epsilon = 0.2
+    agent.epsilon = 0.3
     
-    for i in range(50):
+    for i in range(20):
         if not combined_solution:
             # Window start is 0, so we need to start from scratch
             experience_path = []
@@ -200,6 +200,7 @@ def construction_heuristic_for_window(env, agent, window_start, window_end, comb
             port_inventory_dict = {}
             vessel_inventory_dict = {}
             acc_alpha = {port.number : 0 for port in state['ports'] if port.rate}
+            alpha_dict = {time: {port.number: 0 for port in state['ports']} for time in range(env.TIME_PERIOD_RANGE[-1] + 1)}
             decision_basis_states = {vessel.number: env.custom_deep_copy_of_state(state) for vessel in state['vessels']}
             actions = {vessel: env.find_legal_actions_for_vessel(state=state, vessel=vessel)[0] for vessel in state['vessels']}
             state = env.step(state=state, actions=actions, experience_path=experience_path, decision_basis_states=decision_basis_states)
@@ -219,6 +220,7 @@ def construction_heuristic_for_window(env, agent, window_start, window_end, comb
             experience_path = []
             # Reset the values in the port_inventory_dict but keep all keys
             port_inventory_dict = {time: {port.number: 0 for port in state['ports']} for time in range(env.TIME_PERIOD_RANGE[-1])}
+            alpha_dict = {time: {port.number: 0 for port in state['ports']} for time in range(env.TIME_PERIOD_RANGE[-1] + 1)}
             acc_alpha = {port.number : 0 for port in state['ports'] if port.rate}
             
             # port_inventory_dict = {}
@@ -270,12 +272,12 @@ def construction_heuristic_for_window(env, agent, window_start, window_end, comb
             
             port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
             
-            acc_alpha = adjust_for_alpha(acc_alpha, port_inventory_dict, state)
+            acc_alpha = adjust_for_alpha(acc_alpha, alpha_dict, port_inventory_dict, state)
             
             # vessel_inventory_dict[state['time']] = {vessel.number: vessel.inventory for vessel in state['vessels']}
             
             if state['done']:
-                first_infeasible_time, infeasibility_counter = env.log_window(None, total_reward_for_path, experience_path, state, window_start, window_end)
+                first_infeasible_time, infeasibility_counter = env.log_window(None, total_reward_for_path, experience_path, state, window_start, window_end, alpha_dict)
                 feasible_path = experience_path[0][6]
                 
                 # Check that the port inventories in port_inventory_dict are within the boundaries
@@ -324,17 +326,26 @@ def construction_heuristic_for_window(env, agent, window_start, window_end, comb
     return solutions
     
 # This is called just after logging. All inventories should be within their limits.
-def adjust_for_alpha(acc_alpha, port_inventory_dict, state):
-    for time, port_dict in port_inventory_dict.items():
-        for port_number, inv in port_dict.items():
-            port = state['port_dict'][port_number]
-            if port.isLoadingPort == 1:
-                if inv -acc_alpha[port_number] > port.capacity:
-                    alpha = inv - port.capacity - acc_alpha[port_number]
-                    acc_alpha[port_number] += alpha
-            else:
-                if inv + acc_alpha[port_number] < 0:
-                    acc_alpha[port_number] += -(inv + acc_alpha[port_number])
+def adjust_for_alpha(acc_alpha, alpha_dict, port_inventory_dict, state):
+    time = state['time']
+    
+    for port_number, inv in port_inventory_dict[time].items():
+        port = state['port_dict'][port_number]
+        if port.isLoadingPort == 1:
+            if inv -acc_alpha[port_number] > port.capacity:
+                # If inv-acc_alpha is less than 0
+                if inv - acc_alpha[port_number] < 0:
+                    print(f'Inv at port {port_number} at time {time} is {inv} and acc_alpha is {acc_alpha[port_number]}')
+                alpha = inv - port.capacity - acc_alpha[port_number]
+                acc_alpha[port_number] += alpha
+                alpha_dict[time-1][port_number] = alpha
+        else:
+            if inv + acc_alpha[port_number] < 0:
+                if inv + acc_alpha[port_number] > port.capacity:
+                    print(f'Inv at port {port_number} at time {time} is {inv} and acc_alpha is {acc_alpha[port_number]}')
+                alpha = -(inv + acc_alpha[port_number])
+                acc_alpha[port_number] += alpha
+                alpha_dict[time-1][port_number] = alpha
     return acc_alpha
     
     

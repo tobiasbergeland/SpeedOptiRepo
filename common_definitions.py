@@ -368,7 +368,7 @@ class MIRPSOEnv():
         
         vessel_positions_NN = np.array([v['position'] if v['position'] else v['in_transit_towards']['destination_port_number'] for v in vessel_dict.values()])
         vessel_positions_reshaped = vessel_positions_NN.reshape(-1, 1)
-        onehot_encoder = OneHotEncoder(sparse=False, categories=[np.arange(1, len(port_dict)+1)])
+        onehot_encoder = OneHotEncoder(sparse=False, categories=[np.arange(1, len(port_dict)+2)])
         onehot_encoded = onehot_encoder.fit_transform(vessel_positions_reshaped)
         onehot_encoded_flat = onehot_encoded.ravel()
 
@@ -934,7 +934,7 @@ class MIRPSOEnv():
     #     first_infeasible_time = experience_path[0][7]
     #     return first_infeasible_time, infeasibility_counter
     
-    def log_window(self, episode, total_reward_for_path, experience_path, state, window_start, window_end):
+    def log_window(self, episode, total_reward_for_path, experience_path, state, window_start, window_end, alpha_dict):
         infeasibility_counter = 0
         infeasibility_dict = {}
         for exp in experience_path:
@@ -942,13 +942,19 @@ class MIRPSOEnv():
             # current_state = exp[0]
             # result_state = exp[4]
             time = next_state['time']
-            if next_state['infeasible']:
-                if time not in infeasibility_dict.keys() and window_start <= time <= window_end:
-                    infeasibility_dict[time] = True
+            # Check if there is a non-zero alpha for the time period in any of the ports
+            if time in alpha_dict.keys():
+                for port_number, alpha in alpha_dict[time].items():
+                    if alpha > 0:
+                        if time not in infeasibility_dict.keys():
+                            infeasibility_dict[time] = True
+            # if next_state['infeasible']:
+                # if time not in infeasibility_dict.keys() and window_start <= time <= window_end:
+                    # infeasibility_dict[time] = True
                     
         # Check also the final state
-        if state['infeasible']:
-            infeasibility_dict[len(self.TIME_PERIOD_RANGE)] = True
+        # if state['infeasible']:
+            # infeasibility_dict[len(self.TIME_PERIOD_RANGE)] = True
             
         infeasibility_counter = len(infeasibility_dict.keys())
         print(f"Episode {episode}: Total Reward = {total_reward_for_path}\nInfeasibility Counter = {infeasibility_counter}")
@@ -1078,7 +1084,7 @@ class MIRPSOEnv():
         
                         
                         
-        if (len(alpha_states)<self.current_best_IC and len(alpha_states)<=105 and exploit) or (len(alpha_states)<=20 and exploit):
+        if (len(alpha_states)<self.current_best_IC and exploit) or (len(alpha_states)<=20 and exploit):
                 # save the main and target networks
                 torch.save(agent.main_model.state_dict(), f'main_model_{INSTANCE}_alpha_COUNTER_{len(alpha_states)}_{self.inf_counter_updates}.pth')
                 torch.save(agent.target_model.state_dict(), f'target_model_{INSTANCE}_alpha_COUNTER{len(alpha_states)}_{self.inf_counter_updates}.pth')
@@ -1275,13 +1281,16 @@ class MIRPSOEnv():
             if port.rate:
                 if port.isLoadingPort == 1:
                     if port.inventory + port.rate < 0:
-                        print('Infeasible state')
-                        print(f'Port {port.number} has inventory {port.inventory} and capacity {port.capacity}')
+                        if self.state['time'] < 110:
+                            print('Infeasible state')
+                            print(f"Port {port.number} at time {self.state['time']} has inventory {port.inventory} and capacity {port.capacity}")
+
                         inf_before = True
                 else:
                     if port.inventory - port.rate > port.capacity:
-                        print('Infeasible state')
-                        print(f'Port {port.number} has inventory {port.inventory} and capacity {port.capacity}')
+                        if self.state['time'] < 110:
+                            print('Infeasible state')
+                            print(f"Port {port.number} at time {self.state['time']} has inventory {port.inventory} and capacity {port.capacity}")
                         inf_before = True
         # Action is on the form (vessel_id, operation_type, quantity, arc)
         # Execute the action and update the state
@@ -1317,13 +1326,15 @@ class MIRPSOEnv():
             if port.rate:
                 if port.isLoadingPort == 1:
                     if port.inventory + port.rate < 0:
-                        print('Infeasible state')
-                        print(f'Port {port.number} has inventory {port.inventory} and capacity {port.capacity}')
+                        if self.state['time'] < 110:
+                            print('Infeasible state')
+                            print(f"Port {port.number} at time {self.state['time']} has inventory {port.inventory} and capacity {port.capacity} after action {action}")
                         inf_after = True
                 else:
                     if port.inventory - port.rate > port.capacity:
-                        print('Infeasible state')
-                        print(f'Port {port.number} has inventory {port.inventory} and capacity {port.capacity}')
+                        if self.state['time'] < 110:
+                            print('Infeasible state')
+                            print(f"Port {port.number} at time {self.state['time']} has inventory {port.inventory} and capacity {port.capacity} after action {action}")
                         inf_after = True
         
         if not inf_before and inf_after:
@@ -1556,7 +1567,7 @@ class DQNAgent:
         # ports plus source and sink, vessel inventory, (vessel position, vessel in transit), time period, vessel_number
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         # state_size = len(ports) + 2 * len(vessels) + len(ports)*3
-        state_size = len(ports) + 1 * len(vessels) + len(ports)*3 + len(vessels)*len(ports)
+        state_size = len(ports) + 1 * len(vessels) + len(ports)*3 + len(vessels)*(len(ports) +1)
         action_size = len(ports)
         self.state_size = state_size
         self.action_size = action_size
@@ -1735,7 +1746,7 @@ class DQNAgent:
             if destination_port_number in unique_ports:
                 # Find all actions with the same destination port number in legal actions
                 possible_actions = [action for action in legal_actions if action[3].destination_node.port.number == destination_port_number]
-                # If there are a possible traveling arc, take it.
+                # If there is a possible traveling arc, take it.
                 
                 action = max(possible_actions, key=lambda x: x[3].speed)
                 arc = action[3]
