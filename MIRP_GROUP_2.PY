@@ -1015,7 +1015,9 @@ def build_problem(INSTANCE, RUNNING_MIRPSO):
     all_ports, loading_regions, discharging_regions, port_dict = create_ports_from_info_with_loading(ports_info, spotMarketPricePerUnit, spotMarketDiscountFactor)
     ports = get_ports(all_ports)
     NUM_TIME_PERIODS = metadata['numPeriods']
-    NUM_TIME_PERIODS = 120
+    # NUM_TIME_PERIODS = 120
+    # NUM_TIME_PERIODS = 180
+    NUM_TIME_PERIODS = 360
     TIME_PERIOD_RANGE = list(range(0, NUM_TIME_PERIODS))
     FUEL_PRICE = 500
     ORIGINAL_NUM_PORTS = len(ports)
@@ -1241,31 +1243,71 @@ def init_weights(active_arcs, vessel_classes, current_solution_x, vessel_class_a
             weights[varname] = 0
     return weights
                 
-def calculate_weights(current_solution_x, current_solution_alpha, current_solution_s, active_arcs, agent, env, vessel_classes, RUNNING_MIRPSO, NODE_DICT, vessel_class_arcs):
+def calculate_weights(current_solution_x, current_solution_alpha, current_solution_s, active_arcs, agent, env, vessel_classes, RUNNING_MIRPSO, NODE_DICT, vessel_class_arcs, INSTANCE, window_start):
+    # 1 simulation only
     weights = init_weights(active_arcs, vessel_classes, current_solution_x, vessel_class_arcs)
-        
     active_arcs_chosen_by_agent = []
-    state = env.reset()
     experience_path = []
-    decision_basis_states = {vessel.number: env.custom_deep_copy_of_state(state) for vessel in state['vessels']}
-    actions = {vessel: env.find_legal_actions_for_vessel(state=state, vessel=vessel)[0] for vessel in state['vessels']}
-    for vessel, action in actions.items():
-        arc = action[3]
-        active_arcs_chosen_by_agent.append(arc)
-    weights = update_weights_based_on_action(weights, active_arcs_chosen_by_agent)
     
-    state = env.step(state=state, actions=actions, experience_path=experience_path, decision_basis_states=decision_basis_states)
-    done = False
-    
-    while not done:
+    if window_start == 0:
+        state = env.reset()
+        done = False
+        port_inventory_dict = {}
+        vessel_inventory_dict = {}
+        acc_alpha = {port.number : 0 for port in state['ports'] if port.rate}
+        alpha_dict = {time: {port.number: 0 for port in state['ports']} for time in range(env.TIME_PERIOD_RANGE[-1] + 1)}
+        decision_basis_states = {vessel.number: env.custom_deep_copy_of_state(state) for vessel in state['vessels']}
+        actions = {vessel: env.find_legal_actions_for_vessel(state=state, vessel=vessel)[0] for vessel in state['vessels']}
+        state = env.step(state=state, actions=actions, experience_path=experience_path, decision_basis_states=decision_basis_states)
+        # increment time only
         state['time'] += 1
-        time = state['time']
+        for vessel, action in actions.items():
+            arc = action[3]
+            active_arcs_chosen_by_agent.append(arc)
+            weights = update_weights_based_on_action(weights, active_arcs_chosen_by_agent)
+    else:
+        print('Window start is not 0')
+        state = env.reset()
+        port_inventory_dict = {time: {port.number: 0 for port in state['ports']} for time in range(env.TIME_PERIOD_RANGE[-1])}
+        alpha_dict = {time: {port.number: 0 for port in state['ports']} for time in range(env.TIME_PERIOD_RANGE[-1] + 1)}
+        acc_alpha = {port.number : 0 for port in state['ports'] if port.rate}
+        for port in state['ports']:
+            port_inventory_dict[window_start][port.number] = current_solution_s[f's[{port.number},{window_start}]']
+            
+        for port in state['ports']:
+                port_number = port.number
+                # Get the value of the s variable from current_solution_vals_s
+                s_var_value = current_solution_s[f's[{port_number},{window_start}]']
+                port = env.PORTS[port_number -1]
+                port.inventory = s_var_value
+                
+        state['time'] = window_start
+        state['done'] = False
+        done = state['done']
+        
+        for vc in vessel_classes:
+            vessels_in_class = [vessel for vessel in state['vessels'] if vessel.vessel_class == vc]
+            vc_active_arcs = active_arcs[vc]
+            destination_nodes = find_vessel_destinations(vessels_in_class, vc_active_arcs, window_start)
+            for v, node in destination_nodes.items():
+                v.position = None
+                v.in_transit_towards = (node.port, node.time)
+                if node.port.isLoadingPort == 1:
+                    v.inventory = 0
+                else:
+                    v.inventory = v.capacity
+        
+    while not done:
+        state, total_reward_for_path, feasible_path, alpha_register = env.check_state(state=state, experience_path=experience_path, replay=agent.memory, agent=agent, INSTANCE=INSTANCE, exploit = False, port_inventory_dict=port_inventory_dict)
+        port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
+        # acc_alpha = adjust_for_alpha(acc_alpha, alpha_dict, port_inventory_dict, state)
+        
         # Use the s-variables to update the port inventory levels in the state
         # Find the keys for the s-variables that correspond to the current time period
         for port in env.PORTS:
-            var_name = f's[{port.number},{time}]'
+            var_name = f's[{port.number},{state["time"]}]'
             port.inventory_level = current_solution_s[var_name]
-        state = env.produce(state)
+        # state = env.produce(state)
         
         if state['time'] == env.TIME_PERIOD_RANGE[-1]:
             done = True
@@ -1287,7 +1329,7 @@ def calculate_weights(current_solution_x, current_solution_alpha, current_soluti
             for vessel in available_vessels:
                 corresponding_vessel = decision_basis_state['vessel_dict'][vessel.number]
                 decision_basis_states[corresponding_vessel['number']] = decision_basis_state
-                legal_actions = env.sim_find_legal_actions_for_vessel(state=decision_basis_state, vessel=corresponding_vessel, queued_actions=actions_to_make, RUNNING_WPS = True)
+                legal_actions = env.sim_find_legal_actions_for_vessel(state=decision_basis_state, vessel=corresponding_vessel, queued_actions=actions_to_make, RUNNING_WPS = True, acc_alpha = acc_alpha)
                 
                 if RUNNING_MIRPSO:
                     possible_actions, dport_chosen_by_agent = agent.select_action_for_ps(state=copy.deepcopy(decision_basis_state), legal_actions=legal_actions, env=env, vessel_simp=corresponding_vessel, RUNNING_MIRPSO=RUNNING_MIRPSO)
@@ -1535,7 +1577,7 @@ import logging
 def save_solution(INSTANCE, HORIZON, model, time_limit, elapsed_time, costs, P,
                   RUNNING_MIRPSO, best_obj_val, solution_vals_x,
                   solution_vals_s, solution_vals_alpha, active_arcs, vessel_classes,
-                  NPS, WPS, RH, WPS_AND_RH, NPS_AND_RH, VESSEL_CLASSES, vessels, sourceNode, sinkNode, NODE_DICT, window_size, step_size, solver_and_chObj):
+                  NPS, WPS, RH, WPS_AND_RH, NPS_AND_RH, VESSEL_CLASSES, vessels, sourceNode, sinkNode, NODE_DICT, window_size, step_size, solver_and_chObj, L):
 
     method_map = {"NPS": NPS, "WPS": WPS, "RH": RH, "WPS_AND_RH": WPS_AND_RH, "NPS_AND_RH": NPS_AND_RH}
     method = next((method_name for method_name, condition in method_map.items() if condition), "SOLVER")
@@ -1573,6 +1615,7 @@ def save_solution(INSTANCE, HORIZON, model, time_limit, elapsed_time, costs, P,
         'gap':gap,
         "elapsed_time": elapsed_time,
         "time_limit": time_limit,
+        'L' : L,
         'solver_and_chObj': solver_and_chObj,
         # "last_feasible_solution_time" : last_feasible_solution_time if method == 'NPS' or method == 'WPS' else None,
         "costs": costs_str_keys,
@@ -1598,8 +1641,8 @@ def save_solution(INSTANCE, HORIZON, model, time_limit, elapsed_time, costs, P,
     flattened_routes["vessel_routes_flattened"] = reformatted_routes
     
     # Save to a JSON file for easy parsing and readability
-    filename = f"RH_param2/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_WS={window_size}_SS={step_size}.json"
-    filename_readable_routes = f"RH_param2/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_WS={window_size}_SS={step_size}.txt"
+    filename = f"PS_param2/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_WS={window_size}_SS={step_size}_{L}.json"
+    filename_readable_routes = f"PS_param2/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_WS={window_size}_SS={step_size}_{L}.txt"
     with open(filename, 'w') as file:
         json.dump(solution_data, file, indent=4)
     with open(filename_readable_routes, 'w') as file:
@@ -1700,8 +1743,7 @@ def proximity_search_using_agent(ps_data, agent, env, RUNNING_WPS_AND_RH, window
     
     
     'Calculate the weights based on the initial solution'
-    weights = calculate_weights(current_solution_vals_x, current_solution_alpha, current_solution_s, active_arcs, agent, env, vessel_classes, RUNNING_MIRPSO, NODE_DICT, vessel_class_arcs)
-    
+    weights = calculate_weights(current_solution_x = current_solution_vals_x, current_solution_alpha = current_solution_alpha, current_solution_s = current_solution_s, active_arcs = active_arcs, agent = agent, env = env, vessel_classes = vessel_classes, RUNNING_MIRPSO = RUNNING_MIRPSO, NODE_DICT = NODE_DICT, vessel_class_arcs = vessel_class_arcs, INSTANCE = INSTANCE)    
     has_been_infeasible = False
     i = 0
     
@@ -1792,8 +1834,8 @@ def main():
     # RUNNING_WEIGHTED_PS = True
     # RUNNING_NORMAL_PS = True
     # RUNNING_RH = True
-    RUNNING_NPS_AND_RH = True
-    # RUNNING_WPS_AND_RH = True
+    # RUNNING_NPS_AND_RH = True
+    RUNNING_WPS_AND_RH = True
     
     # GROUP 2
     # INSTANCE = 'LR1_DR02_VC01_V6a'
@@ -1812,7 +1854,10 @@ def main():
     'RUN 3'
     # INSTANCE = 'LR1_DR08_VC10_V40a' 
     
-    TIME_LIMIT = 7200
+    TIME_LIMIT = 72
+    # L = 60
+    L = 90
+    # L = 120
     
     problem_data = build_problem(INSTANCE, RUNNING_MIRPSO)
     
@@ -1846,21 +1891,21 @@ def main():
     if RUNNING_WEIGHTED_PS:
         env = MIRPSOEnv(ports, vessels, vessel_arcs, NODES, TIME_PERIOD_RANGE, sourceNode, sinkNode, NODE_DICT, special_sink_arcs, special_nodes_dict)
         replay = ReplayMemory(3000)
-        
         agent = DQNAgent(ports = ports, vessels=vessels, TRAINING_FREQUENCY = None, TARGET_UPDATE_FREQUENCY = None, NON_RANDOM_ACTION_EPISODE_FREQUENCY = None, BATCH_SIZE = None, replay = replay)
-        replay = agent.load_replay_buffer(file_name= 'replay_buffer_LR1_DR02_VC03_V8a_11000_NEW2.pkl')
-        
+        # replay = agent.load_replay_buffer(file_name= 'replay_buffer_LR1_DR02_VC03_V8a_11000_NEW2.pkl')
         agent.memory = replay
         
-        agent.main_model.load_state_dict(torch.load('main_model_LR1_DR02_VC03_V8a_INF_COUNTER_6.pth'))
-        agent.target_model.load_state_dict(torch.load('target_model_LR1_DR02_VC03_V8a_INF_COUNTER6.pth'))
+        agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR02_VC03_V8a_alpha_COUNTER_19_4.pth'))
+        agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR02_VC03_V8a_alpha_COUNTER19_4.pth'))
+        
+        
         
         current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs = proximity_search_using_agent(ps_data=ps_data, agent=agent, env=env, RUNNING_WPS_AND_RH=RUNNING_WPS_AND_RH, window_end=None, RUNNING_MIRPSO=RUNNING_MIRPSO, time_limit=TIME_LIMIT, INSTANCE=INSTANCE)
         
         
     elif RUNNING_NORMAL_PS:
         # Perform the proximity search using the initial solution
-        current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs, last_feasible_solution_time = perform_proximity_search(ps_data=ps_data, RUNNING_NPS_AND_RH=RUNNING_NPS_AND_RH, window_end=None, time_limit=TIME_LIMIT)
+        current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs, last_feasible_solution_time = perform_proximity_search(ps_data=ps_data, RUNNING_NPS_AND_RH=RUNNING_NPS_AND_RH, window_end=None, time_limit=TIME_LIMIT, L=L)
         
     elif RUNNING_RH or RUNNING_NPS_AND_RH:
         env = MIRPSOEnv(ports, vessels, vessel_arcs, NODES, TIME_PERIOD_RANGE, sourceNode, sinkNode, NODE_DICT, special_sink_arcs, special_nodes_dict)
@@ -1869,21 +1914,25 @@ def main():
         # replay = agent.load_replay_buffer(file_name= 'replay_buffer_LR1_DR02_VC03_V8a_INF_COUNTER_5_5.pkl')
         agent.memory = replay
         
-        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR02_VC03_V8a_alpha_COUNTER_17_21.pth'))
-        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR02_VC03_V8a_alpha_COUNTER17_21.pth'))
-        agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR02_VC03_V8a_alpha_COUNTER_19_4.pth'))
-        agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR02_VC03_V8a_alpha_COUNTER19_4.pth'))
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR02_VC03_V8a_alpha_COUNTER_17_21.pth'))*
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR02_VC03_V8a_alpha_COUNTER17_21.pth'))*
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR02_VC03_V8a_alpha_COUNTER_19_4.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR02_VC03_V8a_alpha_COUNTER19_4.pth'))
         
-        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR05_VC05_V25a_alpha_COUNTER_59_6.pth'))
-        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR05_VC05_V25a_alpha_COUNTER59_6.pth'))
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR05_VC05_V25a_alpha_COUNTER_59_6.pth'))*
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR05_VC05_V25a_alpha_COUNTER59_6.pth'))*
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR05_VC05_V25a_alpha_COUNTER_150_2.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR05_VC05_V25a_alpha_COUNTER150_2.pth'))
         
-        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR08_VC10_V40a_400_NEW2.pth'))
-        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR08_VC10_V40a_400_NEW2.pth'))
-        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR08_VC10_V40a_alpha_COUNTER_110_0.pth'))
-        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR08_VC10_V40a_alpha_COUNTER110_0.pth'))
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR08_VC10_V40a_400_NEW2.pth'))*
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR08_VC10_V40a_400_NEW2.pth'))*
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR08_VC10_V40a_alpha_COUNTER_110_0.pth'))*
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR08_VC10_V40a_alpha_COUNTER110_0.pth'))*
+        agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR08_VC10_V40a_alpha_COUNTER_104_2.pth'))
+        agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR08_VC10_V40a_alpha_COUNTER104_2.pth'))
         
-        wc = 'a'
-        # wc = 'b'
+        # wc = 'a'
+        wc = 'b'
         # wc = 'c'
         
         if wc == 'a':
@@ -1902,7 +1951,7 @@ def main():
         TIME_LIMIT_PER_WINDOW = calc_time_limit_per_window(TIME_LIMIT, HORIZON, window_size, step_size)
         start_time = time.time()
         
-        current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs, solver_and_chObj = rolling_horizon_optimization(model=model, horizon_length=HORIZON, window_size=window_size, step_size=step_size, TIME_LIMIT_PER_WINDOW=TIME_LIMIT_PER_WINDOW, ps_data=ps_data, agent=agent, env=env, RUNNING_WPS_AND_RH=RUNNING_WPS_AND_RH, RUNNING_NPS_AND_RH=RUNNING_NPS_AND_RH, proximity_search_using_agent=proximity_search_using_agent, RUNNING_MIRPSO=RUNNING_MIRPSO, VESSEL_CLASSES = VESSEL_CLASSES, INSTANCE=INSTANCE, vessel_class_arcs=vessel_class_arcs)
+        current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs, solver_and_chObj = rolling_horizon_optimization(model=model, horizon_length=HORIZON, window_size=window_size, step_size=step_size, TIME_LIMIT_PER_WINDOW=TIME_LIMIT_PER_WINDOW, ps_data=ps_data, agent=agent, env=env, RUNNING_WPS_AND_RH=RUNNING_WPS_AND_RH, RUNNING_NPS_AND_RH=RUNNING_NPS_AND_RH, proximity_search_using_agent=proximity_search_using_agent, RUNNING_MIRPSO=RUNNING_MIRPSO, VESSEL_CLASSES = VESSEL_CLASSES, INSTANCE=INSTANCE, vessel_class_arcs=vessel_class_arcs, L=L)
         # Print objective function value
         print(f'Objective function value: {current_best_obj}')
         end_time = time.time()
@@ -1911,7 +1960,7 @@ def main():
         save_solution(INSTANCE=INSTANCE, HORIZON=HORIZON, model = model, time_limit = TIME_LIMIT, elapsed_time=elapsed_time, costs=costs, P=P,
                   RUNNING_MIRPSO=RUNNING_MIRPSO, best_obj_val=current_best_obj, solution_vals_x = current_solution_vals_x,
                   solution_vals_s = current_solution_s, solution_vals_alpha = current_solution_alpha, active_arcs = active_arcs, vessel_classes=VESSEL_CLASSES,
-                  NPS = RUNNING_NORMAL_PS, WPS = RUNNING_WEIGHTED_PS, RH = RUNNING_RH, WPS_AND_RH = RUNNING_WPS_AND_RH, NPS_AND_RH=RUNNING_NPS_AND_RH, VESSEL_CLASSES = VESSEL_CLASSES, vessels = vessels, sourceNode = sourceNode, sinkNode = sinkNode, NODE_DICT = NODE_DICT, window_size = window_size, step_size = step_size, solver_and_chObj = solver_and_chObj)
+                  NPS = RUNNING_NORMAL_PS, WPS = RUNNING_WEIGHTED_PS, RH = RUNNING_RH, WPS_AND_RH = RUNNING_WPS_AND_RH, NPS_AND_RH=RUNNING_NPS_AND_RH, VESSEL_CLASSES = VESSEL_CLASSES, vessels = vessels, sourceNode = sourceNode, sinkNode = sinkNode, NODE_DICT = NODE_DICT, window_size = window_size, step_size = step_size, solver_and_chObj = solver_and_chObj, L=L)
     
         
     elif RUNNING_WPS_AND_RH:
@@ -1919,16 +1968,18 @@ def main():
         replay = ReplayMemory(3000)
         
         agent = DQNAgent(ports = ports, vessels=vessels, TRAINING_FREQUENCY = None, TARGET_UPDATE_FREQUENCY = None, NON_RANDOM_ACTION_EPISODE_FREQUENCY = None, BATCH_SIZE = None, replay = replay)
-        replay = agent.load_replay_buffer(file_name= 'replay_buffer_LR1_DR02_VC03_V8a_25_NEW2.pkl')
+        # replay = agent.load_replay_buffer(file_name= 'replay_buffer_LR1_DR02_VC03_V8a_25_NEW2.pkl')
         agent.memory = replay
         
-        agent.main_model.load_state_dict(torch.load('main_model_LR1_DR02_VC03_V8a_25_NEW2.pth'))
-        agent.target_model.load_state_dict(torch.load('target_model_LR1_DR02_VC03_V8a_25_NEW2.pth'))
+        step_size = 49
+        window_size = 98
+        L = 60
         
-        window_size = 60  # example window size
-        step_size = 30
+        agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR02_VC03_V8a_alpha_COUNTER_19_4.pth'))
+        agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR02_VC03_V8a_alpha_COUNTER19_4.pth'))
+        
         TIME_LIMIT_PER_WINDOW = calc_time_limit_per_window(TIME_LIMIT, HORIZON, window_size, step_size)
-        current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs = rolling_horizon_optimization(model =model, horizon_length=HORIZON, window_size=window_size, step_size=step_size, TIME_LIMIT_PER_WINDOW=TIME_LIMIT_PER_WINDOW, ps_data=ps_data, agent=agent, env=env, RUNNING_WPS_AND_RH=RUNNING_WPS_AND_RH, RUNNING_NPS_AND_RH=RUNNING_NPS_AND_RH, proximity_search_using_agent=proximity_search_using_agent, RUNNING_MIRPSO=RUNNING_MIRPSO, VESSEL_CLASSES = VESSEL_CLASSES, INSTANCE=INSTANCE, vessel_class_arcs=vessel_class_arcs)
+        current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs = rolling_horizon_optimization(model =model, horizon_length=HORIZON, window_size=window_size, step_size=step_size, TIME_LIMIT_PER_WINDOW=TIME_LIMIT_PER_WINDOW, ps_data=ps_data, agent=agent, env=env, RUNNING_WPS_AND_RH=RUNNING_WPS_AND_RH, RUNNING_NPS_AND_RH=RUNNING_NPS_AND_RH, proximity_search_using_agent=proximity_search_using_agent, RUNNING_MIRPSO=RUNNING_MIRPSO, VESSEL_CLASSES = VESSEL_CLASSES, INSTANCE=INSTANCE, vessel_class_arcs=vessel_class_arcs, L = L)
         
     else:
         current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs, construction_heuri = solve_model(model=model, costs=costs, P=P, RUNNING_MIRPSO=RUNNING_MIRPSO, INSTANCE= INSTANCE, HORIZON=HORIZON, ps_data=ps_data, time_limit=TIME_LIMIT)

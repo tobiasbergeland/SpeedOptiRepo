@@ -746,7 +746,8 @@ import gurobipy as gp
 from gurobipy import GRB
 import time
 
-def perform_proximity_search(ps_data, RUNNING_NPS_AND_RH, window_end, TIME_LIMIT_PER_WINDOW):
+def perform_proximity_search(ps_data, RUNNING_NPS_AND_RH, window_end, TIME_LIMIT_PER_WINDOW, L):
+    
     ch_obj = None
     model = ps_data['model']
     # print the amount of vars that have a start value
@@ -773,12 +774,12 @@ def perform_proximity_search(ps_data, RUNNING_NPS_AND_RH, window_end, TIME_LIMIT
         if where == gp.GRB.Callback.MIPSOL:
             print("Feasible solution found")
             model.terminate()
+            
 
     # Turn off heuristics.
-    model.setParam('Heuristics', 0)  
-    model.setParam('Presolve', 0)
-    model.setParam('TimeLimit', 300)
-    model.update()
+    # model.setParam('Heuristics', 0)  
+    # model.setParam('Presolve', 0)
+    # model.update()
     
     model.optimize(callback)
     
@@ -794,39 +795,25 @@ def perform_proximity_search(ps_data, RUNNING_NPS_AND_RH, window_end, TIME_LIMIT
         print("Model is unbounded")
         return None
     
-    elif model.status == gp.GRB.OPTIMAL or model.status == gp.GRB.TIME_LIMIT or model.status == gp.GRB.INTERRUPTED:
+    else:
         print("Feasible solution found in Phase 1")
         ch_obj = model.objVal
 
         # Phase 2: Turn on heuristics and re-optimize with time limit
         model.setParam('Heuristics', 1)
-        model.setParam('TimeLimit', TIME_LIMIT_PER_WINDOW)  # Set the time limit for Phase 2
-        # model.optimize()
+    
+        vessel_class_arcs = ps_data['vessel_class_arcs']
+        model.setParam(gp.GRB.Param.SolutionLimit, 1)
+        model.setParam(gp.GRB.Param.OutputFlag, 1)
         
-        # if model.status == gp.GRB.INFEASIBLE:
-        #     print("Model is infeasible in Phase 2")
-        #     model.computeIIS()
-        #     model.write('infeasible_window.ilp')
-        #     return None
-        # elif model.status == gp.GRB.UNBOUNDED:
-        #     print("Model is unbounded in Phase 2")
-        #     return None
-        # elif model.status == gp.GRB.TIME_LIMIT:
-        #     print("Time limit reached in Phase 2")
-        # elif model.status == gp.GRB.OPTIMAL:
-        #     print("Optimal solution found in Phase 2")
-    
-    vessel_class_arcs = ps_data['vessel_class_arcs']
-    model.setParam(gp.GRB.Param.SolutionLimit, 1)
-    model.setParam(gp.GRB.Param.OutputFlag, 1)
-    
-    original_objective_function = model.getObjective()
-    current_solution_vals_x = get_current_x_solution_vals(model)
-    current_solution_vars_x = {v.VarName: v for v in model.getVars() if v.VarName.startswith('x')}
-    active_arcs = find_corresponding_arcs(current_solution_vals_x, vessel_class_arcs)
-    current_solution_vals_alpha = get_current_alpha_solution_vals(model)
-    current_solution_vals_s = get_current_s_solution_vals(model)
-    current_best_obj = model.getObjective().getValue()
+        original_objective_function = model.getObjective()
+        current_solution_vals_x = get_current_x_solution_vals(model)
+        current_solution_vars_x = {v.VarName: v for v in model.getVars() if v.VarName.startswith('x')}
+        active_arcs = find_corresponding_arcs(current_solution_vals_x, vessel_class_arcs)
+        current_solution_vals_alpha = get_current_alpha_solution_vals(model)
+        current_solution_vals_s = get_current_s_solution_vals(model)
+        current_best_obj = model.getObjective().getValue()
+
     
     PERCENTAGE_DECREASE = 0.1
     PERCENTAGE_CHANGE_FACTOR = 1.5 # Fixed
@@ -864,7 +851,7 @@ def perform_proximity_search(ps_data, RUNNING_NPS_AND_RH, window_end, TIME_LIMIT
         if cutoff_value < 1:
             model.setParam(gp.GRB.Param.TimeLimit, time_left if time_left >= 0 else 10)
         else:
-            model.setParam(gp.GRB.Param.TimeLimit, min(60, time_left) if time_left >= 0 else 10)
+            model.setParam(gp.GRB.Param.TimeLimit, min(L, time_left) if time_left >= 0 else 10)
         model.optimize()
 
         # Check if a new solution is found with the lowest amount of changes to the structure as possible

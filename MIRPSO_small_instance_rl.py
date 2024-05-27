@@ -197,8 +197,8 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
     # INSTANCE = 'LR1_DR08_VC10_V40b'
     
     # 'Trene agent på desse. mange iterasjoner.'
-    INSTANCE = 'LR1_DR02_VC03_V8a'
-    # INSTANCE = 'LR1_DR05_VC05_V25a'
+    # INSTANCE = 'LR1_DR02_VC03_V8a'
+    INSTANCE = 'LR1_DR05_VC05_V25a'
     # INSTANCE = 'LR1_DR08_VC10_V40a'
     
     
