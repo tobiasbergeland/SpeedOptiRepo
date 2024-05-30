@@ -520,7 +520,7 @@ class MIRPSOEnv():
     
     def sim_find_legal_actions_for_vessel(self, state, vessel, queued_actions, RUNNING_WPS, acc_alpha):
         if RUNNING_WPS:
-            legal_arcs = self.sim_get_legal_arcs_for_ps(state=state, vessel=vessel, special_sink_arcs=self.SPECIAL_SINK_ARCS, special_node_dict=self.SPECIAL_NODES_DICT, queued_actions=queued_actions)
+            legal_arcs = self.sim_get_legal_arcs_wps(state=state, vessel=vessel, special_sink_arcs=self.SPECIAL_SINK_ARCS, queued_actions=queued_actions, acc_alpha=acc_alpha)
         else:
             legal_arcs = self.sim_get_legal_arcs(state=state, vessel=vessel, special_sink_arcs=self.SPECIAL_SINK_ARCS, special_node_dict=self.SPECIAL_NODES_DICT, queued_actions=queued_actions, acc_alpha=acc_alpha)
             
@@ -562,6 +562,7 @@ class MIRPSOEnv():
         return False
     
     def can_operate_at_port_now(self, vessel, port, queued_actions, db_state, acc_alpha):
+        #For WPS, the acc_alpha is always 0
         
         # Check if there is a queued action that is leaving the same port
         for action in queued_actions.values():
@@ -587,7 +588,7 @@ class MIRPSOEnv():
         if port['isLoadingPort'] == 1:
             # The production has already been added to the inventory. Therefore, we only need to check if the inventory is less than the capacity
             # We have to look at the db_state to see the current inventory
-            if db_state['port_dict'][port['number']]['inventory'] - acc_alpha[port['number']] >= vessel['capacity']:
+            if db_state['port_dict'][port['number']]['inventory'] - acc_alpha[port['number']] + port['rate']>= vessel['capacity']:
                 return True
             # if port['inventory'] >= vessel['capacity']:
                 # return True
@@ -643,18 +644,182 @@ class MIRPSOEnv():
             #         # Take one random action from the potential arcs
             #         legal_arcs = [random.choice(potential_arcs)]
             #     return legal_arcs
+            
+            
+    def sim_get_legal_arcs_wps(self, state, vessel, special_sink_arcs, queued_actions, acc_alpha):
+        horizon = self.TIME_PERIOD_RANGE[-1]
+        sink_threshold = (5/8)*horizon
+        current_node_key = (vessel['position'], state['time'])
+        current_node = self.NODE_DICT[current_node_key]
+        current_port = state['port_dict'][vessel['position']]
+        
+        non_sim_vessel = self.VESSEL_DICT[vessel['number']]
+        # Pre-filter arcs that originate from the current node
+                
+        
+        # Only one possibility form source
+        if current_node == self.SOURCE_NODE:
+            return [arc for arc in self.VESSEL_ARCS[vessel] if arc.origin_node == current_node]
+        
+        
+        if state['time'] >= sink_threshold:
+            if self.can_operate_at_port_now(vessel, current_port, queued_actions, state, acc_alpha):
+                # Check if there is another queued action that is leaving the same port and to the sink node
+                sink_arc_taken = False
+                for action in queued_actions.values():
+                    arc = action[3]
+                    qv = action[0]
+                    q_vessel = self.VESSEL_DICT[qv]
+                    if arc.origin_node == current_node and arc.destination_node == self.SINK_NODE and q_vessel.vessel_class == vessel['vessel_class']:
+                        # Sink node not available, only waiting arc is possible
+                        sink_arc_taken = True
+                        break
+                if not sink_arc_taken:
+                    forced_arcs = [arc for arc in self.VESSEL_ARCS[non_sim_vessel] if arc.origin_node == current_node and arc.destination_node == self.SINK_NODE]
+                    if not forced_arcs:
+                        print('No forced arcs found')
+                    return forced_arcs
+                else:
+                    forced_arcs = [arc for arc in self.VESSEL_ARCS[non_sim_vessel] if arc.is_waiting_arc and arc.origin_node == current_node]
+                    if not forced_arcs:
+                        print('No forced arcs found')
+                    return forced_arcs
+            else:
+                forced_arcs = [arc for arc in self.VESSEL_ARCS[non_sim_vessel] if arc.is_waiting_arc and arc.origin_node == current_node]
+                if not forced_arcs:
+                        print('No forced arcs found')
+                return forced_arcs
+    
+
+        potential_arcs = [arc for arc in self.VESSEL_ARCS[non_sim_vessel] if arc.origin_node == current_node]
+        # Remove the sink arc from the potential arcs
+        # potential_arcs = [arc for arc in potential_arcs if arc.destination_node.port != self.SINK_NODE.port]
+        # Add the special sink arcs to the potential arcs if there are any
+        potential_arcs += [arc for arc in special_sink_arcs[non_sim_vessel] if arc.origin_node == current_node and arc.destination_node.port.isLoadingPort != current_node.port.isLoadingPort]
+        # ports_that_must_be_avoided = self.ports_that_must_be_avoided(state)
+        ports_that_must_be_avoided = {}
+        
+        
+        v_cap = vessel['capacity']
+        for port_number, port in state['port_dict'].items():
+            if port['capacity'] is not None:
+                if port['isLoadingPort'] != 1:
+                    if v_cap > port['capacity'] + port['rate']:
+                        ports_that_must_be_avoided[port_number] = port
+                        # Also remove the arc from the potential arcs if len(potential_arcs) > 1
+                        if len(potential_arcs) > 1:
+                            potential_arcs = [arc for arc in potential_arcs if arc.destination_node.port.number != port_number]
+                        
+                    
+                    
+                    
+        # ports_that_must_be_avoided = {}
+        # Remove current port form the ports that must be avoided
+        if current_port['number'] in ports_that_must_be_avoided.keys():
+            del ports_that_must_be_avoided[current_port['number']]
+        
+        port_dict = state['port_dict']
+        for q_v, action in queued_actions.items():
+            q_vc = q_v.vessel_class
+            arc = action[3]
+            if not arc.is_waiting_arc:
+                origin_node = arc.origin_node
+                destination_node = arc.destination_node
+                if vessel['vessel_class'] == q_vc:
+                    if origin_node.port.number == current_port['number']:
+                        ports_that_must_be_avoided[destination_node.port.number] = port_dict[destination_node.port.number]
+                
+                
+        # If the port is in a port that must be avoided, we can remove the port from the ports that must be avoided
+        if current_port['number'] in ports_that_must_be_avoided.keys():
+            del ports_that_must_be_avoided[current_port['number']]
+            
+        # Remove all arcs going to a port that must be avoided
+        legal_arcs = [arc for arc in potential_arcs if arc.destination_node.port.number not in ports_that_must_be_avoided.keys() or arc.destination_node.time == self.TIME_PERIOD_RANGE[-1]+1]
+
+        if self.can_operate_at_port_now(vessel, current_port, queued_actions, state, acc_alpha):
+            # Check if the vessel can wait at the current port
+            if self.waiting_arc_is_legal(current_port, acc_alpha):
+                if not legal_arcs:
+                    #Choose the waiting arc
+                    legal_arcs = [arc for arc in potential_arcs if arc.is_waiting_arc]
+                    if legal_arcs:
+                        return [arc for arc in potential_arcs if arc.is_waiting_arc]
+                return legal_arcs
+            else:
+                # Remove the waiting arc and return the rest
+                legal_arcs = [arc for arc in legal_arcs if not arc.is_waiting_arc]
+                if not legal_arcs:
+                    #If no other option, waiting arc
+                    legal_arcs = [arc for arc in potential_arcs if arc.is_waiting_arc]
+                    if legal_arcs:
+                        return legal_arcs
+                    else:
+                        # Take one random action from the potential arcs
+                        legal_arcs = [random.choice(potential_arcs)]
+                return legal_arcs
+        else:
+            # Waiting arc is the only legal arc
+            legal_arcs = [arc for arc in potential_arcs if arc.is_waiting_arc]
+            if not legal_arcs:
+                # Take one random action from the potential arcs
+                legal_arcs = [random.choice(potential_arcs)]
+            return legal_arcs
+    
         
         
     def sim_get_legal_arcs(self, state, vessel, special_sink_arcs, special_node_dict, queued_actions, acc_alpha):
+            horizon = self.TIME_PERIOD_RANGE[-1]
+            if horizon < 121:
+                sink_threshold = 70
+            elif 121 <= horizon < 181:
+                sink_threshold = 130
+            else:
+                sink_threshold = 280
+                
+            
             current_node_key = (vessel['position'], state['time'])
             current_node = self.NODE_DICT[current_node_key]
             current_port = state['port_dict'][vessel['position']]
+            non_sim_vessel = self.VESSEL_DICT[vessel['number']]
             
             # Only one possibility form source
             if current_node == self.SOURCE_NODE:
                 return [arc for arc in self.VESSEL_ARCS[vessel] if arc.origin_node == current_node]
             
-            non_sim_vessel = self.VESSEL_DICT[vessel['number']]
+            if state['time'] >= sink_threshold:
+                if self.can_operate_at_port_now(vessel, current_port, queued_actions, state, acc_alpha):
+                    # Check if there is another queued action that is leaving the same port and to the sink node
+                    sink_arc_taken = False
+                    for action in queued_actions.values():
+                        arc = action[3]
+                        qv_num = action[0]
+                        q_vessel = self.VESSEL_DICT[qv_num]
+                        if arc.origin_node == current_node and arc.destination_node == self.SINK_NODE and q_vessel.vessel_class == vessel['vessel_class']:
+                            # Sink node not available, only waiting arc is possible
+                            sink_arc_taken = True
+                            break
+                    if not sink_arc_taken:
+                        forced_arcs = [arc for arc in self.VESSEL_ARCS[non_sim_vessel] if arc.origin_node == current_node and arc.destination_node == self.SINK_NODE]
+                        if not forced_arcs:
+                            print('No forced arcs found')
+                        return forced_arcs
+                    else:
+                        forced_arcs = [arc for arc in self.VESSEL_ARCS[non_sim_vessel] if arc.is_waiting_arc and arc.origin_node == current_node]
+                        if not forced_arcs:
+                            print('No forced arcs found')
+                        return forced_arcs
+                else:
+                    forced_arcs = [arc for arc in self.VESSEL_ARCS[non_sim_vessel] if arc.is_waiting_arc and arc.origin_node == current_node]
+                    if not forced_arcs:
+                        print('No forced arcs found')
+                        potential_arcs = [arc for arc in self.VESSEL_ARCS[non_sim_vessel] if arc.origin_node == current_node]
+                        # Return a random arc
+                        return [random.choice(potential_arcs)]
+                    return forced_arcs
+                    
+                    
+            
             # Pre-filter arcs that originate from the current node
                     
             potential_arcs = [arc for arc in self.VESSEL_ARCS[non_sim_vessel] if arc.origin_node == current_node]
@@ -703,7 +868,7 @@ class MIRPSOEnv():
 
             if self.can_operate_at_port_now(vessel, current_port, queued_actions, state, acc_alpha):
                 # Check if the vessel can wait at the current port
-                if self.waiting_arc_is_legal(current_port):
+                if self.waiting_arc_is_legal(current_port, acc_alpha):
                     if not legal_arcs:
                         #Choose the waiting arc
                         legal_arcs = [arc for arc in potential_arcs if arc.is_waiting_arc]
@@ -731,12 +896,13 @@ class MIRPSOEnv():
                 return legal_arcs
             
             
-    def waiting_arc_is_legal(self, current_port):
+    def waiting_arc_is_legal(self, current_port, acc_alpha):
+        '''ADD ACC ALPHA HERE!'''
         if current_port['isLoadingPort'] == 1:
-            if current_port['inventory'] + current_port['rate'] > current_port['capacity'] + current_port['rate']:
+            if current_port['inventory'] - acc_alpha[current_port['number']] + current_port['rate'] > current_port['capacity'] + current_port['rate']:
                 return False
         else:
-            if current_port['inventory'] - current_port['rate'] < - current_port['rate']:
+            if current_port['inventory'] + acc_alpha[current_port['number']] - current_port['rate'] < - current_port['rate']:
                 return False
         return True
     
@@ -1034,31 +1200,58 @@ class MIRPSOEnv():
             # Set the current state's next state equal to the next current state
             current_exp[4] = next_current_state
             
+        first_part = set(range(0, 60))
+        second_part = set(range(61, 120))
+        
+        num_seg_1 = 0
+        num_seg_2 = 0
+        for exp in experience_path:
+            if exp[0]['time'] in first_part:
+                num_seg_1 += 1
+            else:
+                num_seg_2 += 1
+            
             
         for exp in experience_path:
             reward = 0
             current_state, action, vessel, reward_ph, next_state, earliest_vessel, feasible_path_ph, fi_time, terminal_flag, alpha_state= exp
+            
+            arc = action[3]
+            if arc.is_waiting_arc:
+                reward = -1
+                self.apply_reward(exp, feasible_path, first_infeasible_time, reward, alpha_state)
+                continue
+                
             current_state_time = current_state['time']
             next_state_time = next_state['time']
             
             '''Terminal Reward'''
             # Split the horizon in to 2 parts of 60 time periods each
-            first_part = set(range(0, 60))
-            second_part = set(range(61, 120))
+            
+            
+            # Find the number of exp with states in the correct part
+            
             
             if current_state_time in first_part:
                 correct_list = first_part
+                seg1 = True
             else:
                 correct_list = second_part
-                
+                seg1 = False
+            
+            if seg1:
+                num_seg = num_seg_1
+            else:
+                num_seg = num_seg_2
+                    
             # Find the number of alpha states in the correct part
             alpha_states_in_correct_part = correct_list.intersection(alpha_states)
-            terminal_rew = (len(correct_list) - len(alpha_states_in_correct_part))/horizon
+            
+            terminal_rew = (len(correct_list) - len(alpha_states_in_correct_part))/num_seg
                 
             reward += terminal_rew
             
             self.apply_reward(exp, feasible_path, first_infeasible_time, reward, alpha_state)
-            alpha_penalty = 10
             # If the whole path is feasible, add a huge reward discounted reward
             # time_until_terminal = horizon - current_state_time
             # if feasible_path or len(alpha_states) < 20:
@@ -1084,7 +1277,7 @@ class MIRPSOEnv():
         
                         
                         
-        if (len(alpha_states)<self.current_best_IC and exploit) or (len(alpha_states)<=20 and exploit):
+        if (len(alpha_states)<self.current_best_IC and exploit):
                 # save the main and target networks
                 torch.save(agent.main_model.state_dict(), f'main_model_{INSTANCE}_alpha_COUNTER_{len(alpha_states)}_{self.inf_counter_updates}.pth')
                 torch.save(agent.target_model.state_dict(), f'target_model_{INSTANCE}_alpha_COUNTER{len(alpha_states)}_{self.inf_counter_updates}.pth')
