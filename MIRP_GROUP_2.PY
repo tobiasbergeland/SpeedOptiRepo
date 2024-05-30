@@ -1109,38 +1109,22 @@ def find_initial_solution(model):
 
 
 
-def update_weights_based_on_action(weights, active_arcs_chosen_by_agent):
-    
+def update_weights_based_on_action(weights, active_arcs_chosen_by_agent, env):
+    'We set low weight for the arcs that go to the port the agent chose, and high for the others.'    
     for arc in active_arcs_chosen_by_agent:
-            # origin_node_agent = arc.origin_node
-            # destination_port_number_agent = arc.destination_node.port.number
             varname_agent = convert_key_to_varname((arc.tuple, arc.vessel_class))
-            weights[varname_agent] = 1
-    
-    
-    # if RUNNING_MIRPSO:
-    #     for arc in active_arcs_chosen_by_agent:
-    #         origin_node_agent = arc.origin_node
-    #         destination_port_number_agent = arc.destination_node.port.number
-    #         varname_agent = convert_key_to_varname((arc.tuple, arc.vessel_class))
-    #         weights[varname_agent] = 1
-            
-            
-    #         for varname, w in weights.items():
-    #             key = varname_to_key(varname)
-    #             origin_port, origin_time, destination_port, destination_time, vc = key_to_node_info(key)
-    #             origin_node = NODE_DICT[(origin_port, origin_time)]
-    #             if origin_node_agent == origin_node and destination_port_number_agent == destination_port and arc.vessel_class == vc:
-    #                 weights[varname] = 1
-    # else:
-    #     for vessel, action in actions.items():
-    #         arc = action[3]
-    #         varname = convert_key_to_varname((arc.tuple, arc.vessel_class))
-    #         if arc in active_arcs_chosen_by_agent:
-    #             weights[varname] = 1
-    #         else:
-    #             weights[varname] = 0
-   
+            # If it is a source arc, set the weight to 100, but not if it is a sink arc
+            if arc.is_source_or_sink_arc and not arc.destination_node == env.SINK_NODE:
+                weights[varname_agent] = 100
+            elif arc.is_waiting_arc:
+                # Low weight for waiting arcs
+                weights[varname_agent] = 1
+            elif arc.is_source_or_sink_arc and arc.destination_node == env.SINK_NODE:
+                # Low weight for arcs going to the sink node
+                weights[varname_agent] = 1
+            else:
+                # If it is a traveling arc that goes to the same port that we chose, set the weight to 1
+                weights[varname_agent] = 1
     return weights
             
         
@@ -1243,19 +1227,23 @@ def init_weights(active_arcs, vessel_classes, current_solution_x, vessel_class_a
             weights[varname] = 0
     return weights
                 
-def calculate_weights(current_solution_x, current_solution_alpha, current_solution_s, active_arcs, agent, env, vessel_classes, RUNNING_MIRPSO, NODE_DICT, vessel_class_arcs, INSTANCE, window_start):
+def calculate_weights(current_solution_x, current_solution_alpha, current_solution_s, active_arcs, agent, env, vessel_classes, RUNNING_MIRPSO, NODE_DICT, vessel_class_arcs, INSTANCE, window_start, window_end):
     # 1 simulation only
     weights = init_weights(active_arcs, vessel_classes, current_solution_x, vessel_class_arcs)
     active_arcs_chosen_by_agent = []
+    
     experience_path = []
     
+    
+    
+    '''Even though window start is 0, we have an initial solution from the MIP'''
     if window_start == 0:
         state = env.reset()
         done = False
         port_inventory_dict = {}
         vessel_inventory_dict = {}
         acc_alpha = {port.number : 0 for port in state['ports'] if port.rate}
-        alpha_dict = {time: {port.number: 0 for port in state['ports']} for time in range(env.TIME_PERIOD_RANGE[-1] + 1)}
+        # alpha_dict = {time: {port.number: 0 for port in state['ports']} for time in range(env.TIME_PERIOD_RANGE[-1] + 1)}
         decision_basis_states = {vessel.number: env.custom_deep_copy_of_state(state) for vessel in state['vessels']}
         actions = {vessel: env.find_legal_actions_for_vessel(state=state, vessel=vessel)[0] for vessel in state['vessels']}
         state = env.step(state=state, actions=actions, experience_path=experience_path, decision_basis_states=decision_basis_states)
@@ -1264,15 +1252,17 @@ def calculate_weights(current_solution_x, current_solution_alpha, current_soluti
         for vessel, action in actions.items():
             arc = action[3]
             active_arcs_chosen_by_agent.append(arc)
-            weights = update_weights_based_on_action(weights, active_arcs_chosen_by_agent)
+            weights = update_weights_based_on_action(weights, active_arcs_chosen_by_agent, env)
+            
+            
     else:
         print('Window start is not 0')
         state = env.reset()
         port_inventory_dict = {time: {port.number: 0 for port in state['ports']} for time in range(env.TIME_PERIOD_RANGE[-1])}
-        alpha_dict = {time: {port.number: 0 for port in state['ports']} for time in range(env.TIME_PERIOD_RANGE[-1] + 1)}
+        # alpha_dict = {time: {port.number: 0 for port in state['ports']} for time in range(env.TIME_PERIOD_RANGE[-1] + 1)}
         acc_alpha = {port.number : 0 for port in state['ports'] if port.rate}
-        for port in state['ports']:
-            port_inventory_dict[window_start][port.number] = current_solution_s[f's[{port.number},{window_start}]']
+        # for port in state['ports']:
+            # port_inventory_dict[window_start][port.number] = current_solution_s[f's[{port.number},{window_start}]']
             
         for port in state['ports']:
                 port_number = port.number
@@ -1298,19 +1288,20 @@ def calculate_weights(current_solution_x, current_solution_alpha, current_soluti
                     v.inventory = v.capacity
         
     while not done:
-        state, total_reward_for_path, feasible_path, alpha_register = env.check_state(state=state, experience_path=experience_path, replay=agent.memory, agent=agent, INSTANCE=INSTANCE, exploit = False, port_inventory_dict=port_inventory_dict)
-        port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
+        # state, total_reward_for_path, feasible_path, alpha_register = env.check_state(state=state, experience_path=experience_path, replay=agent.memory, agent=agent, INSTANCE=INSTANCE, exploit = False, port_inventory_dict=port_inventory_dict)
+        # port_inventory_dict[state['time']] = {port.number: port.inventory for port in state['ports']}
         # acc_alpha = adjust_for_alpha(acc_alpha, alpha_dict, port_inventory_dict, state)
         
         # Use the s-variables to update the port inventory levels in the state
         # Find the keys for the s-variables that correspond to the current time period
-        for port in env.PORTS:
-            var_name = f's[{port.number},{state["time"]}]'
-            port.inventory_level = current_solution_s[var_name]
+            # Set inventory for t = 0
+        for port in state['ports']:
+            port.inventory = current_solution_s[f's[{port.number},{state["time"]}]']
         # state = env.produce(state)
         
-        if state['time'] == env.TIME_PERIOD_RANGE[-1]:
+        if state['time'] == window_end:
             done = True
+            break
         
          # With the increased time, the vessels have moved and some of them have maybe reached their destination. Updating the vessel status based on this.
         env.update_vessel_status(state=state)
@@ -1333,22 +1324,61 @@ def calculate_weights(current_solution_x, current_solution_alpha, current_soluti
                 
                 if RUNNING_MIRPSO:
                     possible_actions, dport_chosen_by_agent = agent.select_action_for_ps(state=copy.deepcopy(decision_basis_state), legal_actions=legal_actions, env=env, vessel_simp=corresponding_vessel, RUNNING_MIRPSO=RUNNING_MIRPSO)
+                    # Add all possible actions to the active arcs chosen by the agent
+                    for action in possible_actions:
+                        arc = action[3]
+                        active_arcs_chosen_by_agent.append(arc)
+                        
+                    if possible_actions == None:
+                        # If there is an issue here. Break and return the weights so far.
+                        weights = update_weights_based_on_action(weights, active_arcs_chosen_by_agent, env)
+                        weight_counter = 0
+                        for varname, weight in weights.items():
+                            if weight != 0:
+                                weight_counter += 1
+                        print(f'Number of weights set to 1: {weight_counter}')
+                        c = 0
+                        for vc in vessel_classes:
+                            arcs = active_arcs[vc]
+                            c+=len(arcs)
+                                
+                        print(f'Number of active arcs in model: {c}')
+                        return weights
+                        
+                        
                 else:
                     action = agent.select_action_for_ps(state=copy.deepcopy(decision_basis_state), legal_actions=legal_actions, env=env, vessel_simp=corresponding_vessel, RUNNING_MIRPSO=RUNNING_MIRPSO)
                     
-                if action is None:
+                if possible_actions is None:
                     print('Action is None')
                 # Now I must find the corresponding arc that should be taken, and not the action that the agent selected
                 if RUNNING_MIRPSO:
                     # If one of the possible actions is in the active arcs, we should choose this action
                     correct_action, correct_choice_by_agent = find_corresponding_action_MIRPSO(possible_actions, dport_chosen_by_agent, active_arcs, vessel, legal_actions, traveling_arcs_taken, waiting_arcs_taken)
+                    if correct_action == None:
+                        # If there is an issue here. Break and return the weights so far.
+                        weights = update_weights_based_on_action(weights, active_arcs_chosen_by_agent, env)
+                        weight_counter = 0
+                        for varname, weight in weights.items():
+                            if weight != 0:
+                                weight_counter += 1
+                        print(f'Number of weights set to 1: {weight_counter}')
+                        c = 0
+                        for vc in vessel_classes:
+                            arcs = active_arcs[vc]
+                            c+=len(arcs)
+                                
+                        print(f'Number of active arcs in model: {c}')
+                        return weights
+                    
                     correct_arc = correct_action[3]
                     if not correct_arc.is_waiting_arc:
                         traveling_arcs_taken[vessel.vessel_class].append(correct_arc)
                     else:
                         waiting_arcs_taken[vessel.vessel_class].append(correct_arc)
-                    if correct_choice_by_agent:
-                        active_arcs_chosen_by_agent.append(correct_arc)
+                        
+                    # if correct_choice_by_agent:
+                    #     active_arcs_chosen_by_agent.append(correct_arc)
                         
                     actions_to_make[vessel] = correct_action
                     
@@ -1367,7 +1397,7 @@ def calculate_weights(current_solution_x, current_solution_alpha, current_soluti
                         active_arcs_chosen_by_agent.append(arc)
                          
             # Now we have to update the weights based on the actions taken
-            weights = update_weights_based_on_action(weights, active_arcs_chosen_by_agent)
+            weights = update_weights_based_on_action(weights, active_arcs_chosen_by_agent, env)
             
             
             # Perform the operations based on the active arcs, and not the actions taken by the agent
@@ -1381,8 +1411,11 @@ def calculate_weights(current_solution_x, current_solution_alpha, current_soluti
         else:
             # Should check the feasibility of the state, even though no actions were performed. 
             state = env.simple_step(state, experience_path)
+            
+        state['time'] += 1
         
-        state = env.consumption(state)
+        
+        # state = env.consumption(state)
         
     # print the weights that are not 0
     weight_counter = 0
@@ -1390,6 +1423,13 @@ def calculate_weights(current_solution_x, current_solution_alpha, current_soluti
         if weight != 0:
             weight_counter += 1
     print(f'Number of weights set to 1: {weight_counter}')
+    c = 0
+    for vc in vessel_classes:
+        arcs = active_arcs[vc]
+        c+=len(arcs)
+            
+    print(f'Number of active arcs in model: {c}')
+    
     return weights
         
 def solve_model(model, costs, P, RUNNING_MIRPSO, INSTANCE, HORIZON, ps_data, time_limit):
@@ -1577,7 +1617,7 @@ import logging
 def save_solution(INSTANCE, HORIZON, model, time_limit, elapsed_time, costs, P,
                   RUNNING_MIRPSO, best_obj_val, solution_vals_x,
                   solution_vals_s, solution_vals_alpha, active_arcs, vessel_classes,
-                  NPS, WPS, RH, WPS_AND_RH, NPS_AND_RH, VESSEL_CLASSES, vessels, sourceNode, sinkNode, NODE_DICT, window_size, step_size, solver_and_chObj, L):
+                  NPS, WPS, RH, WPS_AND_RH, NPS_AND_RH, VESSEL_CLASSES, vessels, sourceNode, sinkNode, NODE_DICT, window_size, step_size, solver_and_chObj, L, WUF):
 
     method_map = {"NPS": NPS, "WPS": WPS, "RH": RH, "WPS_AND_RH": WPS_AND_RH, "NPS_AND_RH": NPS_AND_RH}
     method = next((method_name for method_name, condition in method_map.items() if condition), "SOLVER")
@@ -1616,6 +1656,7 @@ def save_solution(INSTANCE, HORIZON, model, time_limit, elapsed_time, costs, P,
         "elapsed_time": elapsed_time,
         "time_limit": time_limit,
         'L' : L,
+        'WUF' : WUF,
         'solver_and_chObj': solver_and_chObj,
         # "last_feasible_solution_time" : last_feasible_solution_time if method == 'NPS' or method == 'WPS' else None,
         "costs": costs_str_keys,
@@ -1641,8 +1682,12 @@ def save_solution(INSTANCE, HORIZON, model, time_limit, elapsed_time, costs, P,
     flattened_routes["vessel_routes_flattened"] = reformatted_routes
     
     # Save to a JSON file for easy parsing and readability
-    filename = f"PS_param2/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_WS={window_size}_SS={step_size}_{L}.json"
-    filename_readable_routes = f"PS_param2/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_WS={window_size}_SS={step_size}_{L}.txt"
+    if method == 'WPS_AND_RH':
+        filename = f"WPS_param/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_WS={window_size}_SS={step_size}_L={L}_WUF={WUF}.json"
+        filename_readable_routes = f"WPS_param/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_WS={window_size}_SS={step_size}_L={L}_WUF={WUF}.txt"
+    else:
+        filename = f"PS_param2/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_WS={window_size}_SS={step_size}_{L}.json"
+        filename_readable_routes = f"PS_param2/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_WS={window_size}_SS={step_size}_{L}.txt"
     with open(filename, 'w') as file:
         json.dump(solution_data, file, indent=4)
     with open(filename_readable_routes, 'w') as file:
@@ -1651,12 +1696,12 @@ def save_solution(INSTANCE, HORIZON, model, time_limit, elapsed_time, costs, P,
         file.close()
             
 
-def proximity_search_using_agent(ps_data, agent, env, RUNNING_WPS_AND_RH, window_end, RUNNING_MIRPSO, time_limit, INSTANCE):
+def proximity_search_using_agent(ps_data, agent, env, RUNNING_WPS_AND_RH, window_start, window_end, RUNNING_MIRPSO, time_limit, INSTANCE, L, WUF):
 
-    WEIGHT_UPDATE_FREQUENCY = 10
+    WEIGHT_UPDATE_FREQUENCY = WUF
     PERCENTAGE_DECREASE = 0.005
-    PERCENTAGE_CHANGE_FACTOR = 1.2
-    PERCENTAGE_CHANGE_FACTOR_AFTER_INF = PERCENTAGE_CHANGE_FACTOR / 10
+    PERCENTAGE_CHANGE_FACTOR = 3/2
+    PERCENTAGE_CHANGE_FACTOR_AFTER_INF = 3/20
     
     
     model = ps_data['model']
@@ -1710,7 +1755,7 @@ def proximity_search_using_agent(ps_data, agent, env, RUNNING_WPS_AND_RH, window
         model.setParam(gp.GRB.Param.SolutionLimit, 1)
         start_time = time.time()
         time_left = time_limit - time_passed(start_time)
-        model.setParam(gp.GRB.Param.TimeLimit, min(300, time_left) if time_left >= 0 else 10)
+        # model.setParam(gp.GRB.Param.TimeLimit, min(300, time_left) if time_left >= 0 else 10)
         model.setParam(gp.GRB.Param.OutputFlag, 1)
         # Remove y variables from the model if any
         y_vars = [v for v in model.getVars() if v.VarName.startswith('y')]
@@ -1723,6 +1768,8 @@ def proximity_search_using_agent(ps_data, agent, env, RUNNING_WPS_AND_RH, window
         for c in y_constraints:
             model.remove(c)
         model.update()
+        # Focus on finding feasible MIP solutions
+        model.setParam(gp.GRB.Param.MIPFocus, 1)
             
         model.optimize()
         if model.Status == GRB.INFEASIBLE:
@@ -1730,8 +1777,9 @@ def proximity_search_using_agent(ps_data, agent, env, RUNNING_WPS_AND_RH, window
             model.computeIIS()
             model.write("MIRPSO.ilp")
             
-        model.setParam(gp.GRB.Param.OutputFlag, 0)
+        model.setParam(gp.GRB.Param.OutputFlag, 1)
         current_best_obj = model.getObjective().getValue()
+        ch_obj = current_best_obj
         current_solution_vals_x = get_current_x_solution_vals(model)
         current_solution_vars_x = {v.VarName: v for v in model.getVars() if v.VarName.startswith('x')}
         
@@ -1743,7 +1791,7 @@ def proximity_search_using_agent(ps_data, agent, env, RUNNING_WPS_AND_RH, window
     
     
     'Calculate the weights based on the initial solution'
-    weights = calculate_weights(current_solution_x = current_solution_vals_x, current_solution_alpha = current_solution_alpha, current_solution_s = current_solution_s, active_arcs = active_arcs, agent = agent, env = env, vessel_classes = vessel_classes, RUNNING_MIRPSO = RUNNING_MIRPSO, NODE_DICT = NODE_DICT, vessel_class_arcs = vessel_class_arcs, INSTANCE = INSTANCE)    
+    weights = calculate_weights(current_solution_x = current_solution_vals_x, current_solution_alpha = current_solution_alpha, current_solution_s = current_solution_s, active_arcs = active_arcs, agent = agent, env = env, vessel_classes = vessel_classes, RUNNING_MIRPSO = RUNNING_MIRPSO, NODE_DICT = NODE_DICT, vessel_class_arcs = vessel_class_arcs, INSTANCE = INSTANCE, window_start=window_start, window_end=window_end)    
     has_been_infeasible = False
     i = 0
     
@@ -1754,6 +1802,9 @@ def proximity_search_using_agent(ps_data, agent, env, RUNNING_WPS_AND_RH, window
         
         PRINT_INFO = True
         CALCULATE_WEIGHTS = (i % WEIGHT_UPDATE_FREQUENCY == 0)
+        if CALCULATE_WEIGHTS and i != 1:
+            weights = calculate_weights(current_solution_x = current_solution_vals_x, current_solution_alpha = current_solution_alpha, current_solution_s = current_solution_s, active_arcs = active_arcs, agent = agent, env = env, vessel_classes = vessel_classes, RUNNING_MIRPSO = RUNNING_MIRPSO, NODE_DICT = NODE_DICT, vessel_class_arcs = vessel_class_arcs, INSTANCE = INSTANCE, window_start=window_start, window_end=window_end)    
+        
         if PRINT_INFO or has_been_infeasible:
             print(f'Proximity Search Iteration {i}')
         
@@ -1768,8 +1819,8 @@ def proximity_search_using_agent(ps_data, agent, env, RUNNING_WPS_AND_RH, window
         model.setParam(gp.GRB.Param.SolutionLimit, 1)
         # model.setParam(gp.GRB.Param.TimeLimit, 30)
         time_left =  time_limit - time_passed(start_time)
-        model.setParam(gp.GRB.Param.TimeLimit, min(300, time_left) if time_left >= 0 else 10)
-            
+        model.setParam(gp.GRB.Param.TimeLimit, min(L, time_left) if time_left >= 0 else 10)
+        model.setParam(gp.GRB.Param.MIPFocus, 1)
         
         model.optimize()
 
@@ -1799,20 +1850,18 @@ def proximity_search_using_agent(ps_data, agent, env, RUNNING_WPS_AND_RH, window
             
             if time.time() - start_time > time_limit:
                 remove_cutoff_constraints(model)
-                return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs
-            if CALCULATE_WEIGHTS:
-                weights = calculate_weights(current_solution_vals_x, current_solution_alpha, current_solution_s, active_arcs, agent, env, vessel_classes, RUNNING_MIRPSO, NODE_DICT, vessel_class_arcs)
-        
+                return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs, ch_obj
+            
         elif model.Status == GRB.TIME_LIMIT or model.Status == GRB.INFEASIBLE:
             has_been_infeasible = True
             # Reduce the cutoff value and try again
             PERCENTAGE_DECREASE *= PERCENTAGE_CHANGE_FACTOR_AFTER_INF
             if cutoff_value < 1:
                 remove_cutoff_constraints(model)
-                return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs
+                return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs, ch_obj
             elif time.time() - start_time > time_limit:
                 remove_cutoff_constraints(model)
-                return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs
+                return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs, ch_obj
             
 def calc_time_limit_per_window(TIME_LIMIT, HORIZON, window_size, step_size):
     iterations = math.ceil((HORIZON - window_size)/(step_size)) + 1
@@ -1843,21 +1892,22 @@ def main():
     # INSTANCE = 'LR1_DR02_VC03_V7a'
     
     'RUN 1'
-    INSTANCE = 'LR1_DR02_VC03_V8a'
+    # INSTANCE = 'LR1_DR02_VC03_V8a'
     # INSTANCE = 'LR1_DR02_VC04_V8a'
     
     # INSTANCE = 'LR1_DR02_VC05_V8a'
     # INSTANCE = 'LR1_DR03_VC03_V10b'
+    # INSTANCE = 'LR1_DR08_VC05_V40b'
     
     'RUN 2'
     # INSTANCE = 'LR1_DR05_VC05_V25a'
     'RUN 3'
-    # INSTANCE = 'LR1_DR08_VC10_V40a' 
+    INSTANCE = 'LR1_DR08_VC10_V40a' 
     
-    TIME_LIMIT = 72
+    TIME_LIMIT = 7200
     # L = 60
-    L = 90
-    # L = 120
+    # L = 90
+    L = 120
     
     problem_data = build_problem(INSTANCE, RUNNING_MIRPSO)
     
@@ -1973,13 +2023,43 @@ def main():
         
         step_size = 49
         window_size = 98
-        L = 60
+        L = 120
         
-        agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR02_VC03_V8a_alpha_COUNTER_19_4.pth'))
-        agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR02_VC03_V8a_alpha_COUNTER19_4.pth'))
+        # WUF = 10
+        # WUF = 25
+        WUF = 50
+        
+        print(f'Running {INSTANCE} WPS and RH with window size {window_size}, step size {step_size}, L = {L}, WUF = {WUF}, HORIZON = {HORIZON}, TIME_LIMIT = {TIME_LIMIT}')
+        
+        'INSTANCE 1'
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR02_VC03_V8a_alpha_COUNTER_19_4.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR02_VC03_V8a_alpha_COUNTER19_4.pth'))
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR02_VC03_V8a_alpha_COUNTER_11_264.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR02_VC03_V8a_alpha_COUNTER11_264.pth'))
+        
+        'INSTANCE 2'
+        # agent.main_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR05_VC05_V25a_alpha_COUNTER68_5.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR05_VC05_V25a_alpha_COUNTER68_5.pth'))
+        
+        'INSTANCE 3'
+        agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR02_VC03_V8a_alpha_COUNTER_11_264.pth'))
+        agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR02_VC03_V8a_alpha_COUNTER11_264.pth'))
         
         TIME_LIMIT_PER_WINDOW = calc_time_limit_per_window(TIME_LIMIT, HORIZON, window_size, step_size)
-        current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs = rolling_horizon_optimization(model =model, horizon_length=HORIZON, window_size=window_size, step_size=step_size, TIME_LIMIT_PER_WINDOW=TIME_LIMIT_PER_WINDOW, ps_data=ps_data, agent=agent, env=env, RUNNING_WPS_AND_RH=RUNNING_WPS_AND_RH, RUNNING_NPS_AND_RH=RUNNING_NPS_AND_RH, proximity_search_using_agent=proximity_search_using_agent, RUNNING_MIRPSO=RUNNING_MIRPSO, VESSEL_CLASSES = VESSEL_CLASSES, INSTANCE=INSTANCE, vessel_class_arcs=vessel_class_arcs, L = L)
+        start_time = time.time()
+        
+        # current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs = rolling_horizon_optimization(model =model, horizon_length=HORIZON, window_size=window_size, step_size=step_size, TIME_LIMIT_PER_WINDOW=TIME_LIMIT_PER_WINDOW, ps_data=ps_data, agent=agent, env=env, RUNNING_WPS_AND_RH=RUNNING_WPS_AND_RH, RUNNING_NPS_AND_RH=RUNNING_NPS_AND_RH, proximity_search_using_agent=proximity_search_using_agent, RUNNING_MIRPSO=RUNNING_MIRPSO, VESSEL_CLASSES = VESSEL_CLASSES, INSTANCE=INSTANCE, vessel_class_arcs=vessel_class_arcs, L = L)
+        current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs, solver_and_chObj = rolling_horizon_optimization(model =model, horizon_length=HORIZON, window_size=window_size, step_size=step_size, TIME_LIMIT_PER_WINDOW=TIME_LIMIT_PER_WINDOW, ps_data=ps_data, agent=agent, env=env, RUNNING_WPS_AND_RH=RUNNING_WPS_AND_RH, RUNNING_NPS_AND_RH=RUNNING_NPS_AND_RH, proximity_search_using_agent=proximity_search_using_agent, RUNNING_MIRPSO=RUNNING_MIRPSO, VESSEL_CLASSES = VESSEL_CLASSES, INSTANCE=INSTANCE, vessel_class_arcs=vessel_class_arcs, L = L, WUF = WUF)
+        
+        print(f'Objective function value: {current_best_obj}')
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+    
+        save_solution(INSTANCE=INSTANCE, HORIZON=HORIZON, model = model, time_limit = TIME_LIMIT, elapsed_time=elapsed_time, costs=costs, P=P,
+                  RUNNING_MIRPSO=RUNNING_MIRPSO, best_obj_val=current_best_obj, solution_vals_x = current_solution_vals_x,
+                  solution_vals_s = current_solution_s, solution_vals_alpha = current_solution_alpha, active_arcs = active_arcs, vessel_classes=VESSEL_CLASSES,
+                  NPS = RUNNING_NORMAL_PS, WPS = RUNNING_WEIGHTED_PS, RH = RUNNING_RH, WPS_AND_RH = RUNNING_WPS_AND_RH, NPS_AND_RH=RUNNING_NPS_AND_RH, VESSEL_CLASSES = VESSEL_CLASSES, vessels = vessels, sourceNode = sourceNode, sinkNode = sinkNode, NODE_DICT = NODE_DICT, window_size = window_size, step_size = step_size, solver_and_chObj = solver_and_chObj, L=L, WUF = WUF)
+    
         
     else:
         current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs, construction_heuri = solve_model(model=model, costs=costs, P=P, RUNNING_MIRPSO=RUNNING_MIRPSO, INSTANCE= INSTANCE, HORIZON=HORIZON, ps_data=ps_data, time_limit=TIME_LIMIT)

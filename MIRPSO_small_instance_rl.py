@@ -195,10 +195,13 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
     # INSTANCE = 'LR1_DR02_VC05_V8a'
     # INSTANCE = 'LR1_DR03_VC03_V10b'
     # INSTANCE = 'LR1_DR08_VC10_V40b'
+    # INSTANCE = 'LR1_DR04_VC03_V15a'
+    # INSTANCE = 'LR1_DR05_VC05_V25b'
+    # INSTANCE = 'LR1_DR08_VC05_V40bs'
     
     # 'Trene agent på desse. mange iterasjoner.'
-    # INSTANCE = 'LR1_DR02_VC03_V8a'
-    INSTANCE = 'LR1_DR05_VC05_V25a'
+    INSTANCE = 'LR1_DR02_VC03_V8a'
+    # INSTANCE = 'LR1_DR05_VC05_V25a'
     # INSTANCE = 'LR1_DR08_VC10_V40a'
     
     
