@@ -553,7 +553,7 @@ def convert_path_to_MIRPSO_solution(env, solutions, window_end, window_start):
                     else:
                         the_s_val = int(inv - acc_alpha[port.number])
                         if the_s_val < 0:
-                            print('The s value is negative')
+                            print(f'The s value is negative ({the_s_val}) in a loading port at time {time}')
                         S_values[(port.number, time)] = int(inv - acc_alpha[port.number])
                         alpha_values[(port.number, time-1)] = 0
                             
@@ -575,7 +575,7 @@ def convert_path_to_MIRPSO_solution(env, solutions, window_end, window_start):
                     else:
                         the_s_val_c = int(inv + acc_alpha[port.number])
                         if the_s_val_c > port.capacity:
-                            print('The s value is negative')
+                            print(f'The s value ({the_s_val}) is greater than the capacity ({port.capacity}) in a consumption port at time {time}')
                         S_values[(port.number, time)] = int(inv + acc_alpha[port.number])
                         alpha_values[(port.number, time-1)] = 0
                         
@@ -950,7 +950,15 @@ def update_objective_to_minimize_hamming_distance(model, y, x_variables, current
         else:
             model.addConstr(y[var_name] >= initial_value - var, name=f'y_{var_name}_Hamming_distance')
             
+    # For all y-vars that do not have a weight, set the weight to 0.1
+ 
+            
     if weights:
+        for var_name in y.keys():
+            
+            if var_name not in weights.keys() or weights[var_name] == 0:
+                weights[var_name] = 3
+                
         weighted_hamming_distance = gp.quicksum(weights[var_name] * y[var_name] for var_name in x_variables.keys() if var_name in y.keys())
         model.setObjective(weighted_hamming_distance, GRB.MINIMIZE)
     else:

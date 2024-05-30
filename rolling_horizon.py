@@ -215,7 +215,7 @@ def save_original_rhs(model):
     return {constr.ConstrName: constr.RHS for constr in model.getConstrs()}
 
 import time
-def rolling_horizon_optimization(model, horizon_length, window_size, step_size, TIME_LIMIT_PER_WINDOW, ps_data, agent, env, RUNNING_WPS_AND_RH, RUNNING_NPS_AND_RH, proximity_search_using_agent, RUNNING_MIRPSO, VESSEL_CLASSES, INSTANCE, vessel_class_arcs, L):
+def rolling_horizon_optimization(model, horizon_length, window_size, step_size, TIME_LIMIT_PER_WINDOW, ps_data, agent, env, RUNNING_WPS_AND_RH, RUNNING_NPS_AND_RH, proximity_search_using_agent, RUNNING_MIRPSO, VESSEL_CLASSES, INSTANCE, vessel_class_arcs, L, WUF):
     
     # First save all constraints, but remove time-dependent constraints from the model.
     time_constraints = store_and_remove_time_constraints(model)
@@ -278,7 +278,7 @@ def rolling_horizon_optimization(model, horizon_length, window_size, step_size, 
         if RUNNING_WPS_AND_RH:
             ps_data['model'] = model
             # Solve the model for the current window with WPS
-            current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_vals_s, current_solution_vals_alpha, active_arcs, ch_obj = proximity_search_using_agent(ps_data=ps_data, agent=agent, env=env, RUNNING_WPS_AND_RH=RUNNING_WPS_AND_RH, window_end=window_end, RUNNING_MIRPSO = RUNNING_MIRPSO, time_limit = TIME_LIMIT_PER_WINDOW, INSTANCE = INSTANCE)
+            current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_vals_s, current_solution_vals_alpha, active_arcs, ch_obj = proximity_search_using_agent(ps_data=ps_data, agent=agent, env=env, RUNNING_WPS_AND_RH=RUNNING_WPS_AND_RH, window_start = window_start, window_end=window_end, RUNNING_MIRPSO = RUNNING_MIRPSO, time_limit = TIME_LIMIT_PER_WINDOW, INSTANCE = INSTANCE, L = L, WUF = WUF)
             combined_solution = {**current_solution_vals_x, **current_solution_vals_s, **current_solution_vals_alpha}
             solver_and_chObj.append((current_best_obj, ch_obj))
         elif RUNNING_NPS_AND_RH:
@@ -321,6 +321,8 @@ def check_variable_bounds(m):
             print(f'Variable {var.VarName} is out of bounds. Start value is {var.Start}, while bounds are {var.LB} and {var.UB}')
             vars_out_of_bounds.append(var.VarName)
             out_of_bound = False
+    if out_of_bound:
+        print("All variables are within bounds.")
     return out_of_bound
 
 
