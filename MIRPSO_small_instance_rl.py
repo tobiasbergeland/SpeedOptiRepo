@@ -193,14 +193,14 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
     # INSTANCE = 'LR1_DR02_VC03_V7a'
     # INSTANCE = 'LR1_DR02_VC04_V8a'
     # INSTANCE = 'LR1_DR02_VC05_V8a'
-    # INSTANCE = 'LR1_DR03_VC03_V10b'
+    INSTANCE = 'LR1_DR03_VC03_V10b'
     # INSTANCE = 'LR1_DR08_VC10_V40b'
     # INSTANCE = 'LR1_DR04_VC03_V15a'
     # INSTANCE = 'LR1_DR05_VC05_V25b'
     # INSTANCE = 'LR1_DR08_VC05_V40bs'
     
     # 'Trene agent på desse. mange iterasjoner.'
-    INSTANCE = 'LR1_DR02_VC03_V8a'
+    # INSTANCE = 'LR1_DR02_VC03_V8a'
     # INSTANCE = 'LR1_DR05_VC05_V25a'
     # INSTANCE = 'LR1_DR08_VC10_V40a'
     
@@ -314,8 +314,17 @@ def main(FULLSIM, TRAIN_AND_SAVE_ONLY):
             
                 # If some vessels are available, select actions for them
                 if available_vessels:
-                    # Randomize the order of the vessels
-                    # random.shuffle(available_vessels)
+                    # Select vessels in consumption ports first
+                    cons_v = [v for v in available_vessels if v.position.isLoadingPort!=1]
+                    # Sort by vessel number
+                    cons_v = sorted(cons_v, key=lambda x: x.number)
+                    load_v = [v for v in available_vessels if v.position.isLoadingPort==1]
+                    # Sort by vessel number
+                    load_v = sorted(load_v, key=lambda x: x.number)
+                    available_vessels = cons_v + load_v
+                    
+                     
+                    
                     actions = {}
                     decision_basis_states = {}
                     decision_basis_state = env.custom_deep_copy_of_state(state)

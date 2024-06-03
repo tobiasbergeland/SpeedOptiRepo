@@ -122,7 +122,6 @@ def solve_window(model, ps_data, TIME_LIMIT_PER_WINDOW):
     # Turn off heuristics.
     model.setParam('Heuristics', 0)  
     model.setParam('Presolve', 0)
-    model.setParam('TimeLimit', 300)
     model.update()
     
     model.optimize(callback)
@@ -225,7 +224,7 @@ def rolling_horizon_optimization(model, horizon_length, window_size, step_size, 
     port_inventory_dict = None
     vessel_inventory_dict = None
     solver_and_chObj = []
-    for window_start in range(0, horizon_length + 1, step_size):
+    for window_start in range(0, horizon_length, step_size):
         
         # print('Stats after removing time-dependent constraints')
         window_end = window_start + window_size
@@ -269,7 +268,7 @@ def rolling_horizon_optimization(model, horizon_length, window_size, step_size, 
             
         # Adjust constraints and objective function for the current window
         adjust_constraints_for_window(model, window_end, time_constraints)
-        set_objective_for_window(model, window_start, window_end, ps_data)
+        set_objective_for_window(model, window_start, window_end, ps_data, true_horizon=360)
         
         # manually_check_constraints(model)
         check_integrality(model)
@@ -294,8 +293,10 @@ def rolling_horizon_optimization(model, horizon_length, window_size, step_size, 
             combined_solution = {**current_solution_vals_x, **current_solution_vals_s, **current_solution_vals_alpha}
             solver_and_chObj.append((current_best_obj, ch_obj))
         
-        if window_end >= horizon_length:
+        if window_end - step_size >= 360:
             break
+        # if window_end >= 360:
+        #     break
         else:
             print('New iteration')
             
@@ -403,7 +404,7 @@ def restore_constraints(model, original_rhs):
     model.update()
 
     
-def set_objective_for_window(model, window_start, window_end, ps_data):
+def set_objective_for_window(model, window_start, window_end, ps_data, true_horizon):
     costs_namekey = ps_data['costs_namekey']
     P = ps_data['P']
     regular_nodes = ps_data['regularNodes']
@@ -417,12 +418,12 @@ def set_objective_for_window(model, window_start, window_end, ps_data):
     obj = gp.LinExpr()
     for varname, var in x_vars.items():
         time = extract_time_period_from_x_var_name(varname)[0]
-        if time <= window_end:
+        if time <= window_end and time <= true_horizon:
             obj += var * costs_namekey[varname] # Assuming get_cost returns the cost coefficient for the variable
             
     for node in regular_nodes:
         # if window_start <= node.time <= window_end:
-        if node.time <= window_end:
+        if node.time <= window_end and node.time <= true_horizon:
             obj += alpha_vars[f'alpha[{node.port.number},{node.time}]'] * P[(node.port.number, node.time)]
 
     model.setObjective(obj, gp.GRB.MINIMIZE)  # Set the objective to minimize; adjust accordingly

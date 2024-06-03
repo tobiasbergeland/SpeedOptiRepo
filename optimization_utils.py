@@ -191,7 +191,7 @@ def construction_heuristic_for_window(env, agent, window_start, window_end, comb
     # Need some randomization in order for the agent to produce different results
     agent.epsilon = 0.3
     
-    for i in range(20):
+    for i in range(10):
         if not combined_solution:
             # Window start is 0, so we need to start from scratch
             experience_path = []
@@ -950,7 +950,6 @@ def update_objective_to_minimize_hamming_distance(model, y, x_variables, current
         else:
             model.addConstr(y[var_name] >= initial_value - var, name=f'y_{var_name}_Hamming_distance')
             
-    # For all y-vars that do not have a weight, set the weight to 0.1
  
             
     if weights:
