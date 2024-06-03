@@ -1022,9 +1022,11 @@ def build_problem(INSTANCE, RUNNING_MIRPSO):
     all_ports, loading_regions, discharging_regions, port_dict = create_ports_from_info_with_loading(ports_info, spotMarketPricePerUnit, spotMarketDiscountFactor)
     ports = get_ports(all_ports)
     NUM_TIME_PERIODS = metadata['numPeriods']
-    NUM_TIME_PERIODS = 120
+    # NUM_TIME_PERIODS = 40
+    # NUM_TIME_PERIODS = 120
     # NUM_TIME_PERIODS = 180
     # NUM_TIME_PERIODS = 360
+    NUM_TIME_PERIODS = 409
     TIME_PERIOD_RANGE = list(range(0, NUM_TIME_PERIODS))
     FUEL_PRICE = 500
     ORIGINAL_NUM_PORTS = len(ports)
@@ -1624,7 +1626,7 @@ import logging
 def save_solution(INSTANCE, HORIZON, model, time_limit, elapsed_time, costs, P,
                   RUNNING_MIRPSO, best_obj_val, solution_vals_x,
                   solution_vals_s, solution_vals_alpha, active_arcs, vessel_classes,
-                  NPS, WPS, RH, WPS_AND_RH, NPS_AND_RH, VESSEL_CLASSES, vessels, sourceNode, sinkNode, NODE_DICT, window_size, step_size, solver_and_chObj, L, WUF):
+                  NPS, WPS, RH, WPS_AND_RH, NPS_AND_RH, VESSEL_CLASSES, vessels, sourceNode, sinkNode, NODE_DICT, window_size, step_size, solver_and_chObj, L, WUF, RUNNING_SIM):
 
     method_map = {"NPS": NPS, "WPS": WPS, "RH": RH, "WPS_AND_RH": WPS_AND_RH, "NPS_AND_RH": NPS_AND_RH}
     method = next((method_name for method_name, condition in method_map.items() if condition), "SOLVER")
@@ -1696,8 +1698,12 @@ def save_solution(INSTANCE, HORIZON, model, time_limit, elapsed_time, costs, P,
         filename = f"PS_param2/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_WS={window_size}_SS={step_size}_{L}.json"
         filename_readable_routes = f"PS_param2/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_WS={window_size}_SS={step_size}_{L}.txt"
     else:
-        filename = f"test/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_WS={window_size}_SS={step_size}_{L}.json"
-        filename_readable_routes = f"test/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_WS={window_size}_SS={step_size}_{L}.txt"
+        filename = f"results/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_WS={window_size}_SS={step_size}_{L}.json"
+        filename_readable_routes = f"results/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_WS={window_size}_SS={step_size}_{L}.txt"
+        
+    # else:
+        # filename = f"SIMRES/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_WS={window_size}_SS={step_size}_{L}.json"
+        # filename_readable_routes = f"SIMRES/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_WS={window_size}_SS={step_size}_{L}.txt"
         
         
     with open(filename, 'w') as file:
@@ -1875,7 +1881,10 @@ def proximity_search_using_agent(ps_data, agent, env, RUNNING_WPS_AND_RH, window
                 remove_cutoff_constraints(model)
                 return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs, ch_obj
             
-def calc_time_limit_per_window(TIME_LIMIT, HORIZON, window_size, step_size):
+def calc_time_limit_per_window(TIME_LIMIT, HORIZON, window_size, step_size, RUNNING_SIM):
+    if RUNNING_SIM:
+        iterations = math.ceil((HORIZON)/(step_size))
+        return TIME_LIMIT / iterations
     iterations = math.ceil((HORIZON - window_size)/(step_size)) + 1
     return TIME_LIMIT / iterations
             
@@ -1889,12 +1898,14 @@ def main():
     RUNNING_RH = False
     RUNNING_NPS_AND_RH = False
     RUNNING_WPS_AND_RH = False
+    RUNNING_SIM = False
     
-    RUNNING_MIRPSO = True
+    # RUNNING_MIRPSO = True
     
     # RUNNING_WEIGHTED_PS = True
     # RUNNING_NORMAL_PS = True
     RUNNING_RH = True
+    RUNNING_SIM = True
     # RUNNING_NPS_AND_RH = True
     # RUNNING_WPS_AND_RH = True
     
@@ -1902,21 +1913,38 @@ def main():
     # INSTANCE = 'LR1_DR02_VC01_V6a'
     # INSTANCE = 'LR1_DR02_VC02_V6a'
     # INSTANCE = 'LR1_DR02_VC03_V7a'
+    # INSTANCE = 'LR1_DR02_VC03_V7a'
     
     'RUN 1'
-    INSTANCE = 'LR1_DR02_VC03_V8a'
-    # INSTANCE = 'LR1_DR02_VC04_V8a'
-    
+    # INSTANCE = 'LR1_DR02_VC03_V8a'
     # INSTANCE = 'LR1_DR02_VC05_V8a'
-    # INSTANCE = 'LR1_DR03_VC03_V10b'
     # INSTANCE = 'LR1_DR08_VC05_V40b'
-    
     'RUN 2'
     # INSTANCE = 'LR1_DR05_VC05_V25a'
     'RUN 3'
     # INSTANCE = 'LR1_DR08_VC10_V40a' 
     
-    TIME_LIMIT = 40
+    'COMP RUN'
+    # INSTANCE = 'LR1_DR02_VC04_V8a'
+    # INSTANCE = 'LR1_DR04_VC03_V15a'
+    # INSTANCE = 'LR1_DR05_VC05_V25b'
+    # INSTANCE = 'LR1_DR08_VC05_V40b'
+    # INSTANCE = 'LR1_DR12_VC05_V70a'
+    
+    # INSTANCE = 'LR1_DR02_VC01_V6a'
+    # INSTANCE = 'LR1_DR02_VC03_V7a'
+    # INSTANCE = 'LR1_DR03_VC03_V10b'
+    
+    'SIM'
+    # INSTANCE = 'LR1_DR03_VC03_V10b'
+    # INSTANCE = 'LR1_DR08_VC05_V40b'
+    # INSTANCE = 'LR1_DR12_VC05_V70a'
+    # INSTANCE = 'LR1_DR08_VC10_V40a'
+    INSTANCE = 'LR1_DR05_VC05_V25a'
+    
+    
+    
+    TIME_LIMIT = 7200
     # L = 60
     # L = 90
     L = 120
@@ -1978,8 +2006,8 @@ def main():
         
         # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR02_VC03_V8a_alpha_COUNTER_17_21.pth'))*
         # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR02_VC03_V8a_alpha_COUNTER17_21.pth'))*
-        agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR02_VC03_V8a_alpha_COUNTER_19_4.pth'))
-        agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR02_VC03_V8a_alpha_COUNTER19_4.pth'))
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR02_VC03_V8a_alpha_COUNTER_19_4.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR02_VC03_V8a_alpha_COUNTER19_4.pth'))
         
         # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR05_VC05_V25a_alpha_COUNTER_59_6.pth'))*
         # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR05_VC05_V25a_alpha_COUNTER59_6.pth'))*
@@ -1993,8 +2021,36 @@ def main():
         # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR08_VC10_V40a_alpha_COUNTER_104_2.pth'))
         # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR08_VC10_V40a_alpha_COUNTER104_2.pth'))
         
-        wc = 'a'
-        # wc = 'b'
+        'RESULTS'
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR02_VC01_V6a_alpha_COUNTER_5_8.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR02_VC01_V6a_alpha_COUNTER5_8.pth'))
+        
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR02_VC03_V7a_alpha_COUNTER_12_10.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR02_VC03_V7a_alpha_COUNTER12_10.pth'))
+        # 
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR03_VC03_V10b_alpha_COUNTER_54_10.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR03_VC03_V10b_alpha_COUNTER54_10.pth'))
+        
+        'SIM'
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR03_VC03_V10b_alpha_COUNTER_54_10.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR03_VC03_V10b_alpha_COUNTER54_10.pth'))
+        
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR08_VC05_V40b_alpha_COUNTER_98_WPSCOMP.pth')) 
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR08_VC05_V40b_alpha_COUNTER98_WPSCOMP.pth'))
+        
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR12_VC05_V70a_alpha_COUNTER_103_2.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR12_VC05_V70a_alpha_COUNTER103_2.pth'))
+        
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR08_VC10_V40a_alpha_COUNTER_98_2.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR08_VC10_V40a_alpha_COUNTER98_2.pth'))
+        
+        agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR05_VC05_V25a_alpha_COUNTER_59_6.pth'))
+        agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR05_VC05_V25a_alpha_COUNTER59_6.pth'))
+        
+        
+        
+        # wc = 'a'
+        wc = 'b'
         # wc = 'c'
         
         if wc == 'a':
@@ -2010,7 +2066,7 @@ def main():
         # # Define your window size and execute rolling horizon optimization
         # window_size = 112  # example window size
         # step_size = 
-        TIME_LIMIT_PER_WINDOW = calc_time_limit_per_window(TIME_LIMIT, HORIZON, window_size, step_size)
+        TIME_LIMIT_PER_WINDOW = calc_time_limit_per_window(TIME_LIMIT, HORIZON, window_size, step_size, RUNNING_SIM)
         start_time = time.time()
         current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs, solver_and_chObj = rolling_horizon_optimization(model=model, horizon_length=HORIZON, window_size=window_size, step_size=step_size, TIME_LIMIT_PER_WINDOW=TIME_LIMIT_PER_WINDOW, ps_data=ps_data, agent=agent, env=env, RUNNING_WPS_AND_RH=RUNNING_WPS_AND_RH, RUNNING_NPS_AND_RH=RUNNING_NPS_AND_RH, proximity_search_using_agent=proximity_search_using_agent, RUNNING_MIRPSO=RUNNING_MIRPSO, VESSEL_CLASSES = VESSEL_CLASSES, INSTANCE=INSTANCE, vessel_class_arcs=vessel_class_arcs, L=L, WUF=None)
         # Print objective function value
@@ -2021,7 +2077,7 @@ def main():
         save_solution(INSTANCE=INSTANCE, HORIZON=HORIZON, model = model, time_limit = TIME_LIMIT, elapsed_time=elapsed_time, costs=costs, P=P,
                   RUNNING_MIRPSO=RUNNING_MIRPSO, best_obj_val=current_best_obj, solution_vals_x = current_solution_vals_x,
                   solution_vals_s = current_solution_s, solution_vals_alpha = current_solution_alpha, active_arcs = active_arcs, vessel_classes=VESSEL_CLASSES,
-                  NPS = RUNNING_NORMAL_PS, WPS = RUNNING_WEIGHTED_PS, RH = RUNNING_RH, WPS_AND_RH = RUNNING_WPS_AND_RH, NPS_AND_RH=RUNNING_NPS_AND_RH, VESSEL_CLASSES = VESSEL_CLASSES, vessels = vessels, sourceNode = sourceNode, sinkNode = sinkNode, NODE_DICT = NODE_DICT, window_size = window_size, step_size = step_size, solver_and_chObj = solver_and_chObj, L=L, WUF = None)
+                  NPS = RUNNING_NORMAL_PS, WPS = RUNNING_WEIGHTED_PS, RH = RUNNING_RH, WPS_AND_RH = RUNNING_WPS_AND_RH, NPS_AND_RH=RUNNING_NPS_AND_RH, VESSEL_CLASSES = VESSEL_CLASSES, vessels = vessels, sourceNode = sourceNode, sinkNode = sinkNode, NODE_DICT = NODE_DICT, window_size = window_size, step_size = step_size, solver_and_chObj = solver_and_chObj, L=L, WUF = None, RUNNING_SIM = RUNNING_SIM)
     
         
     elif RUNNING_WPS_AND_RH:
@@ -2036,27 +2092,47 @@ def main():
         window_size = 98
         L = 120
         
-        # WUF = 10
+        WUF = 10
         # WUF = 25
-        WUF = 50
+        # WUF = 50
         
         print(f'Running {INSTANCE} WPS and RH with window size {window_size}, step size {step_size}, L = {L}, WUF = {WUF}, HORIZON = {HORIZON}, TIME_LIMIT = {TIME_LIMIT}')
         
-        'INSTANCE 1'
+        # 'INSTANCE 1'
         # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR02_VC03_V8a_alpha_COUNTER_19_4.pth'))
         # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR02_VC03_V8a_alpha_COUNTER19_4.pth'))
-        agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR02_VC03_V8a_alpha_COUNTER_11_264.pth'))
-        agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR02_VC03_V8a_alpha_COUNTER11_264.pth'))
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR02_VC03_V8a_alpha_COUNTER_11_264.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR02_VC03_V8a_alpha_COUNTER11_264.pth'))
         
-        'INSTANCE 2'
+        # 'INSTANCE 2'
         # agent.main_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR05_VC05_V25a_alpha_COUNTER68_5.pth'))
         # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR05_VC05_V25a_alpha_COUNTER68_5.pth'))
         
-        'INSTANCE 3'
+        # 'INSTANCE 3'
         # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR02_VC03_V8a_alpha_COUNTER_11_264.pth'))
         # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR02_VC03_V8a_alpha_COUNTER11_264.pth'))
         # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR08_VC10_V40a_alpha_COUNTER_98_2.pth'))
         # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR08_VC10_V40a_alpha_COUNTER98_2.pth'))
+        
+        'COMPRUN'
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR02_VC04_V8a_alpha_COUNTER_6_WPSCOMP.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR02_VC04_V8a_alpha_COUNTER6_WPSCOMP.pth'))
+        
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR04_VC03_V15a_alpha_COUNTER_21_WPSCOMP.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR04_VC03_V15a_alpha_COUNTER21_WPSCOMP.pth'))
+        
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR05_VC05_V25b_alpha_COUNTER_40_9.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR05_VC05_V25b_alpha_COUNTER40_9.pth'))
+        
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR08_VC05_V40b_alpha_COUNTER_98_WPSCOMP.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR08_VC05_V40b_alpha_COUNTER98_WPSCOMP.pth'))
+        
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR12_VC05_V70a_alpha_COUNTER_103_2.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR12_VC05_V70a_alpha_COUNTER103_2.pth'))
+        
+    
+        
+        
         
         TIME_LIMIT_PER_WINDOW = calc_time_limit_per_window(TIME_LIMIT, HORIZON, window_size, step_size)
         start_time = time.time()

@@ -770,12 +770,12 @@ class MIRPSOEnv():
         
     def sim_get_legal_arcs(self, state, vessel, special_sink_arcs, special_node_dict, queued_actions, acc_alpha):
             horizon = self.TIME_PERIOD_RANGE[-1]
-            if horizon < 121:
-                sink_threshold = 70
-            elif 121 <= horizon < 181:
-                sink_threshold = 130
-            else:
-                sink_threshold = 280
+            # if horizon < 121:
+            #     sink_threshold = 70
+            # elif 121 <= horizon < 181:
+            #     sink_threshold = 130
+            # else:
+            #     sink_threshold = 280
                 
             
             current_node_key = (vessel['position'], state['time'])
@@ -787,36 +787,36 @@ class MIRPSOEnv():
             if current_node == self.SOURCE_NODE:
                 return [arc for arc in self.VESSEL_ARCS[vessel] if arc.origin_node == current_node]
             
-            if state['time'] >= sink_threshold:
-                if self.can_operate_at_port_now(vessel, current_port, queued_actions, state, acc_alpha):
-                    # Check if there is another queued action that is leaving the same port and to the sink node
-                    sink_arc_taken = False
-                    for action in queued_actions.values():
-                        arc = action[3]
-                        qv_num = action[0]
-                        q_vessel = self.VESSEL_DICT[qv_num]
-                        if arc.origin_node == current_node and arc.destination_node == self.SINK_NODE and q_vessel.vessel_class == vessel['vessel_class']:
-                            # Sink node not available, only waiting arc is possible
-                            sink_arc_taken = True
-                            break
-                    if not sink_arc_taken:
-                        forced_arcs = [arc for arc in self.VESSEL_ARCS[non_sim_vessel] if arc.origin_node == current_node and arc.destination_node == self.SINK_NODE]
-                        if not forced_arcs:
-                            print('No forced arcs found')
-                        return forced_arcs
-                    else:
-                        forced_arcs = [arc for arc in self.VESSEL_ARCS[non_sim_vessel] if arc.is_waiting_arc and arc.origin_node == current_node]
-                        if not forced_arcs:
-                            print('No forced arcs found')
-                        return forced_arcs
-                else:
-                    forced_arcs = [arc for arc in self.VESSEL_ARCS[non_sim_vessel] if arc.is_waiting_arc and arc.origin_node == current_node]
-                    if not forced_arcs:
-                        print('No forced arcs found')
-                        potential_arcs = [arc for arc in self.VESSEL_ARCS[non_sim_vessel] if arc.origin_node == current_node]
-                        # Return a random arc
-                        return [random.choice(potential_arcs)]
-                    return forced_arcs
+            # if state['time'] >= sink_threshold:
+            #     if self.can_operate_at_port_now(vessel, current_port, queued_actions, state, acc_alpha):
+            #         # Check if there is another queued action that is leaving the same port and to the sink node
+            #         sink_arc_taken = False
+            #         for action in queued_actions.values():
+            #             arc = action[3]
+            #             qv_num = action[0]
+            #             q_vessel = self.VESSEL_DICT[qv_num]
+            #             if arc.origin_node == current_node and arc.destination_node == self.SINK_NODE and q_vessel.vessel_class == vessel['vessel_class']:
+            #                 # Sink node not available, only waiting arc is possible
+            #                 sink_arc_taken = True
+            #                 break
+            #         if not sink_arc_taken:
+            #             forced_arcs = [arc for arc in self.VESSEL_ARCS[non_sim_vessel] if arc.origin_node == current_node and arc.destination_node == self.SINK_NODE]
+            #             if not forced_arcs:
+            #                 print('No forced arcs found')
+            #             return forced_arcs
+            #         else:
+            #             forced_arcs = [arc for arc in self.VESSEL_ARCS[non_sim_vessel] if arc.is_waiting_arc and arc.origin_node == current_node]
+            #             if not forced_arcs:
+            #                 print('No forced arcs found')
+            #             return forced_arcs
+            #     else:
+            #         forced_arcs = [arc for arc in self.VESSEL_ARCS[non_sim_vessel] if arc.is_waiting_arc and arc.origin_node == current_node]
+            #         if not forced_arcs:
+            #             print('No forced arcs found')
+            #             potential_arcs = [arc for arc in self.VESSEL_ARCS[non_sim_vessel] if arc.origin_node == current_node]
+            #             # Return a random arc
+            #             return [random.choice(potential_arcs)]
+            #         return forced_arcs
                     
                     
             
@@ -1200,16 +1200,16 @@ class MIRPSOEnv():
             # Set the current state's next state equal to the next current state
             current_exp[4] = next_current_state
             
-        first_part = set(range(0, 60))
-        second_part = set(range(61, 120))
+        # first_part = set(range(0, 60))
+        # second_part = set(range(61, 120))
         
-        num_seg_1 = 0
-        num_seg_2 = 0
-        for exp in experience_path:
-            if exp[0]['time'] in first_part:
-                num_seg_1 += 1
-            else:
-                num_seg_2 += 1
+        # num_seg_1 = 0
+        # num_seg_2 = 0
+        # for exp in experience_path:
+        #     if exp[0]['time'] in first_part:
+        #         num_seg_1 += 1
+        #     else:
+        #         num_seg_2 += 1
             
             
         for exp in experience_path:
@@ -1223,7 +1223,12 @@ class MIRPSOEnv():
                 continue
                 
             current_state_time = current_state['time']
-            next_state_time = next_state['time']
+            # next_state_time = next_state['time']
+            
+            alpha_horizon = set(range(current_state_time, current_state_time + 60))
+            
+            
+            
             
             '''Terminal Reward'''
             # Split the horizon in to 2 parts of 60 time periods each
@@ -1232,22 +1237,22 @@ class MIRPSOEnv():
             # Find the number of exp with states in the correct part
             
             
-            if current_state_time in first_part:
-                correct_list = first_part
-                seg1 = True
-            else:
-                correct_list = second_part
-                seg1 = False
+            # if current_state_time in first_part:
+            #     correct_list = first_part
+            #     seg1 = True
+            # else:
+            #     correct_list = second_part
+            #     seg1 = False
             
-            if seg1:
-                num_seg = num_seg_1
-            else:
-                num_seg = num_seg_2
+            # if seg1:
+            #     num_seg = num_seg_1
+            # else:
+            #     num_seg = num_seg_2
                     
             # Find the number of alpha states in the correct part
-            alpha_states_in_correct_part = correct_list.intersection(alpha_states)
+            alpha_states_in_correct_part = alpha_horizon.intersection(alpha_states)
             
-            terminal_rew = (len(correct_list) - len(alpha_states_in_correct_part))/num_seg
+            terminal_rew = (60 - len(alpha_states_in_correct_part))/120
                 
             reward += terminal_rew
             
