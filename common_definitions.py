@@ -770,12 +770,12 @@ class MIRPSOEnv():
         
     def sim_get_legal_arcs(self, state, vessel, special_sink_arcs, special_node_dict, queued_actions, acc_alpha):
             horizon = self.TIME_PERIOD_RANGE[-1]
-            # if horizon < 121:
-            #     sink_threshold = 70
-            # elif 121 <= horizon < 181:
-            #     sink_threshold = 130
-            # else:
-            #     sink_threshold = 280
+            if horizon < 121:
+                sink_threshold = 70
+            elif 121 <= horizon < 181:
+                sink_threshold = 130
+            else:
+                sink_threshold = 280
                 
             
             current_node_key = (vessel['position'], state['time'])
@@ -787,36 +787,36 @@ class MIRPSOEnv():
             if current_node == self.SOURCE_NODE:
                 return [arc for arc in self.VESSEL_ARCS[vessel] if arc.origin_node == current_node]
             
-            # if state['time'] >= sink_threshold:
-            #     if self.can_operate_at_port_now(vessel, current_port, queued_actions, state, acc_alpha):
-            #         # Check if there is another queued action that is leaving the same port and to the sink node
-            #         sink_arc_taken = False
-            #         for action in queued_actions.values():
-            #             arc = action[3]
-            #             qv_num = action[0]
-            #             q_vessel = self.VESSEL_DICT[qv_num]
-            #             if arc.origin_node == current_node and arc.destination_node == self.SINK_NODE and q_vessel.vessel_class == vessel['vessel_class']:
-            #                 # Sink node not available, only waiting arc is possible
-            #                 sink_arc_taken = True
-            #                 break
-            #         if not sink_arc_taken:
-            #             forced_arcs = [arc for arc in self.VESSEL_ARCS[non_sim_vessel] if arc.origin_node == current_node and arc.destination_node == self.SINK_NODE]
-            #             if not forced_arcs:
-            #                 print('No forced arcs found')
-            #             return forced_arcs
-            #         else:
-            #             forced_arcs = [arc for arc in self.VESSEL_ARCS[non_sim_vessel] if arc.is_waiting_arc and arc.origin_node == current_node]
-            #             if not forced_arcs:
-            #                 print('No forced arcs found')
-            #             return forced_arcs
-            #     else:
-            #         forced_arcs = [arc for arc in self.VESSEL_ARCS[non_sim_vessel] if arc.is_waiting_arc and arc.origin_node == current_node]
-            #         if not forced_arcs:
-            #             print('No forced arcs found')
-            #             potential_arcs = [arc for arc in self.VESSEL_ARCS[non_sim_vessel] if arc.origin_node == current_node]
-            #             # Return a random arc
-            #             return [random.choice(potential_arcs)]
-            #         return forced_arcs
+            if state['time'] >= sink_threshold:
+                if self.can_operate_at_port_now(vessel, current_port, queued_actions, state, acc_alpha):
+                    # Check if there is another queued action that is leaving the same port and to the sink node
+                    sink_arc_taken = False
+                    for action in queued_actions.values():
+                        arc = action[3]
+                        qv_num = action[0]
+                        q_vessel = self.VESSEL_DICT[qv_num]
+                        if arc.origin_node == current_node and arc.destination_node == self.SINK_NODE and q_vessel.vessel_class == vessel['vessel_class']:
+                            # Sink node not available, only waiting arc is possible
+                            sink_arc_taken = True
+                            break
+                    if not sink_arc_taken:
+                        forced_arcs = [arc for arc in self.VESSEL_ARCS[non_sim_vessel] if arc.origin_node == current_node and arc.destination_node == self.SINK_NODE]
+                        if not forced_arcs:
+                            print('No forced arcs found')
+                        return forced_arcs
+                    else:
+                        forced_arcs = [arc for arc in self.VESSEL_ARCS[non_sim_vessel] if arc.is_waiting_arc and arc.origin_node == current_node]
+                        if not forced_arcs:
+                            print('No forced arcs found')
+                        return forced_arcs
+                else:
+                    forced_arcs = [arc for arc in self.VESSEL_ARCS[non_sim_vessel] if arc.is_waiting_arc and arc.origin_node == current_node]
+                    if not forced_arcs:
+                        print('No forced arcs found')
+                        potential_arcs = [arc for arc in self.VESSEL_ARCS[non_sim_vessel] if arc.origin_node == current_node]
+                        # Return a random arc
+                        return [random.choice(potential_arcs)]
+                    return forced_arcs
                     
                     
             
@@ -1891,32 +1891,12 @@ class DQNAgent:
         if len(legal_actions) == 1:
             action = legal_actions[0]
             arc = action[3]
-            # if arc.destination_node.time > window_end:
-            #     a_0, a_1, a_2, arc = action
-            #     # Find the sink arc from the same origin node
-            #     vc = vessel_simp['vessel_class']
-            #     for vc_arc in vessel_class_arcs[vc]:
-            #         if arc.origin_node == vc_arc.origin_node and vc_arc.destination_node == env.SINK_NODE:
-            #             action = (a_0, a_1, a_2, vc_arc)
-            #             arc = vc_arc
-            #             break
-                
             new_state = env.update_vessel_in_transition_and_inv_for_state(state = state, vessel = vessel_simp, destination_port = arc.destination_node.port, destination_time = arc.destination_node.time, origin_port = arc.origin_node.port, quantity = action[2], operation_type = action[1])
             return action, new_state
         
         if np.random.rand() < self.epsilon:
             action = random.choice(legal_actions)
             arc = action[3]
-            # if arc.destination_node.time > window_end:
-            #     a_0, a_1, a_2, arc = action
-            #     # Find the sink arc from the same origin node
-            #     vc = vessel_simp['vessel_class']
-            #     for vc_arc in vessel_class_arcs[vc]:
-            #         if arc.origin_node == vc_arc.origin_node and vc_arc.destination_node == env.SINK_NODE:
-            #             action = (a_0, a_1, a_2, vc_arc)
-            #             arc = vc_arc
-            #             break
-                    
             new_state = env.update_vessel_in_transition_and_inv_for_state(state = state, vessel = vessel_simp, destination_port = arc.destination_node.port, destination_time = arc.destination_node.time, origin_port = arc.origin_node.port, quantity = action[2], operation_type = action[1])
             return action, new_state
         
@@ -1945,18 +1925,8 @@ class DQNAgent:
                 # Find all actions with the same destination port number in legal actions
                 possible_actions = [action for action in legal_actions if action[3].destination_node.port.number == destination_port_number]
                 # If there is a possible traveling arc, take it.
-                
                 action = max(possible_actions, key=lambda x: x[3].speed)
                 arc = action[3]
-                # if arc.destination_node.time > window_end:
-                #     a_0, a_1, a_2, arc = action
-                #     # Find the sink arc from the same origin node
-                #     vc = vessel_simp['vessel_class']
-                #     for vc_arc in vessel_class_arcs[vc]:
-                #         if arc.origin_node == vc_arc.origin_node and vc_arc.destination_node == env.SINK_NODE:
-                #             action = (a_0, a_1, a_2, vc_arc)
-                #             arc = vc_arc
-                #             break
                 new_state = env.update_vessel_in_transition_and_inv_for_state(state = state, vessel = vessel_simp, destination_port = arc.destination_node.port, destination_time = arc.destination_node.time, origin_port = arc.origin_node.port, quantity = action[2], operation_type = action[1])
                 return action, new_state
                 
