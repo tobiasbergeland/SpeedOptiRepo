@@ -191,7 +191,7 @@ def construction_heuristic_for_window(env, agent, window_start, window_end, comb
     # Need some randomization in order for the agent to produce different results
     agent.epsilon = 0.3
     
-    for i in range(10):
+    for i in range(3):
         if not combined_solution:
             # Window start is 0, so we need to start from scratch
             experience_path = []

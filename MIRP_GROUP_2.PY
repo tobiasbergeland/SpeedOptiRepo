@@ -1002,7 +1002,7 @@ def build_model(vessels, regularNodes, ports, TIME_PERIOD_RANGE, sourceNode, sin
     
     return m, costs, P, costs_namekey
     
-def build_problem(INSTANCE, RUNNING_MIRPSO):    
+def build_problem(INSTANCE, RUNNING_MIRPSO, RUNNING_SIM):    
     INSTANCE_PATH = 'Group_2/'+INSTANCE+'/'+INSTANCE+'.txt'
     VESSELINFO_PATH = 'Group_2/'+INSTANCE+'/vessel_data.txt'
     VESSEL_CLASS_DATA_PATH = 'Group_2/'+INSTANCE+'/vessel_class_data.txt'
@@ -1022,11 +1022,15 @@ def build_problem(INSTANCE, RUNNING_MIRPSO):
     all_ports, loading_regions, discharging_regions, port_dict = create_ports_from_info_with_loading(ports_info, spotMarketPricePerUnit, spotMarketDiscountFactor)
     ports = get_ports(all_ports)
     NUM_TIME_PERIODS = metadata['numPeriods']
+    
     # NUM_TIME_PERIODS = 40
     # NUM_TIME_PERIODS = 120
     # NUM_TIME_PERIODS = 180
-    # NUM_TIME_PERIODS = 360
-    NUM_TIME_PERIODS = 409
+    NUM_TIME_PERIODS = 360
+    
+    if RUNNING_SIM:
+        NUM_TIME_PERIODS = 409
+    
     TIME_PERIOD_RANGE = list(range(0, NUM_TIME_PERIODS))
     FUEL_PRICE = 500
     ORIGINAL_NUM_PORTS = len(ports)
@@ -1697,13 +1701,13 @@ def save_solution(INSTANCE, HORIZON, model, time_limit, elapsed_time, costs, P,
     elif method == 'NPS_AND_RH':
         filename = f"PS_param2/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_WS={window_size}_SS={step_size}_{L}.json"
         filename_readable_routes = f"PS_param2/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_WS={window_size}_SS={step_size}_{L}.txt"
+    # else:
+    #     filename = f"SIMRES/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_WS={window_size}_SS={step_size}_{L}.json"
+    #     filename_readable_routes = f"SIMRES/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_WS={window_size}_SS={step_size}_{L}.txt"
     else:
         filename = f"results/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_WS={window_size}_SS={step_size}_{L}.json"
         filename_readable_routes = f"results/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_WS={window_size}_SS={step_size}_{L}.txt"
         
-    # else:
-        # filename = f"SIMRES/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_WS={window_size}_SS={step_size}_{L}.json"
-        # filename_readable_routes = f"SIMRES/{'MIRPSO' if RUNNING_MIRPSO else 'MIRP'}_GROUP_2_{INSTANCE}_{HORIZON}_{method}_WS={window_size}_SS={step_size}_{L}.txt"
         
         
     with open(filename, 'w') as file:
@@ -1935,21 +1939,46 @@ def main():
     # INSTANCE = 'LR1_DR02_VC03_V7a'
     # INSTANCE = 'LR1_DR03_VC03_V10b'
     
-    'SIM'
     # INSTANCE = 'LR1_DR03_VC03_V10b'
     # INSTANCE = 'LR1_DR08_VC05_V40b'
     # INSTANCE = 'LR1_DR12_VC05_V70a'
     # INSTANCE = 'LR1_DR08_VC10_V40a'
-    INSTANCE = 'LR1_DR05_VC05_V25a'
+    # INSTANCE = 'LR1_DR05_VC05_V25a'
     
+    'SIM'
+    # INSTANCE = 'LR1_DR02_VC02_V6a'
+    # INSTANCE = 'LR1_DR02_VC03_V7a'
+    # INSTANCE = 'LR1_DR02_VC03_V8a'
+    # INSTANCE = 'LR1_DR02_VC04_V8a'
+    # INSTANCE = 'LR1_DR02_VC05_V8a'
+    # INSTANCE = 'LR1_DR03_VC03_V10b'
+    INSTANCE = 'LR1_DR03_VC03_V13b'
     
+    # INSTANCE = 'LR1_DR03_VC03_V16a'
+    # INSTANCE = 'LR1_DR04_VC03_V15a'
+    # INSTANCE = 'LR1_DR04_VC03_V15b'
+    # INSTANCE = 'LR1_DR04_VC05_V17a'
+    # INSTANCE = 'LR1_DR04_VC05_V17b'
+    # INSTANCE = 'LR1_DR05_VC05_V25a'
+    # INSTANCE = 'LR1_DR05_VC05_V25b'
+    # INSTANCE = 'LR1_DR08_VC05_V38a'
     
-    TIME_LIMIT = 7200
+    # INSTANCE = 'LR1_DR08_VC05_V40a'
+    # INSTANCE = 'LR1_DR08_VC05_V40b'
+    # INSTANCE = 'LR1_DR08_VC10_V40a'
+    # INSTANCE = 'LR1_DR08_VC10_V40b'
+    # INSTANCE = 'LR1_DR012_VC05_V70a'
+    # INSTANCE = 'LR1_DR12_VC05_V70b'
+    # INSTANCE = 'LR1_DR12_VC10_V70a'
+    # INSTANCE = 'LR1_DR12_VC10_V70b'
+
+    
+    TIME_LIMIT = 300
     # L = 60
     # L = 90
     L = 120
     
-    problem_data = build_problem(INSTANCE, RUNNING_MIRPSO)
+    problem_data = build_problem(INSTANCE, RUNNING_MIRPSO, RUNNING_SIM)
     
     # Unpack the problem data
     vessels = problem_data['vessels']
@@ -2038,14 +2067,188 @@ def main():
         # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR08_VC05_V40b_alpha_COUNTER_98_WPSCOMP.pth')) 
         # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR08_VC05_V40b_alpha_COUNTER98_WPSCOMP.pth'))
         
-        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR12_VC05_V70a_alpha_COUNTER_103_2.pth'))
-        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR12_VC05_V70a_alpha_COUNTER103_2.pth'))
         
         # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR08_VC10_V40a_alpha_COUNTER_98_2.pth'))
         # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR08_VC10_V40a_alpha_COUNTER98_2.pth'))
         
-        agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR05_VC05_V25a_alpha_COUNTER_59_6.pth'))
-        agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR05_VC05_V25a_alpha_COUNTER59_6.pth'))
+        
+        
+        
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR02_VC02_V6a_alpha_COUNTER_18_11.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR02_VC02_V6a_alpha_COUNTER18_11.pth'))
+        
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR02_VC03_V7a_alpha_COUNTER_12_10.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR02_VC03_V7a_alpha_COUNTER12_10.pth'))
+        
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR02_VC03_V8a_alpha_COUNTER_11_264.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR02_VC03_V8a_alpha_COUNTER11_264.pth'))
+        
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR02_VC04_V8a_alpha_COUNTER_6_WPSCOMP.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR02_VC04_V8a_alpha_COUNTER6_WPSCOMP.pth'))
+        
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR02_VC05_V8a_alpha_COUNTER_6_6.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR02_VC05_V8a_alpha_COUNTER6_6.pth'))
+        
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR03_VC03_V10b_alpha_COUNTER_54_10.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR03_VC03_V10b_alpha_COUNTER54_10.pth'))
+        
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR03_VC03_V13b_alpha_COUNTER_29_10.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR03_VC03_V13b_alpha_COUNTER29_10.pth'))
+        
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR03_VC03_V16a_alpha_COUNTER_37_7.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR03_VC03_V16a_alpha_COUNTER37_7.pth'))
+        
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR04_VC03_V15a_alpha_COUNTER_21_WPSCOMP.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR04_VC03_V15a_alpha_COUNTER21_WPSCOMP.pth'))
+        
+        
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR04_VC05_V17a_alpha_COUNTER_35_12.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR04_VC05_V17a_alpha_COUNTER35_12.pth'))
+        
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR04_VC05_V17b_alpha_COUNTER_47_7.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR04_VC05_V17b_alpha_COUNTER47_7.pth'))
+        
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR05_VC05_V25a_alpha_COUNTER_59_6.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR05_VC05_V25a_alpha_COUNTER59_6.pth'))
+        
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR05_VC05_V25b_alpha_COUNTER_40_9.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR05_VC05_V25b_alpha_COUNTER40_9.pth'))
+        
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR08_VC05_V38a_alpha_COUNTER_95_5.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR08_VC05_V38a_alpha_COUNTER95_5.pth'))
+        '''-----------------------'''
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR08_VC05_V40a_alpha_COUNTER_92_4.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR08_VC05_V40a_alpha_COUNTER92_4.pth'))
+        
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR08_VC05_V40b_alpha_COUNTER_98_WPSCOMP.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR08_VC05_V40b_alpha_COUNTER98_WPSCOMP.pth'))
+        
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR08_VC10_V40a_alpha_COUNTER_98_2.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR08_VC10_V40a_alpha_COUNTER98_2.pth'))
+        
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR08_VC10_V40b_alpha_COUNTER_98_6.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR08_VC10_V40b_alpha_COUNTER98_6.pth'))
+        
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR12_VC05_V70a_alpha_COUNTER_103_2.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR12_VC05_V70a_alpha_COUNTER103_2.pth'))
+        
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR12_VC05_V70b_alpha_COUNTER_102_3.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR12_VC05_V70b_alpha_COUNTER102_3.pth'))
+        
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR12_VC10_V70a_alpha_COUNTER_98_1.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR12_VC10_V70a_alpha_COUNTER98_1.pth'))
+        
+        # agent.main_model.load_state_dict(torch.load('active_agents2/main_model_LR1_DR12_VC10_V70b_alpha_COUNTER_98_5.pth'))
+        # agent.target_model.load_state_dict(torch.load('active_agents2/target_model_LR1_DR12_VC10_V70b_alpha_COUNTER98_5.pth'))
+        
+
+        # Define a dictionary mapping each instance to its corresponding file paths
+        instance_to_paths = {
+            'LR1_DR03_VC03_V10b': {
+                'main_model': 'active_agents2/main_model_LR1_DR03_VC03_V10b_alpha_COUNTER_54_10.pth',
+                'target_model': 'active_agents2/target_model_LR1_DR03_VC03_V10b_alpha_COUNTER54_10.pth'
+            },
+            'LR1_DR08_VC05_V40b': {
+                'main_model': 'active_agents2/main_model_LR1_DR08_VC05_V40b_alpha_COUNTER_98_WPSCOMP.pth',
+                'target_model': 'active_agents2/target_model_LR1_DR08_VC05_V40b_alpha_COUNTER98_WPSCOMP.pth'
+            },
+            'LR1_DR08_VC10_V40a': {
+                'main_model': 'active_agents2/main_model_LR1_DR08_VC10_V40a_alpha_COUNTER_98_2.pth',
+                'target_model': 'active_agents2/target_model_LR1_DR08_VC10_V40a_alpha_COUNTER98_2.pth'
+            },
+            'LR1_DR02_VC02_V6a': {
+                'main_model': 'active_agents2/main_model_LR1_DR02_VC02_V6a_alpha_COUNTER_18_11.pth',
+                'target_model': 'active_agents2/target_model_LR1_DR02_VC02_V6a_alpha_COUNTER18_11.pth'
+            },
+            'LR1_DR02_VC03_V7a': {
+                'main_model': 'active_agents2/main_model_LR1_DR02_VC03_V7a_alpha_COUNTER_12_10.pth',
+                'target_model': 'active_agents2/target_model_LR1_DR02_VC03_V7a_alpha_COUNTER12_10.pth'
+            },
+            'LR1_DR02_VC03_V8a': {
+                'main_model': 'active_agents2/main_model_LR1_DR02_VC03_V8a_alpha_COUNTER_11_264.pth',
+                'target_model': 'active_agents2/target_model_LR1_DR02_VC03_V8a_alpha_COUNTER11_264.pth'
+            },
+            'LR1_DR02_VC04_V8a': {
+                'main_model': 'active_agents2/main_model_LR1_DR02_VC04_V8a_alpha_COUNTER_6_WPSCOMP.pth',
+                'target_model': 'active_agents2/target_model_LR1_DR02_VC04_V8a_alpha_COUNTER6_WPSCOMP.pth'
+            },
+            'LR1_DR02_VC05_V8a': {
+                'main_model': 'active_agents2/main_model_LR1_DR02_VC05_V8a_alpha_COUNTER_6_6.pth',
+                'target_model': 'active_agents2/target_model_LR1_DR02_VC05_V8a_alpha_COUNTER6_6.pth'
+            },
+            'LR1_DR03_VC03_V13b': {
+                'main_model': 'active_agents2/main_model_LR1_DR03_VC03_V13b_alpha_COUNTER_29_10.pth',
+                'target_model': 'active_agents2/target_model_LR1_DR03_VC03_V13b_alpha_COUNTER29_10.pth'
+            },
+            'LR1_DR03_VC03_V16a': {
+                'main_model': 'active_agents2/main_model_LR1_DR03_VC03_V16a_alpha_COUNTER_37_7.pth',
+                'target_model': 'active_agents2/target_model_LR1_DR03_VC03_V16a_alpha_COUNTER37_7.pth'
+            },
+            'LR1_DR04_VC03_V15a': {
+                'main_model': 'active_agents2/main_model_LR1_DR04_VC03_V15a_alpha_COUNTER_21_WPSCOMP.pth',
+                'target_model': 'active_agents2/target_model_LR1_DR04_VC03_V15a_alpha_COUNTER21_WPSCOMP.pth'
+            },
+            'LR1_DR04_VC05_V17a': {
+                'main_model': 'active_agents2/main_model_LR1_DR04_VC05_V17a_alpha_COUNTER_35_12.pth',
+                'target_model': 'active_agents2/target_model_LR1_DR04_VC05_V17a_alpha_COUNTER35_12.pth'
+            },
+            'LR1_DR04_VC05_V17b': {
+                'main_model': 'active_agents2/main_model_LR1_DR04_VC05_V17b_alpha_COUNTER_47_7.pth',
+                'target_model': 'active_agents2/target_model_LR1_DR04_VC05_V17b_alpha_COUNTER47_7.pth'
+            },
+            'LR1_DR05_VC05_V25a': {
+                'main_model': 'active_agents2/main_model_LR1_DR05_VC05_V25a_alpha_COUNTER_59_6.pth',
+                'target_model': 'active_agents2/target_model_LR1_DR05_VC05_V25a_alpha_COUNTER59_6.pth'
+            },
+            'LR1_DR05_VC05_V25b': {
+                'main_model': 'active_agents2/main_model_LR1_DR05_VC05_V25b_alpha_COUNTER_40_9.pth',
+                'target_model': 'active_agents2/target_model_LR1_DR05_VC05_V25b_alpha_COUNTER40_9.pth'
+            },
+            'LR1_DR08_VC05_V38a': {
+                'main_model': 'active_agents2/main_model_LR1_DR08_VC05_V38a_alpha_COUNTER_95_5.pth',
+                'target_model': 'active_agents2/target_model_LR1_DR08_VC05_V38a_alpha_COUNTER95_5.pth'
+            },
+            'LR1_DR08_VC05_V40a': {
+                'main_model': 'active_agents2/main_model_LR1_DR08_VC05_V40a_alpha_COUNTER_92_4.pth',
+                'target_model': 'active_agents2/target_model_LR1_DR08_VC05_V40a_alpha_COUNTER92_4.pth'
+            },
+            'LR1_DR08_VC10_V40a': {
+                'main_model': 'active_agents2/main_model_LR1_DR08_VC10_V40a_alpha_COUNTER_98_2.pth',
+                'target_model': 'active_agents2/target_model_LR1_DR08_VC10_V40a_alpha_COUNTER98_2.pth'
+            },
+            'LR1_DR08_VC10_V40b': {
+                'main_model': 'active_agents2/main_model_LR1_DR08_VC10_V40b_alpha_COUNTER_98_6.pth',
+                'target_model': 'active_agents2/target_model_LR1_DR08_VC10_V40b_alpha_COUNTER98_6.pth'
+            },
+            'LR1_DR12_VC05_V70a': {
+                'main_model': 'active_agents2/main_model_LR1_DR12_VC05_V70a_alpha_COUNTER_103_2.pth',
+                'target_model': 'active_agents2/target_model_LR1_DR12_VC05_V70a_alpha_COUNTER103_2.pth'
+            },
+            'LR1_DR12_VC05_V70b': {
+                'main_model': 'active_agents2/main_model_LR1_DR12_VC05_V70b_alpha_COUNTER_102_3.pth',
+                'target_model': 'active_agents2/target_model_LR1_DR12_VC05_V70b_alpha_COUNTER102_3.pth'
+            },
+            'LR1_DR12_VC10_V70a': {
+                'main_model': 'active_agents2/main_model_LR1_DR12_VC10_V70a_alpha_COUNTER_98_1.pth',
+                'target_model': 'active_agents2/target_model_LR1_DR12_VC10_V70a_alpha_COUNTER98_1.pth'
+            },
+            'LR1_DR12_VC10_V70b': {
+                'main_model': 'active_agents2/main_model_LR1_DR12_VC10_V70b_alpha_COUNTER_98_5.pth',
+                'target_model': 'active_agents2/target_model_LR1_DR12_VC10_V70b_alpha_COUNTER98_5.pth'
+            }
+        }
+
+        # Load the models based on the active instance
+        if INSTANCE in instance_to_paths:
+            agent.main_model.load_state_dict(torch.load(instance_to_paths[INSTANCE]['main_model']))
+            agent.target_model.load_state_dict(torch.load(instance_to_paths[INSTANCE]['target_model']))
+            print(f"Models loaded for the instance: {INSTANCE}")
+            print(f'Main model path: {instance_to_paths[INSTANCE]["main_model"]}')
+            print(f'Target model path: {instance_to_paths[INSTANCE]["target_model"]}')
+        else:
+            print(f"No model paths found for the instance: {INSTANCE}")
+
+        
         
         
         
@@ -2068,7 +2271,7 @@ def main():
         # step_size = 
         TIME_LIMIT_PER_WINDOW = calc_time_limit_per_window(TIME_LIMIT, HORIZON, window_size, step_size, RUNNING_SIM)
         start_time = time.time()
-        current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs, solver_and_chObj = rolling_horizon_optimization(model=model, horizon_length=HORIZON, window_size=window_size, step_size=step_size, TIME_LIMIT_PER_WINDOW=TIME_LIMIT_PER_WINDOW, ps_data=ps_data, agent=agent, env=env, RUNNING_WPS_AND_RH=RUNNING_WPS_AND_RH, RUNNING_NPS_AND_RH=RUNNING_NPS_AND_RH, proximity_search_using_agent=proximity_search_using_agent, RUNNING_MIRPSO=RUNNING_MIRPSO, VESSEL_CLASSES = VESSEL_CLASSES, INSTANCE=INSTANCE, vessel_class_arcs=vessel_class_arcs, L=L, WUF=None)
+        current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_s, current_solution_alpha, active_arcs, solver_and_chObj = rolling_horizon_optimization(model=model, horizon_length=HORIZON, window_size=window_size, step_size=step_size, TIME_LIMIT_PER_WINDOW=TIME_LIMIT_PER_WINDOW, ps_data=ps_data, agent=agent, env=env, RUNNING_WPS_AND_RH=RUNNING_WPS_AND_RH, RUNNING_NPS_AND_RH=RUNNING_NPS_AND_RH, proximity_search_using_agent=proximity_search_using_agent, RUNNING_MIRPSO=RUNNING_MIRPSO, VESSEL_CLASSES = VESSEL_CLASSES, INSTANCE=INSTANCE, vessel_class_arcs=vessel_class_arcs, L=L, WUF=None, RUNNING_SIM=RUNNING_SIM)
         # Print objective function value
         print(f'Objective function value: {current_best_obj}')
         end_time = time.time()

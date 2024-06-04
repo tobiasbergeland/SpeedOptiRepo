@@ -214,8 +214,10 @@ def save_original_rhs(model):
     return {constr.ConstrName: constr.RHS for constr in model.getConstrs()}
 
 import time
-def rolling_horizon_optimization(model, horizon_length, window_size, step_size, TIME_LIMIT_PER_WINDOW, ps_data, agent, env, RUNNING_WPS_AND_RH, RUNNING_NPS_AND_RH, proximity_search_using_agent, RUNNING_MIRPSO, VESSEL_CLASSES, INSTANCE, vessel_class_arcs, L, WUF):
+def rolling_horizon_optimization(model, horizon_length, window_size, step_size, TIME_LIMIT_PER_WINDOW, ps_data, agent, env, RUNNING_WPS_AND_RH, RUNNING_NPS_AND_RH, proximity_search_using_agent, RUNNING_MIRPSO, VESSEL_CLASSES, INSTANCE, vessel_class_arcs, L, WUF, RUNNING_SIM):
     
+    # Extract the original objective function from the model
+    OG_OBJ = model.getObjective()
     # First save all constraints, but remove time-dependent constraints from the model.
     time_constraints = store_and_remove_time_constraints(model)
     
@@ -268,7 +270,7 @@ def rolling_horizon_optimization(model, horizon_length, window_size, step_size, 
             
         # Adjust constraints and objective function for the current window
         adjust_constraints_for_window(model, window_end, time_constraints)
-        set_objective_for_window(model, window_start, window_end, ps_data, true_horizon=360)
+        set_objective_for_window(model, window_start, window_end, ps_data)
         
         # manually_check_constraints(model)
         check_integrality(model)
@@ -300,7 +302,67 @@ def rolling_horizon_optimization(model, horizon_length, window_size, step_size, 
         else:
             print('New iteration')
             
+    if RUNNING_SIM:
+        # Evaluate solution with original objective function
+        # original_obj_val = evaluate_solution_with_original_objective(model, ps_data, True, False)
+        SIM_objval = evaluate_solution_with_original_objective_for_SIM(model, ps_data, 360)
+        print(f'Original objective value: {SIM_objval}')
+        current_best_obj = SIM_objval
+            
     return current_best_obj, current_solution_vars_x, current_solution_vals_x, current_solution_vals_s, current_solution_vals_alpha, active_arcs, solver_and_chObj
+    
+
+    
+def evaluate_solution_with_original_objective_for_SIM(model, ps_data, true_horizon):
+    print("Evaluating solution with original objective")
+    costs = ps_data['costs']
+    regularNodes = ps_data['regularNodes']
+    P = ps_data['P']
+    
+    # Directly calculate arc costs using comprehension
+    x = {v.VarName: v.X for v in model.getVars() if v.VarName.startswith('x')}
+    # Do the same fo alpha variables
+    alpha = {v.VarName: v.X for v in model.getVars() if v.VarName.startswith('a')}
+    
+    
+    arc_costs = 0  # Initialize the sum variable
+    arc_cost_left_out = 0
+
+    # Iterate over each key in the costs dictionary
+    for key in costs:
+        arc_tuple = key[0]
+        origin_node = arc_tuple[0]
+        # Check if the origin_node.time is less than the fixed parameter
+        if origin_node.time < true_horizon:
+            # Multiply the cost by the corresponding x value and add it to arc_costs
+            arc_costs += costs[key] * x[convert_key_to_varname(key)]
+        else:
+            arc_cost_left_out += costs[key] * x[convert_key_to_varname(key)]
+            
+    
+    alpha_costs = 0
+    alpha_cost_left_out = 0
+    for node in regularNodes:
+        key = f'alpha[{node.port.number},{node.time}]'
+        alpha_val = alpha[key]
+        P_val = P[(node.port.number, node.time)]
+        if node.time<= true_horizon:
+            alpha_costs += alpha_val * P_val
+        else:
+            alpha_cost_left_out += alpha_val * P_val
+    
+        
+        
+    print(f'Alpha_costs: {alpha_costs}')
+    print(f'Arc costs: {arc_costs}')
+    SIM_obj_value = arc_costs + alpha_costs
+    print('New objective value:', SIM_obj_value)
+    
+    print('Arc costs left out:', arc_cost_left_out)
+    print('Alpha costs left out:', alpha_cost_left_out)
+    total_cost_left_out = arc_cost_left_out + alpha_cost_left_out
+    print('Total costs left out:', total_cost_left_out)
+    return SIM_obj_value
     
         
 def extract_current_solution(model):
@@ -404,7 +466,7 @@ def restore_constraints(model, original_rhs):
     model.update()
 
     
-def set_objective_for_window(model, window_start, window_end, ps_data, true_horizon):
+def set_objective_for_window(model, window_start, window_end, ps_data):
     costs_namekey = ps_data['costs_namekey']
     P = ps_data['P']
     regular_nodes = ps_data['regularNodes']
@@ -418,15 +480,17 @@ def set_objective_for_window(model, window_start, window_end, ps_data, true_hori
     obj = gp.LinExpr()
     for varname, var in x_vars.items():
         time = extract_time_period_from_x_var_name(varname)[0]
-        if time <= window_end and time <= true_horizon:
+        if time <= window_end:
             obj += var * costs_namekey[varname] # Assuming get_cost returns the cost coefficient for the variable
             
     for node in regular_nodes:
         # if window_start <= node.time <= window_end:
-        if node.time <= window_end and node.time <= true_horizon:
+        if node.time <= window_end:
             obj += alpha_vars[f'alpha[{node.port.number},{node.time}]'] * P[(node.port.number, node.time)]
 
     model.setObjective(obj, gp.GRB.MINIMIZE)  # Set the objective to minimize; adjust accordingly
     model.update()
+    
+    
 
 
